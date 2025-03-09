@@ -1,0 +1,19 @@
+<ion-header [translucent]="true">
+  <ion-toolbar>
+    <ion-title> Regisztracio </ion-title>
+  </ion-toolbar>
+</ion-header>
+
+<ion-content [fullscreen]="true">
+  <ion-header collapse="condense">
+    <ion-toolbar>
+      <ion-title size="large">Regisztracio</ion-title>
+    </ion-toolbar>
+  </ion-header>
+
+  <app-explore-container
+    [viewData]="registrationData"
+    (submitData)="getSubmittedData($event)"
+    name="Regisztracio"
+  ></app-explore-container>
+</ion-content>

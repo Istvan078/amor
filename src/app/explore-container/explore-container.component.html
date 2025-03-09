@@ -1,0 +1,21 @@
+<div id="container">
+  <strong>{{ name }}</strong>
+  @if(viewData?.data?.firstName) {
+  <ion-list>
+    <form (ngSubmit)="onSubmit(ngForm)" #ngForm="ngForm">
+      @for(val of viewArrayValues; let i = $index; track $index;) {
+      <ion-item
+        ><ion-input
+          [name]="viewArrayKeys[i]"
+          ngModel
+          [label]="viewData.labels[i]"
+        ></ion-input
+      ></ion-item>
+
+      }
+      <ion-button type="submit">Regisztracio</ion-button>
+    </form>
+  </ion-list>
+
+  }
+</div>
