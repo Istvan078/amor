@@ -1,5 +1,6 @@
-import { Component } from '@angular/core';
+import { Component, OnInit } from '@angular/core';
 import { AuthService } from '../services/auth.service';
+import { BaseService } from '../services/base.service';
 
 type registrationData = {
   data: {};
@@ -12,7 +13,7 @@ type registrationData = {
   styleUrls: ['tab1.page.scss'],
   standalone: false,
 })
-export class Tab1Page {
+export class Tab1Page implements OnInit {
   registrationData!: registrationData;
   labels: string[] = [
     'Email',
@@ -22,7 +23,8 @@ export class Tab1Page {
     'Szuletesi Datum',
     'Kor',
   ];
-  constructor(private auth: AuthService) {
+  constructor(private auth: AuthService, private base: BaseService) {}
+  ngOnInit(): void {
     this.registerUser();
   }
   registerUser() {
@@ -38,8 +40,9 @@ export class Tab1Page {
       labels: this.labels,
     };
   }
-  getSubmittedData(data: any) {
-    this.auth.registerEmail(data);
+  async getSubmittedData(data: any) {
+    const userCreds = await this.auth.registerEmail(data);
+    await this.base.registerUserProf(userCreds.user!.uid, data);
     console.log(data); // ELMENTENI ADATBAZISBA
   }
 }

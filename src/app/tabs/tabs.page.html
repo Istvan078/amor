@@ -1,5 +1,6 @@
 <ion-tabs>
   <ion-tab-bar slot="bottom">
+    @if(!loggedUser?.uid) {
     <ion-tab-button tab="tab1" href="/tabs/tab1">
       <ion-icon aria-hidden="true" name="triangle"></ion-icon>
       <ion-label>Regisztracio</ion-label>
@@ -7,12 +8,12 @@
 
     <ion-tab-button tab="tab2" href="/tabs/tab2">
       <ion-icon aria-hidden="true" name="ellipse"></ion-icon>
-      <ion-label>Tab 2</ion-label>
+      <ion-label>Bejelentkezes</ion-label>
     </ion-tab-button>
-
+    }
     <ion-tab-button tab="tab3" href="/tabs/tab3">
       <ion-icon aria-hidden="true" name="square"></ion-icon>
-      <ion-label>Tab 3</ion-label>
+      <ion-label>Profilom</ion-label>
     </ion-tab-button>
   </ion-tab-bar>
 </ion-tabs>

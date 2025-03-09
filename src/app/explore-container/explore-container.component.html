@@ -1,6 +1,6 @@
 <div id="container">
   <strong>{{ name }}</strong>
-  @if(viewData?.data?.firstName) {
+  @if(viewData?.data) {
   <ion-list>
     <form (ngSubmit)="onSubmit(ngForm)" #ngForm="ngForm">
       @for(val of viewArrayValues; let i = $index; track $index;) {
@@ -13,9 +13,50 @@
       ></ion-item>
 
       }
-      <ion-button type="submit">Regisztracio</ion-button>
+      <ion-button type="submit">{{
+        viewArrayKeys.length < 3 ? "Bejelentkezes" : "Regisztracio"
+      }}</ion-button>
     </form>
   </ion-list>
 
+  } @if(viewData?.firstName){
+  <ion-menu side="end" contentId="main-content">
+    <ion-header>
+      <ion-toolbar>
+        <ion-title>Menu</ion-title>
+      </ion-toolbar>
+    </ion-header>
+    <ion-content class="ion-padding">Menu tartalma</ion-content>
+  </ion-menu>
+
+  <ion-card>
+    <ion-card-header>
+      <div
+        style="display: flex; justify-content: space-between; margin-left: 10px"
+      >
+        <img
+          alt="Silhouette of mountains"
+          src="https://img.freepik.com/free-photo/handsome-smiling-man-looking-with-disbelief_176420-19591.jpg?t=st=1741555823~exp=1741559423~hmac=738a5a0dafdce7d58c68b7f131d5c5c3855f793601fedd93cdf29d7a23cbfc4a&w=1060"
+          width="100px"
+          height="100px"
+        />
+        <div id="main-content">
+          <ion-menu-button size="large"></ion-menu-button>
+        </div>
+      </div>
+      <ion-card-title>{{
+        viewData?.firstName + " " + viewData?.lastName
+      }}</ion-card-title>
+      <ion-card-subtitle>Ferfi</ion-card-subtitle>
+    </ion-card-header>
+    <ion-card-content>
+      <ion-list>
+        <ion-item *ngFor="let lab of labels.userProfLabels; let i = index">
+          <ion-card-content>{{ lab.value }}</ion-card-content>
+          <ion-label>{{ viewData[lab.key] }}</ion-label>
+        </ion-item>
+      </ion-list>
+    </ion-card-content>
+  </ion-card>
   }
 </div>

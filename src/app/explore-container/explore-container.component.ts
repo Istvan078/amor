@@ -8,6 +8,7 @@ import {
   ViewChild,
 } from '@angular/core';
 import { NgForm } from '@angular/forms';
+import { ConfigService } from '../services/config.service';
 
 @Component({
   selector: 'app-explore-container',
@@ -22,17 +23,30 @@ export class ExploreContainerComponent implements OnInit, AfterViewInit {
   @ViewChild('ngForm') ngForm!: NgForm;
   viewArrayValues: any[] = [];
   viewArrayKeys: any[] = [];
+  labels: any = {};
+  constructor(private config: ConfigService) {}
   getViewData() {
-    this.viewArrayValues = Object.values(this.viewData.data);
-    this.viewArrayKeys = Object.keys(this.viewData.data);
+    if (this.viewData?.firstName) {
+      this.viewArrayValues = Object.values(this.viewData);
+      this.labels = this.config.getLabels(true);
+      this.viewArrayKeys = Object.keys(this.viewData);
+    }
+    if (this.viewData?.data) {
+      this.viewArrayValues = Object.values(this.viewData.data);
+      this.viewArrayKeys = Object.keys(this.viewData.data);
+    }
   }
   ngOnInit(): void {
-    this.getViewData();
+    setTimeout(() => {
+      this.getViewData();
+      console.log(this.viewData);
+    }, 2000);
   }
   ngAfterViewInit(): void {
-    setTimeout(() => {
-      this.ngForm.form.setValue(this.viewData.data);
-    }, 1000);
+    if (this.viewData?.data)
+      setTimeout(() => {
+        this.ngForm.form.setValue(this.viewData.data);
+      }, 1000);
   }
   onSubmit(form: NgForm) {
     console.log(form.value);
