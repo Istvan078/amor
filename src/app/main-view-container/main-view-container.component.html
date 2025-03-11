@@ -1,13 +1,36 @@
-<div id="side-nav-container">
-  @if(user?.uid){
-  <nav class="nav">Nav István Kalmár</nav>
-  <div class="promotions-container">Promociok</div>
-  <div class="matches-and-messages-cont">Parok, uzenetek</div>
-  <div class="pairs-and-messageheads-cont">
-    Parok listazva, Uzenetek uzeneteknel
+@if(user?.uid){
+<div id="main-container">
+  <div id="side-nav-container">
+    <nav class="nav">
+      <ion-avatar class="user-img" slot="start">
+        <img
+          src="https://img.freepik.com/free-vector/user-circles-set_78370-4704.jpg?t=st=1741696833~exp=1741700433~hmac=5c4d9770452bab7cb12b3a38cead02ffcd3f50b45d75a0da6324820dc1bd3df2&w=740"
+        />
+      </ion-avatar>
+      István Kalmár
+    </nav>
+    <div class="promotions-container">Promociok</div>
+    <div class="matches-and-messages-cont">
+      <ion-button>Parok</ion-button>
+      <ion-button>Uzenetek</ion-button>
+    </div>
+    <div class="pairs-and-messageheads-cont">
+      <ion-img
+        src="https://img.freepik.com/free-photo/high-fashion-look-glamor-portrait-beautiful-sexy-stylish-brunette-caucasian-young-woman-model-with-bright-makeup-with-healthy-curly-hair-black-blue-dress-studio_158538-13982.jpg?t=st=1741697498~exp=1741701098~hmac=4d68e4791a327f77bab1c5fcfb113d62449e8f2991efa7de736ea7eb2a570725&w=740"
+        class="rounded-image cursor-pointer"
+      ></ion-img>
+      <!-- Parok listazva, Uzenetek uzeneteknel -->
+    </div>
   </div>
-  }
+
+  <div id="main-view-container">
+    Fo nezetablak asztali modban
+    <ion-card class="user-card">fouserkartya</ion-card>
+    <div class="bottom-buttons">also gombok flex</div>
+  </div>
 </div>
+
+}
 <!-- <strong>{{ name }}</strong>
   @if(viewData?.data) {
   <ion-list>
