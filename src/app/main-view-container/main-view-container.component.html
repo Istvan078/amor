@@ -1,5 +1,14 @@
-<div id="container">
-  <strong>{{ name }}</strong>
+<div id="side-nav-container">
+  @if(user?.uid){
+  <nav class="nav">Nav István Kalmár</nav>
+  <div class="promotions-container">Promociok</div>
+  <div class="matches-and-messages-cont">Parok, uzenetek</div>
+  <div class="pairs-and-messageheads-cont">
+    Parok listazva, Uzenetek uzeneteknel
+  </div>
+  }
+</div>
+<!-- <strong>{{ name }}</strong>
   @if(viewData?.data) {
   <ion-list>
     <form (ngSubmit)="onSubmit(ngForm)" #ngForm="ngForm">
@@ -18,8 +27,8 @@
       }}</ion-button>
     </form>
   </ion-list>
-
-  } @if(viewData?.firstName){
+  } -->
+<!-- @if(user?.uid){
   <ion-menu side="end" contentId="main-content">
     <ion-header>
       <ion-toolbar>
@@ -58,5 +67,8 @@
       </ion-list>
     </ion-card-content>
   </ion-card>
-  }
-</div>
+  } -->
+
+<ion-content class="ion-padding">
+  <ion-button expand="block" (click)="regUser()">Hozz letre fiokot</ion-button>
+</ion-content>

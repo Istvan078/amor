@@ -1,0 +1,69 @@
+@if(regFirstPhase) {
+<ion-content class="ion-padding">
+  <ion-item>
+    <ion-input
+      labelPlacement="stacked"
+      label="E-mail cim"
+      [(ngModel)]="email"
+      placeholder="E-mail"
+      type="email"
+    ></ion-input>
+  </ion-item>
+  <ion-item>
+    <ion-input
+      labelPlacement="stacked"
+      label="Minimum 6 karakter"
+      [(ngModel)]="password"
+      placeholder="Jelszo"
+      type="password"
+    ></ion-input>
+  </ion-item>
+</ion-content>
+<ion-toolbar>
+  <ion-buttons slot="start">
+    <ion-button color="medium" (click)="cancel()">Megse</ion-button>
+  </ion-buttons>
+  <ion-title>Udvozlunk az Amor-on</ion-title>
+  <ion-buttons slot="end">
+    <ion-button (click)="confirm()" [strong]="true"
+      >Fiok letrehozasa</ion-button
+    >
+  </ion-buttons>
+</ion-toolbar>
+} @if(regSecondPhase) {
+<ion-content class="ion-padding">
+  @for(item of labels.userProfLabels; track $index) { @if(!item.setByApp &&
+  item.type !== "select") {
+  <ion-item>
+    <ion-input
+      labelPlacement="stacked"
+      [label]="item.value"
+      [(ngModel)]="userProf[item.key]"
+      [type]="item.type"
+    ></ion-input>
+  </ion-item>
+  } @if(item.type === "select"){
+  <ion-item>
+    <ion-select
+      (ionChange)="userProf[item.key] = $event.detail.value"
+      labelPlacement="stacked"
+      [label]="item.value"
+    >
+      @for(opt of item.options; track $index; let i = $index) {
+      <ion-select-option [value]="item.values[i]">{{opt}}</ion-select-option>
+
+      }
+    </ion-select>
+  </ion-item>
+  } }
+</ion-content>
+<ion-toolbar>
+  <!-- <ion-buttons slot="start">
+    <ion-button color="medium" (click)="cancel()">Megse</ion-button>
+  </ion-buttons> -->
+  <ion-title>Alapadatok</ion-title>
+  <ion-buttons slot="end">
+    <ion-button (click)="confirm()" [strong]="true">Tovabb</ion-button>
+  </ion-buttons>
+</ion-toolbar>
+}

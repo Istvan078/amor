@@ -1,6 +1,8 @@
 import { Component, OnInit } from '@angular/core';
 import { AuthService } from '../services/auth.service';
 import { BaseService } from '../services/base.service';
+import { ConfigService } from '../services/config.service';
+import { UserClass } from '../models/user.model';
 
 type registrationData = {
   data: {};
@@ -15,34 +17,24 @@ type registrationData = {
 })
 export class Tab1Page implements OnInit {
   registrationData!: registrationData;
-  labels: string[] = [
-    'Email',
-    'Jelszo',
-    'Keresztnev',
-    'Vezeteknev',
-    'Szuletesi Datum',
-    'Kor',
-  ];
-  constructor(private auth: AuthService, private base: BaseService) {}
+  constructor(
+    private auth: AuthService,
+    private base: BaseService,
+    private config: ConfigService
+  ) {}
   ngOnInit(): void {
     this.registerUser();
+    console.log(this.registrationData);
   }
   registerUser() {
     this.registrationData = {
-      data: {
-        email: '',
-        password: '',
-        firstName: 'Istvan',
-        lastName: 'Kalmar',
-        birthDate: '1992-10-30',
-        age: 32,
-      },
-      labels: this.labels,
+      data: new UserClass(),
+      labels: this.config.getLabels(true),
     };
   }
   async getSubmittedData(data: any) {
     const userCreds = await this.auth.registerEmail(data);
-    await this.base.registerUserProf(userCreds.user!.uid, data);
+    // await this.base.registerUserProf(userCreds.user!.uid, data);
     console.log(data); // ELMENTENI ADATBAZISBA
   }
 }
