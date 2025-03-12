@@ -11,9 +11,14 @@
     </ion-toolbar>
   </ion-header>
 
-  <app-main-view-container
+  <ion-content class="ion-padding">
+    <ion-button expand="block" (click)="regUser()"
+      >Hozz letre fiokot</ion-button
+    >
+  </ion-content>
+  <!-- <app-main-view-container
     [viewData]="registrationData"
     (submitData)="getSubmittedData($event)"
     name="Regisztracio"
-  ></app-main-view-container>
+  ></app-main-view-container> -->
 </ion-content>

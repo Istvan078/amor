@@ -7,9 +7,41 @@
           src="https://img.freepik.com/free-vector/user-circles-set_78370-4704.jpg?t=st=1741696833~exp=1741700433~hmac=5c4d9770452bab7cb12b3a38cead02ffcd3f50b45d75a0da6324820dc1bd3df2&w=740"
         />
       </ion-avatar>
-      István Kalmár
+      <ion-text>István Kalmár</ion-text>
+      <ion-button (click)="signOut()" style="margin-left: 5px">
+        <ion-icon slot="icon-only" name="exit-outline"></ion-icon>
+      </ion-button>
     </nav>
-    <div class="promotions-container">Promociok</div>
+    <div class="promotions-container">
+      <swiper-container
+        class="swiper-cont"
+        [grabCursor]="true"
+        [scrollbar]="true"
+        [pagination]="true"
+        [navigation]="true"
+      >
+        @for(prom of promotions; track $index){
+        <swiper-slide>
+          <ion-card class="prom-card">
+            <div class="prom-img-cont">
+              <img
+                alt="Promocio"
+                src="https://img.freepik.com/free-vector/charity-logo-hands-supporting-heart-icon-flat-design-vector-illustration_53876-136266.jpg?t=st=1741773727~exp=1741777327~hmac=becc45b6f6afbc13365d2d5af57597f93f383178e53d29891a3399fac4753b63&w=740"
+                height="100px"
+              />
+            </div>
+            <ion-card-header>
+              <ion-card-title>{{ prom.title }}</ion-card-title>
+              <ion-card-subtitle>{{ prom.discount }} %</ion-card-subtitle>
+            </ion-card-header>
+            <ion-card-content>
+              {{ prom.description }}
+            </ion-card-content>
+          </ion-card>
+        </swiper-slide>
+        }
+      </swiper-container>
+    </div>
     <div class="matches-and-messages-cont">
       <ion-button>Parok</ion-button>
       <ion-button>Uzenetek</ion-button>
@@ -25,7 +57,69 @@
 
   <div id="main-view-container">
     Fo nezetablak asztali modban
-    <ion-card class="user-card">fouserkartya</ion-card>
+    <ion-card class="user-card">
+      <div class="possible-match-img-cont">
+        <img
+          height="100%"
+          width="100%"
+          src="https://img.freepik.com/free-photo/smiling-beautiful-young-woman-standing-posing_171337-11412.jpg?t=st=1741774526~exp=1741778126~hmac=a7231668e4c5404255597ab2c791cd321150de59b3eacd1ab254649c4e1d2ee4&w=740"
+          alt="Felhasznalo Kepe"
+        />
+      </div>
+      <div class="space-div"></div>
+      <div class="card-content-cont">
+        <ion-card-content class="poss-match-name">
+          <ion-text>Kata 25</ion-text>
+          <ion-button>
+            <ion-icon name="arrow-down-outline"></ion-icon>
+          </ion-button>
+        </ion-card-content>
+        <ion-card-content>
+          <p class="interests-title">
+            <ion-icon name="business-outline"></ion-icon>
+            Erdeklodesi korok
+          </p>
+          <span class="interests">Ongondoskodas</span>
+          <span class="interests">Edzoterem</span>
+          <span class="interests">Vasarlas</span>
+          <span class="interests">Asztrologia</span>
+        </ion-card-content>
+        <ion-buttons style="padding-left: 12px">
+          <ion-button fill="solid" shape="round">
+            <ion-icon
+              slot="icon-only"
+              size="large"
+              color="success"
+              name="return-up-back-outline"
+            ></ion-icon>
+          </ion-button>
+          <ion-button fill="solid" shape="round">
+            <ion-icon
+              slot="icon-only"
+              size="large"
+              color="danger"
+              name="close-outline"
+            ></ion-icon>
+          </ion-button>
+          <ion-button fill="solid" shape="round">
+            <ion-icon
+              slot="icon-only"
+              size="large"
+              color="primary"
+              name="star-outline"
+            ></ion-icon>
+          </ion-button>
+          <ion-button fill="solid" shape="round">
+            <ion-icon
+              slot="icon-only"
+              size="large"
+              color="success"
+              name="heart-outline"
+            ></ion-icon>
+          </ion-button>
+        </ion-buttons>
+      </div>
+    </ion-card>
     <div class="bottom-buttons">also gombok flex</div>
   </div>
 </div>
@@ -91,7 +185,3 @@
     </ion-card-content>
   </ion-card>
   } -->
-
-<ion-content class="ion-padding">
-  <ion-button expand="block" (click)="regUser()">Hozz letre fiokot</ion-button>
-</ion-content>

@@ -11,9 +11,9 @@
     </ion-toolbar>
   </ion-header>
 
-  <app-main-view-container
-    [viewData]="loginData"
-    (submitData)="getSubmittedData($event)"
-    name="Bejelentkezes"
-  ></app-main-view-container>
+  <ion-label>E-mail</ion-label>
+  <ion-input [(ngModel)]="loginData.data.email" type="email"> </ion-input>
+  <ion-label>Jelszo</ion-label>
+  <ion-input [(ngModel)]="loginData.data.password" type="password"> </ion-input>
+  <ion-button (click)="loginUser()">Bejelentkezes</ion-button>
 </ion-content>

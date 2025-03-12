@@ -17,7 +17,7 @@ export class Tab3Page implements OnInit {
   async ngOnInit() {
     this.auth.loggedUserSubject.subscribe(async (usr) => {
       this.loggedUser = usr;
-      this.userProf = await this.base.getUserProf(this.loggedUser.uid);
+      this.userProf = await this.base.getUserProf(this.loggedUser?.uid);
     });
   }
 }

@@ -31,4 +31,8 @@ export class AuthService {
     );
     return userCreds;
   }
+
+  async signOut() {
+    await this.afAuth.signOut();
+  }
 }

@@ -1,6 +1,7 @@
 import { Component, OnInit } from '@angular/core';
 import { AngularFireAuth } from '@angular/fire/compat/auth';
 import { AuthService } from '../services/auth.service';
+import { Router } from '@angular/router';
 
 @Component({
   selector: 'app-tab2',
@@ -11,12 +12,12 @@ import { AuthService } from '../services/auth.service';
 export class Tab2Page implements OnInit {
   loginData: any;
   labels: string[] = ['Email', 'Jelszo'];
-  constructor(private auth: AuthService) {}
+  constructor(private auth: AuthService, private router: Router) {}
   ngOnInit(): void {
-    this.loginUser();
+    this.setLoginData();
   }
 
-  loginUser() {
+  setLoginData() {
     this.loginData = {
       data: {
         email: '',
@@ -24,6 +25,10 @@ export class Tab2Page implements OnInit {
       },
       labels: this.labels,
     };
+  }
+  async loginUser() {
+    await this.auth.signInWithEmail(this.loginData.data);
+    this.router.navigate(['/tabs/tab3']);
   }
   getSubmittedData(loginData: any) {
     console.log(loginData);

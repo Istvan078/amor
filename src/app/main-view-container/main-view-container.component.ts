@@ -12,6 +12,8 @@ import { ConfigService } from '../services/config.service';
 import { ModalController } from '@ionic/angular';
 import { IonModalPage } from '../modals/ion-modal/ion-modal.page';
 import { AuthService } from '../services/auth.service';
+import { Promotions } from '../models/promotions.model';
+import { Router } from '@angular/router';
 
 @Component({
   selector: 'app-main-view-container',
@@ -28,11 +30,30 @@ export class MainViewContainerComponent implements OnInit, AfterViewInit {
   viewArrayKeys: any[] = [];
   labels: any = {};
   user: any;
+  promotions: Promotions[] = [];
+  userProfSaved: boolean = false;
   constructor(
     private config: ConfigService,
     private modalCtrl: ModalController,
-    private auth: AuthService
+    private auth: AuthService,
+    private router: Router
   ) {}
+  ngOnInit(): void {
+    this.auth.loggedUserSubject.subscribe((usr) => {
+      this.user = usr;
+    });
+    setTimeout(() => {
+      this.getViewData();
+      console.log(this.viewData);
+    }, 2000);
+    this.setPromotion();
+  }
+  ngAfterViewInit(): void {
+    // if (this.viewData?.data)
+    //   setTimeout(() => {
+    //     this.ngForm.form.setValue(this.viewData.data);
+    //   }, 1000);
+  }
   getViewData() {
     if (this.viewData?.firstName) {
       this.viewArrayValues = Object.values(this.viewData);
@@ -44,53 +65,18 @@ export class MainViewContainerComponent implements OnInit, AfterViewInit {
       this.viewArrayKeys = Object.keys(this.viewData.data);
     }
   }
-  ngOnInit(): void {
-    this.auth.loggedUserSubject.subscribe((usr) => {
-      this.user = usr;
-      console.log(this.user.uid);
-    });
-    setTimeout(() => {
-      this.getViewData();
-      console.log(this.viewData);
-    }, 2000);
-  }
-  ngAfterViewInit(): void {
-    // if (this.viewData?.data)
-    //   setTimeout(() => {
-    //     this.ngForm.form.setValue(this.viewData.data);
-    //   }, 1000);
+
+  setPromotion() {
+    this.promotions = this.config.getPromotions();
   }
   onSubmit(form: NgForm) {
     console.log(form.value);
     this.submitData.emit(form.value);
   }
-  async createModal(cProps: {}) {
-    const ionModalRef = await this.modalCtrl.create({
-      component: IonModalPage,
-      animated: true,
-    });
-    ionModalRef.componentProps = cProps;
-    ionModalRef.present();
-    return ionModalRef;
-  }
-  async regUser() {
-    if (!this.user) {
-      const ionModal = await this.createModal({ regFirstPhase: true });
-      const data = await ionModal.onWillDismiss();
-      console.log(data);
-      if (data.role === 'confirm') {
-        this.submitData.emit(data.data);
-        const ionModal = await this.createModal({ regSecondPhase: true });
-      }
-    }
-    if (this.user?.uid) {
-      console.log(this.viewData);
-      const ionModal = await this.createModal({
-        regSecondPhase: true,
-        labels: this.viewData.labels,
-      });
-      const data = await ionModal.onWillDismiss();
-      console.log(data);
-    }
+
+  async signOut() {
+    await this.auth.signOut();
+    this.user = null;
+    this.router.navigate(['/tabs/tab2']);
   }
 }
