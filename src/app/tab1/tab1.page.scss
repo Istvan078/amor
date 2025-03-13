@@ -1,0 +1,15 @@
+.reg-container {
+  text-align: center;
+  background: transparent !important;
+}
+
+ion-content {
+  --background: transparent;
+}
+ion-toolbar {
+  --background: linear-gradient(
+    to right,
+    rgba(165, 24, 151, 0.8),
+    rgba(71, 32, 67, 0.7)
+  );
+}

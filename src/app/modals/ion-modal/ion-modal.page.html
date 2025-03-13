@@ -32,30 +32,36 @@
 </ion-toolbar>
 } @if(regSecondPhase) {
 <ion-content class="ion-padding">
-  @for(item of labels.userProfLabels; track $index) { @if(!item.setByApp &&
-  item.type !== "select") {
-  <ion-item>
-    <ion-input
-      labelPlacement="stacked"
-      [label]="item.value"
-      [(ngModel)]="userProf[item.key]"
-      [type]="item.type"
-    ></ion-input>
-  </ion-item>
-  } @if(item.type === "select"){
-  <ion-item>
-    <ion-select
-      (ionChange)="userProf[item.key] = $event.detail.value"
-      labelPlacement="stacked"
-      [label]="item.value"
-    >
-      @for(opt of item.options; track $index; let i = $index) {
-      <ion-select-option [value]="item.values[i]">{{opt}}</ion-select-option>
+  <form #form="ngForm">
+    @for(item of labels.userProfLabels; track $index) { @if(!item.setByApp &&
+    item.type !== "select") {
+    <ion-item>
+      <ion-input
+        [name]="item.key"
+        required
+        labelPlacement="stacked"
+        [label]="item.value"
+        [(ngModel)]="userProf[item.key]"
+        [type]="item.type"
+      ></ion-input>
+    </ion-item>
+    } @if(item.type === "select"){
+    <ion-item>
+      <ion-select
+        [name]="item.key"
+        required
+        (ionChange)="userProf[item.key] = $event.detail.value"
+        labelPlacement="stacked"
+        [label]="item.value"
+      >
+        @for(opt of item.options; track $index; let i = $index) {
+        <ion-select-option [value]="item.values[i]">{{opt}}</ion-select-option>
 
-      }
-    </ion-select>
-  </ion-item>
-  } }
+        }
+      </ion-select>
+    </ion-item>
+    } }
+  </form>
 </ion-content>
 <ion-toolbar>
   <!-- <ion-buttons slot="start">
@@ -63,7 +69,9 @@
   </ion-buttons> -->
   <ion-title>Alapadatok</ion-title>
   <ion-buttons slot="end">
-    <ion-button (click)="confirm()" [strong]="true">Tovabb</ion-button>
+    <ion-button [disabled]="!form.valid" (click)="confirm()" [strong]="true"
+      >Tovabb</ion-button
+    >
   </ion-buttons>
 </ion-toolbar>
 }

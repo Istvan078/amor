@@ -8,11 +8,13 @@ import {
   getFirestore,
   setDoc,
 } from '@angular/fire/firestore';
+import { BehaviorSubject } from 'rxjs';
 
 @Injectable({
   providedIn: 'root',
 })
 export class BaseService {
+  userProfBehSubj: BehaviorSubject<any> = new BehaviorSubject(null);
   constructor(private fireStore: Firestore) {}
   async getUserProf(uid: string) {
     try {

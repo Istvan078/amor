@@ -1,5 +1,6 @@
 @if(user?.uid){
 <div id="main-container">
+  <!-- @if(!phoneView) { -->
   <div id="side-nav-container">
     <nav class="nav">
       <ion-avatar class="user-img" slot="start">
@@ -7,7 +8,7 @@
           src="https://img.freepik.com/free-vector/user-circles-set_78370-4704.jpg?t=st=1741696833~exp=1741700433~hmac=5c4d9770452bab7cb12b3a38cead02ffcd3f50b45d75a0da6324820dc1bd3df2&w=740"
         />
       </ion-avatar>
-      <ion-text>István Kalmár</ion-text>
+      <ion-text>{{ userProf?.firstName + " " + userProf?.lastName }}</ion-text>
       <ion-button (click)="signOut()" style="margin-left: 5px">
         <ion-icon slot="icon-only" name="exit-outline"></ion-icon>
       </ion-button>
@@ -54,9 +55,13 @@
       <!-- Parok listazva, Uzenetek uzeneteknel -->
     </div>
   </div>
-
+  <!-- } -->
   <div id="main-view-container">
-    Fo nezetablak asztali modban
+    <div class="logout-container">
+      <ion-button (click)="signOut()" style="margin-left: 5px">
+        <ion-icon slot="icon-only" name="exit-outline"></ion-icon>
+      </ion-button>
+    </div>
     <ion-card class="user-card">
       <div class="possible-match-img-cont">
         <img

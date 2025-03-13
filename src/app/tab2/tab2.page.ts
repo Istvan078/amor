@@ -25,6 +25,7 @@ export class Tab2Page implements OnInit {
       },
       labels: this.labels,
     };
+    this.auth.authAutoFillSubj.subscribe(em => this.loginData.data.email = em)
   }
   async loginUser() {
     await this.auth.signInWithEmail(this.loginData.data);

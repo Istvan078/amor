@@ -29,10 +29,15 @@ export class IonModalPage implements OnInit {
     let data: any = {};
     if (this.email) {
       data = { email: this.email, password: this.password };
+      this.email = '';
+      this.password = '';
+      return this.modalCtrl.dismiss(data, 'confirm');
     }
     if (this.userProf.firstName) {
-      data = this.userProf;
+      data = { ...this.userProf };
+      return this.modalCtrl.dismiss(data, 'created-successfully');
     }
-    return this.modalCtrl.dismiss(data, 'confirm');
+    console.error(`PROBLEM HA ITT VAN`);
+    return this.modalCtrl.dismiss(data, 'no-data');
   }
 }

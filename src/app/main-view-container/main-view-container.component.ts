@@ -3,6 +3,7 @@ import {
   Component,
   EventEmitter,
   Input,
+  OnDestroy,
   OnInit,
   Output,
   ViewChild,
@@ -14,6 +15,9 @@ import { IonModalPage } from '../modals/ion-modal/ion-modal.page';
 import { AuthService } from '../services/auth.service';
 import { Promotions } from '../models/promotions.model';
 import { Router } from '@angular/router';
+import { BaseService } from '../services/base.service';
+import { UserClass } from '../models/user.model';
+import { Subscription } from 'rxjs';
 
 @Component({
   selector: 'app-main-view-container',
@@ -21,7 +25,9 @@ import { Router } from '@angular/router';
   styleUrls: ['./main-view-container.component.scss'],
   standalone: false,
 })
-export class MainViewContainerComponent implements OnInit, AfterViewInit {
+export class MainViewContainerComponent
+  implements OnInit, AfterViewInit, OnDestroy
+{
   @Input() name?: string;
   @Input() viewData: any;
   @Output() submitData: EventEmitter<any> = new EventEmitter();
@@ -32,20 +38,29 @@ export class MainViewContainerComponent implements OnInit, AfterViewInit {
   user: any;
   promotions: Promotions[] = [];
   userProfSaved: boolean = false;
+  userProf?: UserClass;
+  loggedUserSub: Subscription = Subscription.EMPTY;
+  userProfSub: Subscription = Subscription.EMPTY;
+
   constructor(
     private config: ConfigService,
     private modalCtrl: ModalController,
     private auth: AuthService,
-    private router: Router
+    private router: Router,
+    private base: BaseService
   ) {}
   ngOnInit(): void {
-    this.auth.loggedUserSubject.subscribe((usr) => {
+    console.log(`sdfsdf`);
+    this.loggedUserSub = this.auth.loggedUserSubject.subscribe((usr) => {
       this.user = usr;
     });
-    setTimeout(() => {
-      this.getViewData();
-      console.log(this.viewData);
-    }, 2000);
+    this.userProfSub = this.base.userProfBehSubj.subscribe(
+      (uProf) => (this.userProf = uProf)
+    );
+    // setTimeout(() => {
+    //   this.getViewData();
+    //   console.log(this.viewData);
+    // }, 2000);
     this.setPromotion();
   }
   ngAfterViewInit(): void {
@@ -53,6 +68,11 @@ export class MainViewContainerComponent implements OnInit, AfterViewInit {
     //   setTimeout(() => {
     //     this.ngForm.form.setValue(this.viewData.data);
     //   }, 1000);
+  }
+  ionViewDidEnter() {}
+  ngOnDestroy(): void {
+    if (this.loggedUserSub) this.loggedUserSub.unsubscribe();
+    if (this.userProfSub) this.userProfSub.unsubscribe();
   }
   getViewData() {
     if (this.viewData?.firstName) {
@@ -77,6 +97,8 @@ export class MainViewContainerComponent implements OnInit, AfterViewInit {
   async signOut() {
     await this.auth.signOut();
     this.user = null;
+    console.log(this.userProf);
+    this.auth.authAutoFillSubj.next(this.userProf?.email);
     this.router.navigate(['/tabs/tab2']);
   }
 }

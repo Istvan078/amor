@@ -10,10 +10,24 @@
       <ion-title size="large">Regisztracio</ion-title>
     </ion-toolbar>
   </ion-header>
+  <div class="background-image-cont">
+    <img
+      src="https://img.freepik.com/free-photo/silhouette-couple-love-being-affectionate_23-2150984243.jpg?t=st=1741881261~exp=1741884861~hmac=f9d3a5a0a33547efaac51151634c9c05c1de7deadfe301a56e56ff9cd2d284a9&w=740"
+      alt="Background Picture"
+    />
+  </div>
+  <ion-content class="ion-padding reg-container">
+    <ion-button color="success" (click)="regUser()"
+      >{{user?.uid ? 'Folytatas az Amorra' : "Hozz letre fiokot"}}
+      @if(user?.uid) {
+      <ion-icon name="arrow-forward-outline"></ion-icon>
 
-  <ion-content class="ion-padding">
-    <ion-button expand="block" (click)="regUser()"
-      >Hozz letre fiokot</ion-button
+      }@else {
+      <ion-icon name="people-outline"></ion-icon>
+      }
+    </ion-button>
+    <ion-button routerLink="/tabs/tab2"
+      >Mar van fiokod? Jelentkezz be</ion-button
     >
   </ion-content>
   <!-- <app-main-view-container
