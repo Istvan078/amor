@@ -34,7 +34,7 @@
 <ion-content class="ion-padding">
   <form #form="ngForm">
     @for(item of labels.userProfLabels; track $index) { @if(!item.setByApp &&
-    item.type !== "select") {
+    item.type !== "select" && !item.setLaterInProf) {
     <ion-item>
       <ion-input
         [name]="item.key"

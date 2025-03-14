@@ -12,6 +12,20 @@ export class ConfigService {
     if (isUserProfL)
       this.labels.userProfLabels = [
         {
+          key: 'aboutMe',
+          value: 'Rolam',
+          type: 'text-area',
+          placeholder: 'Meselj magadrol',
+          setLaterInProf: true,
+        },
+        {
+          key: 'lookingForType',
+          value: 'Kit keresek?',
+          type: 'text-area',
+          placeholder: 'Milyen tipusu embert keresel?',
+          setLaterInProf: true,
+        },
+        {
           key: 'lookingFor',
           value: 'Kit keresel?',
           type: 'select',
@@ -36,6 +50,53 @@ export class ConfigService {
           type: 'number',
         },
         { key: 'age', value: 'Kor', setByApp: true },
+        { key: 'job', value: 'Munkahely', type: 'text', setLaterInProf: true },
+        {
+          key: 'highestSchool',
+          value: 'Legmagasabb iskolai vegzettseg',
+          type: 'text',
+          setLaterInProf: true,
+        },
+        {
+          key: 'zodiacSign',
+          value: 'Csillagjegy',
+          type: 'text',
+          setLaterInProf: true,
+        },
+        {
+          key: 'currStudy',
+          value: 'Jelenlegi tanulmanyom',
+          type: 'text',
+          setLaterInProf: true,
+        },
+        {
+          key: 'freeTimeAct',
+          value: 'Szabadidos tevekenysegeim',
+          type: 'checkbox',
+          choices: [
+            { key: 'football', value: 'Foci' },
+            { key: 'handball', value: 'Kezilabda' },
+            { key: 'meditation', value: 'Meditacio' },
+            { key: 'selfDevelopment', value: 'Onfejlesztes' },
+            { key: 'reading', value: 'Olvasas' },
+            { key: 'training', value: 'Edzes' },
+          ],
+          setLaterInProf: true,
+        },
+        {
+          key: 'interests',
+          value: 'Erdeklodesi korom',
+          type: 'checkbox',
+          choices: [
+            { key: 'astrology', value: 'Asztrologia' },
+            { key: 'painting', value: 'Festeszet' },
+            { key: 'art', value: 'Muveszet' },
+            { key: 'oneNightStands', value: 'Egyejszakas kalandok' },
+            { key: 'makingFriends', value: 'Uj ismeretsegek kotese' },
+            { key: 'listeningToMusic', value: 'Zenehallgatas' },
+          ],
+          setLaterInProf: true,
+        },
       ];
     if (isPromLabels)
       this.labels.promotionLabels = [

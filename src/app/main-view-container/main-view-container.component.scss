@@ -162,6 +162,10 @@
   left: 85%;
   transform: translateX(-10%);
 }
+
+ion-checkbox {
+  --size: 19px; /* Módosítja a checkbox méretét */
+}
 @media screen and (max-width: 400px) {
   #side-nav-container {
     display: none;

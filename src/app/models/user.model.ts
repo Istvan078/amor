@@ -8,6 +8,13 @@ enum LookingFor {
   woman = 'No',
 }
 
+interface Study {
+  location: string;
+  topic: string;
+  from: string;
+  until: string;
+}
+
 export class UserClass {
   [key: string]: any;
   public uid?: string;
@@ -19,9 +26,19 @@ export class UserClass {
   public birthDate?: string;
   public age?: number;
   public currentPlace?: string;
-  lookingForDistance?: number;
+  public job?: string;
+  public currStudy?: string;
+  public studies?: Study;
+  public freeTimeAct?: string[];
+  public zodiacSign?: string;
+  public lookingForDistance?: number;
   public highestSchool?: string;
   public lookingFor?: LookingFor;
+  public aboutMe?: string;
+  public lookingForType?: string;
+  public profilePicture?: string;
+  public pictures?: string[];
+  public interests?: string[];
   public matches?: string[]; // matchelo szemelyek uidk
   constructor() {}
 }

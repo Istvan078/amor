@@ -38,6 +38,8 @@ export class MainViewContainerComponent
   user: any;
   promotions: Promotions[] = [];
   userProfSaved: boolean = false;
+  isUserCardOpen: boolean = false;
+  startUpdUserProf: boolean = false;
   userProf?: UserClass;
   loggedUserSub: Subscription = Subscription.EMPTY;
   userProfSub: Subscription = Subscription.EMPTY;
@@ -50,18 +52,19 @@ export class MainViewContainerComponent
     private base: BaseService
   ) {}
   ngOnInit(): void {
-    console.log(`sdfsdf`);
     this.loggedUserSub = this.auth.loggedUserSubject.subscribe((usr) => {
       this.user = usr;
     });
-    this.userProfSub = this.base.userProfBehSubj.subscribe(
-      (uProf) => (this.userProf = uProf)
-    );
+    this.userProfSub = this.base.userProfBehSubj.subscribe((uProf) => {
+      this.userProf = uProf;
+    });
     // setTimeout(() => {
     //   this.getViewData();
     //   console.log(this.viewData);
     // }, 2000);
     this.setPromotion();
+    this.setUProfLabels();
+    console.log(this.labels);
   }
   ngAfterViewInit(): void {
     // if (this.viewData?.data)
@@ -89,9 +92,49 @@ export class MainViewContainerComponent
   setPromotion() {
     this.promotions = this.config.getPromotions();
   }
+  setUProfLabels() {
+    this.labels = this.config.getLabels(true);
+  }
   onSubmit(form: NgForm) {
     console.log(form.value);
     this.submitData.emit(form.value);
+  }
+
+  openUserCard() {
+    this.isUserCardOpen = true;
+  }
+
+  startUpdateUserProf() {
+    this.startUpdUserProf = true;
+  }
+
+  async updateUserProf() {
+    const userProf = { ...this.userProf };
+    userProf.uid = this.user.uid;
+    if (userProf?.uid) await this.base.updateUserProf(userProf.uid, userProf);
+  }
+
+  onSelectChoices(eventObj: any, labelKey: any) {
+    const { value } = eventObj.detail;
+    const { checked: isChecked } = eventObj.detail;
+    let isDeletedArrEl: boolean = false;
+    if (this.userProf) {
+      if (this.userProf[labelKey]?.length) {
+        if (!isChecked && this.userProf[labelKey]?.includes(value.value)) {
+          const alreadyInArrInd = this.userProf[labelKey].findIndex(
+            (act: any) => act === value.value
+          );
+          this.userProf[labelKey].splice(alreadyInArrInd, 1);
+          isDeletedArrEl = true;
+        }
+        if (isChecked) {
+          this.userProf[labelKey].push(value.value);
+        }
+      }
+      if (!this.userProf[labelKey]?.length && !isDeletedArrEl)
+        this.userProf![labelKey] = [value.value];
+      console.log(this.userProf);
+    }
   }
 
   async signOut() {

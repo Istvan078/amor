@@ -3,7 +3,7 @@
   <!-- @if(!phoneView) { -->
   <div id="side-nav-container">
     <nav class="nav">
-      <ion-avatar class="user-img" slot="start">
+      <ion-avatar (click)="openUserCard()" class="user-img" slot="start">
         <img
           src="https://img.freepik.com/free-vector/user-circles-set_78370-4704.jpg?t=st=1741696833~exp=1741700433~hmac=5c4d9770452bab7cb12b3a38cead02ffcd3f50b45d75a0da6324820dc1bd3df2&w=740"
         />
@@ -62,6 +62,7 @@
         <ion-icon slot="icon-only" name="exit-outline"></ion-icon>
       </ion-button>
     </div>
+    @if(!isUserCardOpen) {
     <ion-card class="user-card">
       <div class="possible-match-img-cont">
         <img
@@ -125,7 +126,83 @@
         </ion-buttons>
       </div>
     </ion-card>
-    <div class="bottom-buttons">also gombok flex</div>
+    <div class="bottom-buttons">
+      Billentyu kombo segitseg, egy megjelenites gomb hozza majd elo
+    </div>
+    }
+    <!-- FELHASZNALO BEALLITASAI KARTYA -->
+    @if(isUserCardOpen && userProf) {
+    <ion-content>
+      <ion-card class="user-card">
+        <div class="possible-match-img-cont">
+          <img
+            height="100%"
+            width="100%"
+            src="https://img.freepik.com/free-photo/smiling-beautiful-young-woman-standing-posing_171337-11412.jpg?t=st=1741774526~exp=1741778126~hmac=a7231668e4c5404255597ab2c791cd321150de59b3eacd1ab254649c4e1d2ee4&w=740"
+            alt="Felhasznalo Kepe"
+          />
+        </div>
+        <ion-card-content class="poss-match-name">
+          <ion-text>{{
+            userProf.lastName + " " + userProf.firstName + " " + userProf?.age
+          }}</ion-text>
+        </ion-card-content>
+        <ion-button (click)="startUpdateUserProf()">Adatszerkesztes</ion-button>
+      </ion-card>
+      @if(startUpdUserProf) {
+      <ion-list>
+        @for(lab of labels.userProfLabels; track $index) { @if(lab.type ===
+        "text-area"){
+        <ion-item>
+          <ion-textarea
+            [(ngModel)]="userProf[lab.key]"
+            [placeholder]="lab.placeholder"
+            [label]="lab.value"
+            maxlength="1000"
+            [counter]="true"
+            [autoGrow]="true"
+          ></ion-textarea>
+        </ion-item>
+        } @if(lab.type !== "text-area") {
+        <ion-item>
+          <ion-input
+            [label]="lab.value"
+            [(ngModel)]="userProf![lab.key]"
+            [type]="lab.type"
+          ></ion-input>
+        </ion-item>
+
+        } @if(lab.type === "checkbox") {
+        <ion-item>
+          <ion-grid>
+            <ion-row>
+              @for(ch of lab.choices; track $index;) {
+              <ion-col
+                size-xl="auto"
+                size-lg="auto"
+                size-md="3"
+                size-sm="6"
+                size-xs="12"
+              >
+                <ion-checkbox
+                  justify="start"
+                  [checked]="userProf[lab.key]?.includes(ch.value)"
+                  [value]="ch"
+                  (ionChange)="onSelectChoices($event, lab.key)"
+                  >{{ ch.value }}</ion-checkbox
+                >
+              </ion-col>
+              }
+            </ion-row>
+          </ion-grid>
+        </ion-item>
+        } }
+      </ion-list>
+      <ion-button color="warning" (click)="updateUserProf()">Mentes</ion-button>
+      }
+    </ion-content>
+    }
+    <!-- FELHASZNALO BEALLITASAI KARTYA VEGE -->
   </div>
 </div>
 

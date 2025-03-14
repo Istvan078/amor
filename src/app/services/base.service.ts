@@ -7,6 +7,7 @@ import {
   getDoc,
   getFirestore,
   setDoc,
+  updateDoc,
 } from '@angular/fire/firestore';
 import { BehaviorSubject } from 'rxjs';
 
@@ -40,6 +41,15 @@ export class BaseService {
       console.log('✅ Felhasználói adatok sikeresen feltöltve Firestore-ba!');
     } catch (error) {
       console.error('❌ Hiba történt a Firestore mentés során:', error);
+    }
+  }
+  async updateUserProf(uid: string, data: any) {
+    try {
+      const db = getFirestore();
+      await updateDoc(doc(db, 'users', uid), data);
+      console.log('✅ Felhasználói adatok sikeresen frissitve!');
+    } catch (err) {
+      console.error(err);
     }
   }
 }
