@@ -9,6 +9,10 @@ const routes: Routes = [
   {
     path: 'ion-modal',
     loadChildren: () => import('./modals/ion-modal/ion-modal.module').then( m => m.IonModalPageModule)
+  },
+  {
+    path: 'find-match',
+    loadChildren: () => import('./find-match/find-match.module').then( m => m.FindMatchPageModule)
   }
 ];
 @NgModule({
