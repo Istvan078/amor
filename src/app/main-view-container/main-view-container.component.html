@@ -68,31 +68,52 @@
    <ion-row>
     <ion-col>
      <ion-card class="user-card">
-      <div class="possible-match-img-cont">
-       <img
+      <!-- <div class="possible-match-img-cont"> -->
+      <!-- <img
         class="w-100 h-100"
         src="https://img.freepik.com/free-photo/smiling-beautiful-young-woman-standing-posing_171337-11412.jpg?t=st=1741774526~exp=1741778126~hmac=a7231668e4c5404255597ab2c791cd321150de59b3eacd1ab254649c4e1d2ee4&w=740"
         alt="Felhasznalo Kepe"
-       />
-      </div>
+       /> -->
+      <swiper-container
+       class="possible-match-img-cont"
+       [grabCursor]="true"
+       [pagination]="true"
+      >
+       @for(pic of matchProf?.pictures;track $index){
+       <swiper-slide>
+        <img class="w-100 h-100" [src]="pic.url" />
+       </swiper-slide>
+       }
+      </swiper-container>
+      <!-- </div> -->
       <div class="card-content-cont-wrapper">
        <div class="card-content-cont">
-        <ion-card-content class="poss-match-name">
-         <ion-text>Kata 25</ion-text>
-         <ion-button>
-          <ion-icon name="arrow-down-outline"></ion-icon>
-         </ion-button>
-        </ion-card-content>
-        <ion-card-content>
+        <div class="pos-abs bottom-130 w-100 poss-match-name-cont">
+         <ion-card-content class="d-flex jus-space-b poss-match-name w-100">
+          <ion-text>{{ matchProf?.firstName + " " + matchProf?.age }}</ion-text>
+          <ion-button
+           (click)="isMatchDetailsOpen = !isMatchDetailsOpen"
+           class="show-match-details-button"
+          >
+           <ion-icon name="arrow-down-outline"></ion-icon>
+          </ion-button>
+         </ion-card-content>
+        </div>
+        @if(matchProf?.interests){
+        <ion-card-content class="pos-abs bottom-30 d-flex flex-cols">
          <p class="interests-title">
           <ion-icon name="business-outline"></ion-icon>
           Erdeklodesi korok
          </p>
-         <span class="interests">Ongondoskodas</span>
-         <span class="interests">Edzoterem</span>
-         <span class="interests">Vasarlas</span>
-         <span class="interests">Asztrologia</span>
+         <div class="d-flex">
+          @for(interest of matchProf?.interests;track $index){
+          <span class="interests m-r-1 m-t-1 border-rounded">{{
+           interest
+          }}</span>
+          }
+         </div>
         </ion-card-content>
+        }
         <ion-buttons style="padding-left: 12px">
          <ion-button fill="solid" shape="round">
           <ion-icon
@@ -102,7 +123,7 @@
            name="return-up-back-outline"
           ></ion-icon>
          </ion-button>
-         <ion-button fill="solid" shape="round">
+         <ion-button (click)="changeMatchProf()" fill="solid" shape="round">
           <ion-icon
            slot="icon-only"
            size="large"
@@ -118,7 +139,7 @@
            name="star-outline"
           ></ion-icon>
          </ion-button>
-         <ion-button fill="solid" shape="round">
+         <ion-button (click)="changeMatchProf()" fill="solid" shape="round">
           <ion-icon
            slot="icon-only"
            size="large"
@@ -134,79 +155,50 @@
       Billentyu kombo segitseg, egy megjelenites gomb hozza majd elo
      </div>
      <!-- A LEHETSEGES PAR RESZLETES ADATAI -->
+     @if(isMatchDetailsOpen) {
      <div class="poss-match-details-container">
-      <ion-list>
-       <ion-item>
-        <ion-label>
-         <h2 style="margin-bottom: 10px">
-          <ion-icon name="search-outline"></ion-icon>Ezt keresem:
-         </h2>
-         <p>
-          <ion-icon src="../../assets/thinking.svg"></ion-icon>Meg nem tudom
-          pontosan
-         </p>
-        </ion-label>
-       </ion-item>
-      </ion-list>
-      <ion-list style="margin-top: 10px">
-       <ion-item>
-        <ion-label>
-         <h2 style="font-weight: bold; margin-bottom: 20px">
-          <ion-icon name="search-outline"></ion-icon>Bovebben rolam:
-         </h2>
-         <h2>Csillagjegy</h2>
-         <p>Icon + Ikrek</p>
-        </ion-label>
-       </ion-item>
-       <ion-item>
-        <ion-label>
-         <h2>Csaladi tervek</h2>
-         <p>Szeretnek gyereket</p>
-        </ion-label>
-       </ion-item>
-       <ion-item>
-        <ion-label>
-         <h2>Kommunikacios stilus</h2>
-         <p>Jobb szemelyesen</p>
-        </ion-label>
-       </ion-item>
-      </ion-list>
-      <ion-list style="margin-top: 10px">
-       <ion-item>
-        <ion-label>
-         <h2 style="margin-bottom: 20px; font-weight: bold">Eletmod</h2>
-         <h2>Milyen gyakran dohanyzik?</h2>
-         <p>Ritkan</p>
-        </ion-label>
-       </ion-item>
-      </ion-list>
       @for(listNum of possMatchDetLists;track $index){
       <ion-list style="margin-top: 10px">
-       @for(lab of labels.userProfLabels; track $index) { @if(userProf &&
-       lab?.inMatch && lab.listNum === listNum) {
+       @for(lab of labels.userProfLabels; track $index) { @if(matchProf &&
+       lab?.inMatch && lab.listNum === listNum && matchProf[lab.key]) {
        <ion-item>
         <ion-label>
          <!-- <h2 style="margin-bottom: 20px; font-weight: bold">Eletmod</h2> -->
          <h2>{{ lab.value }}</h2>
+         @if(lab.type === "checkbox") {
+         <div class="d-flex">
+          @for(ch of matchProf[lab.key]; track $index;) {
 
-         <p>{{ userProf[lab.key] }}</p>
+          <p class="m-r-1 m-t-1 border-rounded user-choices-style">
+           {{ ch }}
+          </p>
+          }
+         </div>
+
+         } @if(lab.type !== "checkbox") {
+         <p>
+          {{ typeof matchProf[lab.key] === "object"? matchProf[lab.key].lower + " - " + matchProf[lab.key].upper : matchProf[lab.key] }}
+         </p>
+
+         }
         </ion-label>
        </ion-item>
        } }
       </ion-list>
       }
      </div>
+     }
     </ion-col>
    </ion-row>
   </ion-grid>
   }
   <!-- FELHASZNALO BEALLITASAI KARTYA -->
   @if(isUserCardOpen && userProf) {
-  <ion-grid>
+  <ion-grid class="m-0 p-0">
    <ion-row>
     <ion-col>
      <ion-card class="user-card">
-      <div class="possible-match-img-cont">
+      <div class="user-settings-card-img-cont">
        <img
         class="w-100 h-100"
         src="https://img.freepik.com/free-photo/smiling-beautiful-young-woman-standing-posing_171337-11412.jpg?t=st=1741774526~exp=1741778126~hmac=a7231668e4c5404255597ab2c791cd321150de59b3eacd1ab254649c4e1d2ee4&w=740"
@@ -234,13 +226,33 @@
         [autoGrow]="true"
        ></ion-textarea>
       </ion-item>
-      } @if(lab.type !== "text-area" && lab.type !== "file") {
+      } @if(lab.type !== "text-area" && lab.type !== "file" &&lab.type !==
+      "range") {
       <ion-item>
        <ion-input
         [label]="lab.value"
         [(ngModel)]="userProf[lab.key]"
         [type]="lab.type"
        ></ion-input>
+      </ion-item>
+      } @if(lab.type === "range"){
+      <ion-item>
+       <ion-range
+        [name]="lab.key"
+        [label]="
+         lab.value + userProf[lab.key].lower + ' - ' + userProf[lab.key].upper
+        "
+        aria-label="Milyen korban keresel?"
+        [min]="14"
+        [max]="100"
+        [pin]="true"
+        [snaps]="true"
+        [dualKnobs]="true"
+        [(ngModel)]="userProf[lab.key]"
+       >
+        <ion-icon slot="start" name="accessibility-outline"></ion-icon>
+        <ion-icon slot="end" name="briefcase-outline"></ion-icon
+       ></ion-range>
       </ion-item>
       } @if(lab.type === "file") {
       <ion-item>

@@ -1,3 +1,21 @@
+.jus-space-b {
+ justify-content: space-between;
+}
+.bottom-130 {
+ bottom: 130px;
+}
+.m-1 {
+ margin: 1rem;
+}
+.m-r-1 {
+ margin-right: 0.4rem;
+}
+.m-t-1 {
+ margin-top: 0.4rem;
+}
+.border-rounded {
+ border-radius: 10px;
+}
 #main-container {
  display: flex;
 }
@@ -18,7 +36,14 @@
   .possible-match-img-cont {
    height: 100%;
    width: 100%;
-   z-index: 0;
+   z-index: 2;
+   position: absolute;
+   opacity: 0.9;
+  }
+  .user-settings-card-img-cont {
+   height: 100%;
+   width: 100%;
+   z-index: -1;
    position: absolute;
    opacity: 0.9;
   }
@@ -32,8 +57,6 @@
    color: black;
    margin-left: 20px;
    font-size: 2rem;
-   display: flex;
-   justify-content: space-between;
    padding: 0;
    margin: 0;
    padding-left: 18px;
@@ -54,10 +77,24 @@
    }
    .interests {
     background: black;
-    color: white;
+    color: rgb(255, 255, 255);
     padding: 5px;
    }
   }
+ }
+ .bottom-30 {
+  bottom: 30px;
+ }
+ .pos-abs {
+  position: absolute;
+  z-index: 2;
+ }
+ .d-flex {
+  display: flex;
+  flex-wrap: wrap;
+ }
+ .flex-cols {
+  flex-direction: column;
  }
  .bottom-buttons {
   height: 20vh;
@@ -157,6 +194,23 @@
 .h-100 {
  height: 100%;
 }
+.user-choices-style {
+ color: rgb(215, 220, 220);
+ background: rgb(9, 72, 21);
+ border-radius: 5px;
+ padding: 5px;
+}
+ion-range {
+ --bar-background: #bc4ee1;
+ --bar-background-active: #9b0fc9;
+ --bar-height: 8px;
+ --bar-border-radius: 8px;
+ --knob-background: #845467;
+ --knob-size: 30px;
+ --pin-background: #852e4e;
+ --pin-color: #efeeef;
+}
+
 ion-checkbox {
  --size: 19px; /* Módosítja a checkbox méretét */
 }
@@ -170,6 +224,12 @@ ion-checkbox {
  .user-card {
   width: 100vw !important;
   height: 70vh !important;
+ }
+ .poss-match-name-cont {
+  bottom: 27vh;
+ }
+ .show-match-details-button {
+  display: none;
  }
 }
 @media screen and (min-width: 400px) {

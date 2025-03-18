@@ -1,6 +1,7 @@
 import { Injectable } from '@angular/core';
 import { Promotions } from '../models/promotions.model';
 import { BehaviorSubject } from 'rxjs';
+import { UserClass } from '../models/user.model';
 
 @Injectable({
  providedIn: 'root',
@@ -10,6 +11,7 @@ export class ConfigService {
  promotions: Promotions[] = [];
  selectedFiles: File[] = [];
  selectedFilesSubj = new BehaviorSubject<File[]>([]);
+ initMainViewSubject = new BehaviorSubject<boolean>(false);
  constructor() {
   console.log(`####CONFIG SZERVICE LETREHOZASA###`);
  }
@@ -44,11 +46,18 @@ export class ConfigService {
      listNum: 1,
     },
     {
-     key: 'lookingFor',
+     key: 'lookingForGender',
      value: 'Kit keresel?',
      type: 'select',
      options: ['Ferfi', 'No'],
-     values: ['man', 'woman'],
+     values: ['Ferfi', 'No'],
+     inMatch: true,
+     listNum: 1,
+    },
+    {
+     key: 'lookingForAge',
+     value: 'Amilyen korban keresek: ',
+     type: 'range',
      inMatch: true,
      listNum: 1,
     },
@@ -57,7 +66,7 @@ export class ConfigService {
      value: 'Nemed',
      type: 'select',
      options: ['Ferfi', 'No', 'Egyeb'],
-     values: ['man', 'woman', 'other'],
+     values: ['Ferfi', 'No', 'Egyeb'],
     },
     { key: 'firstName', value: 'Keresztneved', type: 'text' },
     { key: 'lastName', value: 'Vezetekneved', type: 'text' },
@@ -78,14 +87,23 @@ export class ConfigService {
     },
 
     { key: 'age', value: 'Kor', setByApp: true, inMatch: true, listNum: 2 },
-    { key: 'job', value: 'Munkahely', type: 'text', setLaterInProf: true },
+    {
+     key: 'job',
+     value: 'Munkahely',
+     type: 'text',
+     setLaterInProf: true,
+     inMatch: true,
+     listNum: 2,
+    },
     {
      key: 'highestSchool',
      value: 'Legmagasabb iskolai vegzettseg',
      type: 'text',
      setLaterInProf: true,
      inMatch: true,
-     listNum: 3,
+     listNum(matchProf: UserClass) {
+      return matchProf?.highestSchool ? 3 : '';
+     },
     },
     {
      key: 'zodiacSign',
@@ -93,6 +111,9 @@ export class ConfigService {
      type: 'text',
      setLaterInProf: true,
      inMatch: true,
+     listNum(matchProf: UserClass) {
+      return matchProf?.zodiacSign ? 4 : '';
+     },
     },
     {
      key: 'currStudy',
@@ -100,7 +121,7 @@ export class ConfigService {
      type: 'text',
      setLaterInProf: true,
      inMatch: true,
-     listNum: 3,
+     listNum: (matchProf: UserClass) => (matchProf?.currStudy ? 3 : ''),
     },
     {
      key: 'freeTimeAct',
@@ -116,6 +137,8 @@ export class ConfigService {
      ],
      setLaterInProf: true,
      inMatch: true,
+     listNum: (matchProf: UserClass) =>
+      matchProf?.freeTimeAct?.length ? 5 : '',
     },
     {
      key: 'interests',
@@ -184,5 +207,8 @@ export class ConfigService {
   //   filesArr.map((file) => console.log(file));
   this.selectedFiles = filesArr;
   this.selectedFilesSubj.next(this.selectedFiles);
+ }
+ getListNum(matchProf: UserClass, labelName: string) {
+  return matchProf[labelName] ? 3 : '';
  }
 }

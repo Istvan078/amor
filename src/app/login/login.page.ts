@@ -1,6 +1,7 @@
 import { Component, OnInit } from '@angular/core';
 import { AuthService } from '../services/auth.service';
 import { Router } from '@angular/router';
+import { BaseService } from '../services/base.service';
 
 @Component({
  selector: 'app-login',
@@ -11,7 +12,11 @@ import { Router } from '@angular/router';
 export class LoginPage implements OnInit {
  loginData: any;
  labels: string[] = ['Email', 'Jelszo'];
- constructor(private auth: AuthService, private router: Router) {}
+ constructor(
+  private auth: AuthService,
+  private router: Router,
+  private base: BaseService
+ ) {}
  ngOnInit(): void {
   this.setLoginData();
  }
@@ -29,6 +34,7 @@ export class LoginPage implements OnInit {
   );
  }
  async loginUser() {
+  this.base.userProfCreatedSubject.next(false);
   await this.auth.signInWithEmail(this.loginData.data);
   this.router.navigate(['/amor/tab3']);
  }

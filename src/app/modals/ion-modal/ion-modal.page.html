@@ -1,77 +1,94 @@
 @if(regFirstPhase) {
 <ion-content class="ion-padding">
-  <ion-item>
-    <ion-input
-      labelPlacement="stacked"
-      label="E-mail cim"
-      [(ngModel)]="email"
-      placeholder="E-mail"
-      type="email"
-    ></ion-input>
-  </ion-item>
-  <ion-item>
-    <ion-input
-      labelPlacement="stacked"
-      label="Minimum 6 karakter"
-      [(ngModel)]="password"
-      placeholder="Jelszo"
-      type="password"
-    ></ion-input>
-  </ion-item>
+ <ion-item>
+  <ion-input
+   labelPlacement="stacked"
+   label="E-mail cim"
+   [(ngModel)]="email"
+   placeholder="E-mail"
+   type="email"
+  ></ion-input>
+ </ion-item>
+ <ion-item>
+  <ion-input
+   labelPlacement="stacked"
+   label="Minimum 6 karakter"
+   [(ngModel)]="password"
+   placeholder="Jelszo"
+   type="password"
+  ></ion-input>
+ </ion-item>
 </ion-content>
 <ion-toolbar>
-  <ion-buttons slot="start">
-    <ion-button color="medium" (click)="cancel()">Megse</ion-button>
-  </ion-buttons>
-  <ion-title>Udvozlunk az Amor-on</ion-title>
-  <ion-buttons slot="end">
-    <ion-button (click)="confirm()" [strong]="true"
-      >Fiok letrehozasa</ion-button
-    >
-  </ion-buttons>
+ <ion-buttons slot="start">
+  <ion-button color="medium" (click)="cancel()">Megse</ion-button>
+ </ion-buttons>
+ <ion-title>Udvozlunk az Amor-on</ion-title>
+ <ion-buttons slot="end">
+  <ion-button (click)="confirm()" [strong]="true">Fiok letrehozasa</ion-button>
+ </ion-buttons>
 </ion-toolbar>
 } @if(regSecondPhase) {
 <ion-content class="ion-padding">
-  <form #form="ngForm">
-    @for(item of labels.userProfLabels; track $index) { @if(!item.setByApp &&
-    item.type !== "select" && !item.setLaterInProf) {
-    <ion-item>
-      <ion-input
-        [name]="item.key"
-        required
-        labelPlacement="stacked"
-        [label]="item.value"
-        [(ngModel)]="userProf[item.key]"
-        [type]="item.type"
-      ></ion-input>
-    </ion-item>
-    } @if(item.type === "select"){
-    <ion-item>
-      <ion-select
-        [name]="item.key"
-        required
-        (ionChange)="userProf[item.key] = $event.detail.value"
-        labelPlacement="stacked"
-        [label]="item.value"
-      >
-        @for(opt of item.options; track $index; let i = $index) {
-        <ion-select-option [value]="item.values[i]">{{opt}}</ion-select-option>
+ <form #form="ngForm">
+  @for(item of labels.userProfLabels; track $index) { @if(!item.setByApp &&
+  item.type !== "select" && !item.setLaterInProf && item.type !== "range") {
+  <ion-item>
+   <ion-input
+    [name]="item.key"
+    required
+    labelPlacement="stacked"
+    [label]="item.value"
+    [(ngModel)]="userProf[item.key]"
+    [type]="item.type"
+   ></ion-input>
+  </ion-item>
+  } @if(item.type === "select"){
+  <ion-item>
+   <ion-select
+    [name]="item.key"
+    required
+    (ionChange)="userProf[item.key] = $event.detail.value"
+    labelPlacement="stacked"
+    [label]="item.value"
+   >
+    @for(opt of item.options; track $index; let i = $index) {
+    <ion-select-option [value]="item.values[i]">{{opt}}</ion-select-option>
 
-        }
-      </ion-select>
-    </ion-item>
-    } }
-  </form>
+    }
+   </ion-select>
+  </ion-item>
+  } @if(item.type === "range"){
+  <ion-item>
+   <ion-range
+    [name]="item.key"
+    [label]="
+     item.value + userProf[item.key].lower + ' - ' + userProf[item.key].upper
+    "
+    aria-label="Milyen korban keresel?"
+    [min]="14"
+    [max]="100"
+    [pin]="true"
+    [snaps]="true"
+    [dualKnobs]="true"
+    [(ngModel)]="userProf[item.key]"
+   >
+    <ion-icon slot="start" name="accessibility-outline"></ion-icon>
+    <ion-icon slot="end" name="briefcase-outline"></ion-icon
+   ></ion-range>
+  </ion-item>
+  } }
+ </form>
 </ion-content>
 <ion-toolbar>
-  <!-- <ion-buttons slot="start">
+ <!-- <ion-buttons slot="start">
     <ion-button color="medium" (click)="cancel()">Megse</ion-button>
   </ion-buttons> -->
-  <ion-title>Alapadatok</ion-title>
-  <ion-buttons slot="end">
-    <ion-button [disabled]="!form.valid" (click)="confirm()" [strong]="true"
-      >Tovabb</ion-button
-    >
-  </ion-buttons>
+ <ion-title>Alapadatok</ion-title>
+ <ion-buttons slot="end">
+  <ion-button [disabled]="!form.valid" (click)="confirm()" [strong]="true"
+   >Tovabb</ion-button
+  >
+ </ion-buttons>
 </ion-toolbar>
 }

@@ -17,7 +17,7 @@ import { Promotions } from '../models/promotions.model';
 import { Router } from '@angular/router';
 import { BaseService } from '../services/base.service';
 import { UserClass } from '../models/user.model';
-import { Subscription } from 'rxjs';
+import { Observable, Subscription } from 'rxjs';
 import { FilesService } from '../services/files.service';
 
 @Component({
@@ -29,24 +29,23 @@ import { FilesService } from '../services/files.service';
 export class MainViewContainerComponent
  implements OnInit, AfterViewInit, OnDestroy
 {
- @Input() name?: string;
- @Input() viewData: any;
+ @Input() matchProfiles: any;
  isUserCardOpen: boolean = false;
- @Output() submitData: EventEmitter<any> = new EventEmitter();
  @ViewChild('ngForm') ngForm!: NgForm;
- viewArrayValues: any[] = [];
- viewArrayKeys: any[] = [];
  labels: any = {};
- possMatchDetLists: any[] = [1, 2, 3];
+ possMatchDetLists: any[] = [];
+ matchProf?: UserClass;
  user: any;
  promotions: Promotions[] = [];
  userProfSaved: boolean = false;
  startUpdUserProf: boolean = false;
+ isMatchDetailsOpen: boolean = false;
  userProf?: UserClass;
  selectedFiles: File[] = [];
  loggedUserSub: Subscription = Subscription.EMPTY;
  userProfSub: Subscription = Subscription.EMPTY;
  selectedFilesSub: Subscription = Subscription.EMPTY;
+ initMainViewSubjectSub: Subscription = Subscription.EMPTY;
 
  constructor(
   private modalCtrl: ModalController,
@@ -57,60 +56,101 @@ export class MainViewContainerComponent
   private fileServ: FilesService
  ) {}
  ngOnInit(): void {
+  if (window.innerWidth < 400) this.isMatchDetailsOpen = true;
+  this.config.initMainViewSubject.subscribe((isInit) => {
+   if (isInit) {
+    this.setMatchProfiles();
+    this.setPromotion();
+    this.setUProfLabels();
+    console.log(`****INIT MAIN VIEW****`);
+   }
+  });
   this.loggedUserSub = this.auth.loggedUserSubject.subscribe((usr) => {
    this.user = usr;
+   console.log(`LOGED USER MAINVIEW`);
   });
   this.userProfSub = this.base.userProfBehSubj.subscribe((uProf) => {
    this.userProf = uProf;
+   console.log(`UserProf MAINVIEW`);
   });
   this.selectedFilesSub = this.config.selectedFilesSubj.subscribe((files) => {
    this.selectedFiles = files;
-   console.log('this.selectedFiles');
   });
   this.base.isUserCardOpenSubj.subscribe(
    (isOpen) => (this.isUserCardOpen = isOpen)
   );
-  this.setPromotion();
-  this.setUProfLabels();
+ }
+ ionViewWillEnter() {
+  // Ez a metódus újra lefut, amikor az oldal újra megjelenik
+  console.log('Page is about to enter');
  }
  ngAfterViewInit(): void {}
  ngOnDestroy(): void {
   if (this.loggedUserSub) this.loggedUserSub.unsubscribe();
   if (this.userProfSub) this.userProfSub.unsubscribe();
- }
- getViewData() {
-  if (this.viewData?.firstName) {
-   this.viewArrayValues = Object.values(this.viewData);
-   this.labels = this.config.getLabels(true);
-   this.viewArrayKeys = Object.keys(this.viewData);
-  }
-  if (this.viewData?.data) {
-   this.viewArrayValues = Object.values(this.viewData.data);
-   this.viewArrayKeys = Object.keys(this.viewData.data);
-  }
+  if (this.initMainViewSubjectSub) this.initMainViewSubjectSub.unsubscribe();
+  if (this.selectedFilesSub) this.selectedFilesSub.unsubscribe();
  }
 
  setPromotion() {
   this.promotions = this.config.getPromotions();
  }
  setUProfLabels() {
+  this.possMatchDetLists = [];
   this.labels = this.config.getLabels(true);
- }
- onSubmit(form: NgForm) {
-  console.log(form.value);
-  this.submitData.emit(form.value);
+  let isListNumber: any;
+  this.labels.userProfLabels.map((label: any, i: number) => {
+   if (typeof label?.listNum !== 'number' && label?.listNum) {
+    isListNumber = label?.listNum(this.matchProf);
+    label.listNum = isListNumber;
+   }
+   if (
+    label?.listNum &&
+    !this.possMatchDetLists.includes(label?.listNum) &&
+    typeof label?.listNum === 'number'
+   )
+    this.possMatchDetLists.push(label?.listNum);
+   if (isListNumber && !this.possMatchDetLists.includes(isListNumber))
+    this.possMatchDetLists.push(isListNumber);
+  });
  }
 
- subToSelFilesSubj() {
-  // this.selectedFilesSub = this.config.selectedFilesSubj!.subscribe((files) => {
-  //  this.selectedFiles = files;
-  //  console.log('this.selectedFiles');
-  // });
-  // setTimeout(() => {
-  //  console.log(this.config.selectedFilesSubj?.value);
-  // }, 5000);
+ setMatchProfiles() {
+  let matchProfsArr: any[] = [];
+  let isMapFuncStarted: boolean = false;
+  const obs = new Observable((obs) => {
+   const int = setInterval(() => {
+    if (this.matchProfiles?.length && !isMapFuncStarted) {
+     this.matchProfiles.map(async (matchUid: any) => {
+      isMapFuncStarted = true;
+      const matchProf = await this.base.getPossibleMatch(matchUid);
+      matchProfsArr.push(matchProf);
+     });
+    }
+    if (
+     matchProfsArr.length === this.matchProfiles?.length &&
+     isMapFuncStarted
+    ) {
+     obs.next(matchProfsArr);
+     clearInterval(int);
+    }
+   }, 200);
+  }).subscribe((matchProfsArr) => {
+   this.matchProfiles = matchProfsArr;
+   this.matchProf = this.matchProfiles[0];
+   this.matchProf!['index'] = 0;
+   this.setUProfLabels();
+   obs.unsubscribe();
+  });
  }
-
+ changeMatchProf() {
+  if (this.matchProf!['index'] !== this.matchProfiles.length - 1) {
+   const index = this.matchProf!['index'];
+   this.matchProf = this.matchProfiles[index + 1];
+   this.matchProf!['index'] = index + 1;
+   this.setUProfLabels();
+  }
+ }
  openUserCard() {
   this.isUserCardOpen = true;
  }
@@ -122,7 +162,16 @@ export class MainViewContainerComponent
  async updateUserProf() {
   const userProf = { ...this.userProf };
   userProf.uid = this.user.uid;
-  if (userProf?.uid) await this.base.updateUserProf(userProf.uid, userProf);
+  const claims = {
+   gender: userProf.gender,
+   lookingForGender: userProf.lookingForGender,
+   lookingForAge: userProf.lookingForAge,
+   lookingForDistance: userProf.lookingForDistance,
+  };
+  if (userProf?.uid) {
+   await this.base.updateUserProf(userProf.uid, userProf);
+   this.auth.setCustomClaims(userProf.uid, claims);
+  }
  }
 
  onSelectChoices(eventObj: any, labelKey: any) {
@@ -155,6 +204,9 @@ export class MainViewContainerComponent
   await this.auth.signOut();
   this.user = null;
   this.auth.authAutoFillSubj.next(this.userProf?.email);
+  this.userProf = undefined;
+  this.matchProf = undefined;
+  this.matchProfiles = [];
   this.router.navigate(['/amor/login']);
  }
 }

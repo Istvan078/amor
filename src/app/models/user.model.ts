@@ -1,3 +1,5 @@
+import firebase from 'firebase/compat';
+export type FirebaseUser = firebase.User | null;
 interface RegistrationDataForLogin {
  email: string;
  password: string;
@@ -20,7 +22,7 @@ export class UserClass {
  public uid?: string;
  public email?: string;
  private loginData?: RegistrationDataForLogin;
- public gender?: string;
+ public gender?: 'No' | 'Ferfi' | 'Egyeb';
  public firstName?: string;
  public lastName?: string;
  public birthDate?: string;
@@ -32,8 +34,12 @@ export class UserClass {
  public freeTimeAct?: string[];
  public zodiacSign?: string;
  public lookingForDistance?: number;
+ public lookingForAge: { lower: number; upper: number } = {
+  lower: 18,
+  upper: 80,
+ };
  public highestSchool?: string;
- public lookingFor?: LookingFor;
+ public lookingForGender?: LookingFor;
  public aboutMe?: string;
  public lookingForType?: string;
  public profilePicture?: string;
@@ -86,6 +92,5 @@ export class UserClass {
    birthDateObj.year -
    (birthDateObj.month * 30 - actDateObj.month * 30) / 360;
   this.age = Math.floor(this.age);
-  console.log(this.age);
  }
 }

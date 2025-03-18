@@ -8,6 +8,8 @@ import { CUSTOM_ELEMENTS_SCHEMA } from '@angular/core';
 import { AppRoutingModule } from './app-routing.module';
 import { AppComponent } from './app.component';
 
+import { HttpClientModule } from '@angular/common/http';
+
 // import { environment } from 'src/environments/environment';
 import { environment } from 'src/environments/environment.prod';
 import { AngularFireModule } from '@angular/fire/compat';
@@ -22,6 +24,7 @@ import { AngularFireStorageModule } from '@angular/fire/compat/storage';
   BrowserModule,
   IonicModule.forRoot(),
   AppRoutingModule,
+  HttpClientModule,
   AngularFireModule.initializeApp(environment.firebaseConfig),
   AngularFirestoreModule,
   AngularFireAuthModule,

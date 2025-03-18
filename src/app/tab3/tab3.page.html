@@ -7,10 +7,12 @@
 </ion-header> -->
 
 <ion-content [fullscreen]="true">
-  <!-- <ion-header collapse="condense">
+ <!-- <ion-header collapse="condense">
     <ion-toolbar>
       <ion-title size="large">Profilom</ion-title>
     </ion-toolbar>
   </ion-header> -->
-  <app-main-view-container [viewData]="userProf"></app-main-view-container>
+ <app-main-view-container
+  [matchProfiles]="matchUserProfs"
+ ></app-main-view-container>
 </ion-content>

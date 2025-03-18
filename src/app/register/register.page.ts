@@ -73,8 +73,9 @@ export class RegisterPage implements OnInit {
      data2.role === 'created-successfully' &&
      (!this.user?.uid || this.user?.uid)
     ) {
-     this.createUserProf(data2);
+     await this.createUserProf(data2);
      profCreatedSuccesfully = true;
+     this.base.userProfCreatedSubject.next(true);
      if (!this.user?.uid) this.router.navigate(['/amor/login']);
      if (this.user?.uid) this.router.navigate(['/amor/tab3']);
     }
@@ -90,8 +91,9 @@ export class RegisterPage implements OnInit {
     data.role === 'created-successfully' &&
     (!this.user?.uid || this.user?.uid)
    ) {
-    this.createUserProf(data);
+    await this.createUserProf(data);
     profCreatedSuccesfully = true;
+    this.base.userProfCreatedSubject.next(true);
     if (!this.user?.uid) this.router.navigate(['/amor/login']);
     if (this.user?.uid) this.router.navigate(['/amor/tab3']);
    }

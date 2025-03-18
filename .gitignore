@@ -3,3 +3,5 @@ src/environments
 .angular
 .firebase
 www
+functions/node_modules
+functions/config
