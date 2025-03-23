@@ -19,6 +19,7 @@ import { BaseService } from '../services/base.service';
 import { UserClass } from '../models/user.model';
 import { Observable, Subscription } from 'rxjs';
 import { FilesService } from '../services/files.service';
+import { LocationService } from '../services/location.service';
 
 @Component({
  selector: 'app-main-view-container',
@@ -30,6 +31,8 @@ export class MainViewContainerComponent
  implements OnInit, AfterViewInit, OnDestroy
 {
  @Input() matchProfiles: any;
+ @Input() progress: number = 0;
+ @Input() buffer: number = 0;
  isUserCardOpen: boolean = false;
  @ViewChild('ngForm') ngForm!: NgForm;
  labels: any = {};
@@ -40,6 +43,7 @@ export class MainViewContainerComponent
  userProfSaved: boolean = false;
  startUpdUserProf: boolean = false;
  isMatchDetailsOpen: boolean = false;
+ isMatchPlaceHolder: boolean = false;
  userProf?: UserClass;
  selectedFiles: File[] = [];
  loggedUserSub: Subscription = Subscription.EMPTY;
@@ -53,7 +57,8 @@ export class MainViewContainerComponent
   private config: ConfigService,
   private router: Router,
   private base: BaseService,
-  private fileServ: FilesService
+  private fileServ: FilesService,
+  private locationService: LocationService
  ) {}
  ngOnInit(): void {
   if (window.innerWidth < 400) this.isMatchDetailsOpen = true;
@@ -144,11 +149,29 @@ export class MainViewContainerComponent
   });
  }
  changeMatchProf() {
+  if (!this.matchProf) return;
   if (this.matchProf!['index'] !== this.matchProfiles.length - 1) {
    const index = this.matchProf!['index'];
    this.matchProf = this.matchProfiles[index + 1];
    this.matchProf!['index'] = index + 1;
    this.setUProfLabels();
+  }
+  if (this.matchProf!['index'] === this.matchProfiles.length - 1) {
+   this.matchProf = undefined;
+   this.possMatchDetLists = [];
+   this.isMatchPlaceHolder = true;
+  }
+ }
+ likeUser(usr: UserClass | undefined) {
+  if (this.userProf && usr?.uid) {
+   if (!this.userProf?.liked) this.userProf.liked = [usr.uid];
+   else this.userProf?.liked.push(usr.uid);
+   if (this.userProf?.possMatches?.includes(usr.uid)) {
+    this.userProf.possMatches = this.userProf.possMatches.filter(
+     (uid) => uid !== usr.uid
+    );
+   }
+   this.base.updateUserProf(this.userProf?.uid!, { ...this.userProf });
   }
  }
  openUserCard() {
@@ -167,6 +190,8 @@ export class MainViewContainerComponent
    lookingForGender: userProf.lookingForGender,
    lookingForAge: userProf.lookingForAge,
    lookingForDistance: userProf.lookingForDistance,
+   currentLocCoords: await this.locationService.getLocation(),
+   currentPlace: this.userProf!.currentPlace as string,
   };
   if (userProf?.uid) {
    await this.base.updateUserProf(userProf.uid, userProf);
@@ -205,6 +230,7 @@ export class MainViewContainerComponent
   this.user = null;
   this.auth.authAutoFillSubj.next(this.userProf?.email);
   this.userProf = undefined;
+  this.base.userProfBehSubj.next({});
   this.matchProf = undefined;
   this.matchProfiles = [];
   this.router.navigate(['/amor/login']);

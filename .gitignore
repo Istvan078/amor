@@ -5,3 +5,4 @@ src/environments
 www
 functions/node_modules
 functions/config
+src/app/temp

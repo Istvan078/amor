@@ -73,6 +73,7 @@ export class RegisterPage implements OnInit {
      data2.role === 'created-successfully' &&
      (!this.user?.uid || this.user?.uid)
     ) {
+     data2.data.uid = this.user?.uid ? this.user.uid : '';
      await this.createUserProf(data2);
      profCreatedSuccesfully = true;
      this.base.userProfCreatedSubject.next(true);
@@ -91,6 +92,7 @@ export class RegisterPage implements OnInit {
     data.role === 'created-successfully' &&
     (!this.user?.uid || this.user?.uid)
    ) {
+    data.data.uid = this.user?.uid ? this.user.uid : '';
     await this.createUserProf(data);
     profCreatedSuccesfully = true;
     this.base.userProfCreatedSubject.next(true);

@@ -9,13 +9,22 @@ export class BaseService {
  userProfBehSubj: BehaviorSubject<any> = new BehaviorSubject(null);
  isUserCardOpenSubj: BehaviorSubject<any> = new BehaviorSubject(false);
  userProfCreatedSubject: BehaviorSubject<boolean> = new BehaviorSubject(false);
- constructor(private fireStore: AngularFirestore) {}
+ constructor(private fireStore: AngularFirestore) {
+  this.getAllUserProfs();
+ }
 
  async getUserProf(uid: string) {
   const document = await this.fireStore.firestore
    .doc(`users/${uid}`)
    .get({ source: 'server' });
   return document.data();
+ }
+
+ async getAllUserProfs() {
+  const copiedUsers: any[] = [];
+  const users = (await this.fireStore.firestore.collection('users').get()).docs;
+  users.map((user) => copiedUsers.push(user.data()));
+  return copiedUsers;
  }
 
  async registerUserProf(uid: string, data: any) {

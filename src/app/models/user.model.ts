@@ -17,6 +17,12 @@ interface Study {
  until: string;
 }
 
+interface Subscription {
+ gold: boolean;
+ silver: boolean;
+ bronze: boolean;
+}
+
 export class UserClass {
  [key: string]: any;
  public uid?: string;
@@ -28,6 +34,7 @@ export class UserClass {
  public birthDate?: string;
  public age?: number;
  public currentPlace?: string;
+ public currentLocCoords?: { lat: number; lon: number };
  public job?: string;
  public currStudy?: string;
  public studies?: Study;
@@ -46,6 +53,10 @@ export class UserClass {
  public pictures?: { name: string; url: string }[];
  public interests?: string[];
  public matches?: string[]; // matchelo szemelyek uidk
+ public possMatches?: string[];
+ public liked?: string[];
+ public subscriptions?: Subscription;
+ public isOnline?: boolean;
  constructor() {}
 
  calcAge() {

@@ -61,6 +61,13 @@
    margin: 0;
    padding-left: 18px;
    padding-right: 18px;
+   p {
+    position: absolute;
+    top: 50px;
+    font-family: "Courier New", Courier, monospace;
+    font-size: 1.4rem;
+    color: rgb(226, 211, 211);
+   }
   }
   .card-content-cont {
    position: absolute;
@@ -80,6 +87,32 @@
     color: rgb(255, 255, 255);
     padding: 5px;
    }
+  }
+ }
+ .match-progress-bar-container {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  height: 100%;
+  width: 100%;
+  p {
+   font-family: "Courier New", Courier, monospace;
+   font-size: 1.2rem;
+   color: rgb(17, 96, 17);
+   text-align: center;
+  }
+  ion-progress-bar {
+   --background: rgb(59, 59, 198, 0.7);
+   --progress-background: linear-gradient(
+    to right,
+    rgb(185, 222, 65),
+    rgb(174, 136, 34),
+    rgb(45, 176, 45)
+   );
+   height: 7%;
+   width: 85%;
+   border-radius: 10px;
   }
  }
  .bottom-30 {

@@ -21,6 +21,8 @@ export class AuthService {
   gender: 'No' | 'Ferfi' | 'Egyeb';
   lookingForGender: 'No' | 'Ferfi';
   lookingForDistance: number;
+  currentPlace: string;
+  currentLocCoords: { lat: number; lon: number };
   lookingForAge: { lower: number; upper: number };
  };
  userProfCreatedSubjSub: Subscription = Subscription.EMPTY;
@@ -34,9 +36,13 @@ export class AuthService {
  getLoggedInUser() {
   this.afAuth.authState.subscribe(async (usr) => {
    this.loggedUser = usr;
-   if (usr) await this.setAuthHeaderAndIdToken(usr);
+   if (usr) {
+    await this.setAuthHeaderAndIdToken(usr);
+    // this.loggedUserSubject.next(this.loggedUser);
+   }
    this.userProfCreatedSubjSub = this.base.userProfCreatedSubject.subscribe(
     (userProfCreated) => {
+     console.log(`LEFUTOTT A SUBJ`);
      if (this.loggedUser && !userProfCreated) {
       this.getUsers().subscribe((users: any) => {
        this.usersSubject.next(users);

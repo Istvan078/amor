@@ -68,35 +68,69 @@
    <ion-row>
     <ion-col>
      <ion-card class="user-card">
-      <!-- <div class="possible-match-img-cont"> -->
-      <!-- <img
-        class="w-100 h-100"
-        src="https://img.freepik.com/free-photo/smiling-beautiful-young-woman-standing-posing_171337-11412.jpg?t=st=1741774526~exp=1741778126~hmac=a7231668e4c5404255597ab2c791cd321150de59b3eacd1ab254649c4e1d2ee4&w=740"
-        alt="Felhasznalo Kepe"
-       /> -->
+      @if(progress !==100) {
+      <div class="match-progress-bar-container">
+       <p>MATCHEK KERESESE FOLYAMATBAN...</p>
+       <ion-progress-bar
+        [buffer]="buffer"
+        [value]="progress"
+       ></ion-progress-bar>
+      </div>
+      } @if(progress === 100) {
       <swiper-container
        class="possible-match-img-cont"
        [grabCursor]="true"
        [pagination]="true"
       >
-       @for(pic of matchProf?.pictures;track $index){
+       @if(!matchProf?.pictures?.length && !isMatchPlaceHolder) {
+       <swiper-slide>
+        @if(matchProf?.gender === "No") {
+        <img
+         class="w-100 h-100"
+         src="https://img.freepik.com/free-photo/smiling-beautiful-young-woman-standing-posing_171337-11412.jpg?t=st=1741774526~exp=1741778126~hmac=a7231668e4c5404255597ab2c791cd321150de59b3eacd1ab254649c4e1d2ee4&w=740"
+         alt="Felhasznalo Kepe"
+        />
+        } @else if(matchProf?.gender === "Ferfi"){
+        <img
+         class="w-100 h-100"
+         src="https://img.freepik.com/free-photo/front-view-smiley-man-posing-cv_23-2149927614.jpg?t=st=1742682395~exp=1742685995~hmac=0c894e9ca76b334b0ed1f69f37ab56764bd4db0ab471e43578c54a97734e0f79&w=740"
+         alt="Felhasznalo Kepe"
+        />
+        }
+       </swiper-slide>
+       } @for(pic of matchProf?.pictures;track $index){
        <swiper-slide>
         <img class="w-100 h-100" [src]="pic.url" />
        </swiper-slide>
+       } @if(isMatchPlaceHolder) {
+       <swiper-slide>
+        <img
+         class="w-100 h-100"
+         src="https://img.freepik.com/free-photo/oops-lettering-hand-drawn-speech-bubble-red-backdrop_23-2147948841.jpg?t=st=1742686882~exp=1742690482~hmac=476c757d7ab737d27e2a3799df18485137eaf50e64bb78124af2b7feaeac1503&w=740"
+        />
+       </swiper-slide>
        }
       </swiper-container>
+
+      }
       <!-- </div> -->
       <div class="card-content-cont-wrapper">
        <div class="card-content-cont">
         <div class="pos-abs bottom-130 w-100 poss-match-name-cont">
          <ion-card-content class="d-flex jus-space-b poss-match-name w-100">
+          @if(!isMatchPlaceHolder) {
           <ion-text>{{ matchProf?.firstName + " " + matchProf?.age }}</ion-text>
+          } @else {
+          <p>Elfogytak a lehetseges matchek, nezz vissza kesobb</p>
+
+          } @if(!isMatchPlaceHolder) {
           <ion-button
            (click)="isMatchDetailsOpen = !isMatchDetailsOpen"
            class="show-match-details-button"
           >
            <ion-icon name="arrow-down-outline"></ion-icon>
           </ion-button>
+          }
          </ion-card-content>
         </div>
         @if(matchProf?.interests){
@@ -113,7 +147,7 @@
           }
          </div>
         </ion-card-content>
-        }
+        } @if(!isMatchPlaceHolder) {
         <ion-buttons style="padding-left: 12px">
          <ion-button fill="solid" shape="round">
           <ion-icon
@@ -139,7 +173,11 @@
            name="star-outline"
           ></ion-icon>
          </ion-button>
-         <ion-button (click)="changeMatchProf()" fill="solid" shape="round">
+         <ion-button
+          (click)="likeUser(matchProf); changeMatchProf()"
+          fill="solid"
+          shape="round"
+         >
           <ion-icon
            slot="icon-only"
            size="large"
@@ -148,6 +186,7 @@
           ></ion-icon>
          </ion-button>
         </ion-buttons>
+        }
        </div>
       </div>
      </ion-card>
