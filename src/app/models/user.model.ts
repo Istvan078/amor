@@ -52,9 +52,7 @@ export class UserClass {
  public profilePicture?: string;
  public pictures?: { name: string; url: string }[];
  public interests?: string[];
- public matches?: string[]; // matchelo szemelyek uidk
- public possMatches?: string[];
- public liked?: string[];
+ public matchParts?: MatchParts;
  public subscriptions?: Subscription;
  public isOnline?: boolean;
  constructor() {}
@@ -103,5 +101,24 @@ export class UserClass {
    birthDateObj.year -
    (birthDateObj.month * 30 - actDateObj.month * 30) / 360;
   this.age = Math.floor(this.age);
+ }
+ setDataForFireStore() {
+  const userProfCopy = { ...this };
+  if (this.matchParts) userProfCopy.matchParts = { ...this.matchParts };
+  console.log(userProfCopy);
+  return userProfCopy;
+ }
+}
+
+export class MatchParts {
+ matches: string[]; // matchelo szemelyek uidk
+ possMatches: string[];
+ liked: string[];
+ notLiked: string[];
+ constructor() {
+  (this.matches = []),
+   (this.possMatches = []),
+   (this.liked = []),
+   (this.notLiked = []);
  }
 }

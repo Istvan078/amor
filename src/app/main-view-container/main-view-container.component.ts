@@ -2,6 +2,7 @@ import {
  AfterViewInit,
  Component,
  EventEmitter,
+ HostListener,
  Input,
  OnDestroy,
  OnInit,
@@ -33,8 +34,15 @@ export class MainViewContainerComponent
  @Input() matchProfiles: any;
  @Input() progress: number = 0;
  @Input() buffer: number = 0;
+ @Input() matches: UserClass[] = [];
+ isShowMessages: boolean = false;
  isUserCardOpen: boolean = false;
  @ViewChild('ngForm') ngForm!: NgForm;
+ @HostListener('document:keydown.escape', ['$event'])
+ handleEscape(event: KeyboardEvent) {
+  this.signOut();
+ }
+
  labels: any = {};
  possMatchDetLists: any[] = [];
  matchProf?: UserClass;
@@ -46,6 +54,7 @@ export class MainViewContainerComponent
  isMatchPlaceHolder: boolean = false;
  userProf?: UserClass;
  selectedFiles: File[] = [];
+ selectedMessProf?: UserClass;
  loggedUserSub: Subscription = Subscription.EMPTY;
  userProfSub: Subscription = Subscription.EMPTY;
  selectedFilesSub: Subscription = Subscription.EMPTY;
@@ -81,9 +90,30 @@ export class MainViewContainerComponent
   this.selectedFilesSub = this.config.selectedFilesSubj.subscribe((files) => {
    this.selectedFiles = files;
   });
-  this.base.isUserCardOpenSubj.subscribe(
-   (isOpen) => (this.isUserCardOpen = isOpen)
-  );
+  // this.base.isUserCardOpenSubj.subscribe(
+  //  (isOpen) => (this.isUserCardOpen = isOpen)
+  // );
+  this.base.mainDataSubject.subscribe(data => {
+    if(data?.messaging) {
+      this.isShowMessages = true;
+      this.selectedMessProf = this.matches[0]
+      this.isUserCardOpen = false;
+      this.isMatchDetailsOpen = false;
+    }
+    if(data?.amor) {
+      this.isShowMessages = false;
+      this.selectedMessProf = undefined
+    }
+    if(data?.userSettings) this.isUserCardOpen = true;
+    if(data?.userSettings === false) {
+      this.isUserCardOpen = false;
+      this.isMatchDetailsOpen = true;
+      this.isShowMessages = false;
+      
+    }
+    if(data.phoneView) // folytatni
+    console.log(data);
+  })
  }
  ionViewWillEnter() {
   // Ez a metódus újra lefut, amikor az oldal újra megjelenik
@@ -125,6 +155,10 @@ export class MainViewContainerComponent
   let isMapFuncStarted: boolean = false;
   const obs = new Observable((obs) => {
    const int = setInterval(() => {
+    if (this.progress === 100 && !this.matchProfiles?.length) {
+     obs.next([]);
+     clearInterval(int);
+    }
     if (this.matchProfiles?.length && !isMapFuncStarted) {
      this.matchProfiles.map(async (matchUid: any) => {
       isMapFuncStarted = true;
@@ -140,11 +174,14 @@ export class MainViewContainerComponent
      clearInterval(int);
     }
    }, 200);
-  }).subscribe((matchProfsArr) => {
-   this.matchProfiles = matchProfsArr;
-   this.matchProf = this.matchProfiles[0];
-   this.matchProf!['index'] = 0;
-   this.setUProfLabels();
+  }).subscribe((matchProfsArr: any) => {
+   if (matchProfsArr.length) {
+    this.matchProfiles = matchProfsArr;
+    this.matchProf = this.matchProfiles[0];
+    this.matchProf!['index'] = 0;
+    this.setUProfLabels();
+   }
+   if (!matchProfsArr.length) this.isMatchPlaceHolder = true;
    obs.unsubscribe();
   });
  }
@@ -162,20 +199,38 @@ export class MainViewContainerComponent
    this.isMatchPlaceHolder = true;
   }
  }
- likeUser(usr: UserClass | undefined) {
+ likeOrDontUser(
+  usr: UserClass | undefined,
+  isLike?: boolean,
+  isDontLike?: boolean
+ ) {
   if (this.userProf && usr?.uid) {
-   if (!this.userProf?.liked) this.userProf.liked = [usr.uid];
-   else this.userProf?.liked.push(usr.uid);
-   if (this.userProf?.possMatches?.includes(usr.uid)) {
-    this.userProf.possMatches = this.userProf.possMatches.filter(
-     (uid) => uid !== usr.uid
-    );
+   if (isLike) {
+    if (!this.userProf?.matchParts?.liked)
+     this.userProf.matchParts!.liked = [usr.uid];
+    else this.userProf?.matchParts?.liked.push(usr.uid);
+   } else if (isDontLike) {
+    if (!this.userProf?.matchParts?.notLiked)
+     this.userProf.matchParts!.notLiked = [usr.uid];
+    else this.userProf?.matchParts?.notLiked.push(usr.uid);
    }
-   this.base.updateUserProf(this.userProf?.uid!, { ...this.userProf });
+   if (this.userProf?.matchParts?.possMatches?.includes(usr.uid)) {
+    this.userProf.matchParts.possMatches =
+     this.userProf.matchParts?.possMatches.filter((uid) => uid !== usr.uid);
+   }
+   this.base.updateUserProf(
+    this.userProf?.uid!,
+    this.userProf.setDataForFireStore()
+   );
   }
  }
  openUserCard() {
   this.isUserCardOpen = true;
+ }
+
+ openMessWithMatch(match: any) {
+  this.isShowMessages = true;
+  this.selectedMessProf = match;
  }
 
  startUpdateUserProf() {
@@ -232,7 +287,12 @@ export class MainViewContainerComponent
   this.userProf = undefined;
   this.base.userProfBehSubj.next({});
   this.matchProf = undefined;
+  this.selectedMessProf = undefined;
+  this.matches = [];
   this.matchProfiles = [];
+  this.isMatchPlaceHolder = false;
+  this.isShowMessages = false;
+  this.possMatchDetLists = [];
   this.router.navigate(['/amor/login']);
  }
 }

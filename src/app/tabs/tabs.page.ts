@@ -49,7 +49,7 @@ export class TabsPage implements OnInit {
       this.base.userProfBehSubj.next(this.userProf);
       //   this.auth.setCustomClaims(this.loggedUser.uid, this.auth.customClaims);
 
-      if (this.loggedUser?.claims) this.router.navigate(['/amor/tab3']);
+      //   if (this.loggedUser?.claims) this.router.navigate(['/amor/tab3']);
       if (!this.loggedUser?.claims) {
        const userPosition = await this.location.getLocation();
        const userCoords = {
@@ -79,10 +79,17 @@ export class TabsPage implements OnInit {
   );
  }
  openUserCard() {
-  this.base.isUserCardOpenSubj.next(true);
+//   this.base.isUserCardOpenSubj.next(true);
+this.base.mainDataSubject.next({userSettings:true, amor:true});
+//   this.base.mainDataSubject.next({amor: true})
  }
  showMatchesCard() {
-  this.base.isUserCardOpenSubj.next(false);
+this.base.mainDataSubject.next({userSettings:false});
+ }
+ showMessages() {
+    this.base.mainDataSubject.next({messaging: true})
+//   this.base.isUserCardOpenSubj.next(false);
+
  }
  ngOnDestroy() {
   if (this.loggedUserSubjSub) this.loggedUserSubjSub.unsubscribe();

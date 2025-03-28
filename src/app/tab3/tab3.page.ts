@@ -3,7 +3,7 @@ import { AuthService } from '../services/auth.service';
 import { BaseService } from '../services/base.service';
 import { Observable } from 'rxjs';
 import { ConfigService } from '../services/config.service';
-import { UserClass } from '../models/user.model';
+import { MatchParts, UserClass } from '../models/user.model';
 import { Geolocation } from '@capacitor/geolocation';
 import { LocationService } from '../services/location.service';
 
@@ -17,6 +17,7 @@ export class Tab3Page implements OnInit {
  loggedUser: any;
  userProf?: UserClass;
  matchUserProfs: any[] = [];
+ matches: any[] = [];
  users: any[] = [];
  progress: number = 0;
  buffer: number = 0;
@@ -36,6 +37,8 @@ export class Tab3Page implements OnInit {
   });
   this.base.userProfBehSubj.subscribe((uProf) => {
    this.userProf = uProf;
+   if (this.userProf && !this.userProf?.matchParts)
+    this.userProf.matchParts = new MatchParts();
   });
   this.auth.usersSubject.subscribe(async (users) => {
    const obs = new Observable((observer) => {
@@ -50,6 +53,7 @@ export class Tab3Page implements OnInit {
      this.setProgressBuffer();
      let possibleMatches: any[] = [];
      let helperArr: any[] = [];
+     let matchHelperNum: number = 0;
      let hasPossMatches: boolean = true;
      const error = new Error();
      const userProfLocation = await this.locationService.getLocation();
@@ -70,22 +74,59 @@ export class Tab3Page implements OnInit {
       this.auth.setCustomClaims(this.userProf?.uid!, this.loggedUser.claims);
      }
 
-     if (!this.userProf?.possMatches?.length) {
+     if (!this.userProf?.matchParts?.possMatches?.length) {
       hasPossMatches = false;
      }
+     this.userProf?.matchParts?.liked?.map(async (uid) => {
+      const likedUProf: any = await this.base.getUserProf(uid);
+      if (likedUProf)
+       if (
+        likedUProf?.matchParts?.liked?.includes(this.userProf?.uid) &&
+        !this.userProf?.matchParts?.matches?.includes(uid)
+       ) {
+        this.userProf?.matchParts?.matches.push(uid);
+        this.userProf!.matchParts!.liked =
+         this.userProf?.matchParts?.liked.filter((uId) => uId !== uid)!;
+        likedUProf!.matchParts!.liked = likedUProf?.matchParts?.liked.filter(
+         (uId: any) => uId !== uid
+        )!;
+        likedUProf?.matchParts?.matches.push(this.userProf?.uid);
+        await this.base.updateUserProf(uid, likedUProf);
+        await this.base.updateUserProf(
+         this.userProf?.uid!,
+         this.userProf?.setDataForFireStore()
+        );
+       }
+     });
+
+     setTimeout(() => {
+      // MEGCSINÁLNI
+      this.matches = []
+      this.userProf?.matchParts?.matches?.map(async (uid) => {
+        const matchProf = await this.base.getUserProf(uid);
+        this.matches.push(matchProf);
+      });
+      console.log("Timeout lefutott", this.matches);
+     }, 2000);
      if (
-      !this.userProf?.possMatches?.length ||
+      !this.userProf?.matchParts?.possMatches?.length ||
       currCity !== this.userProf?.currentPlace
      )
       possibleMatches = await new Promise(async (res, rej) => {
-       this.userProf!.possMatches = [];
+       this.userProf!.matchParts!.possMatches = [];
        this.progress = 0;
        const possMatchesArr = users.filter(
         (user: any) =>
          user?.claims?.gender === this.loggedUser?.claims?.lookingForGender &&
          user.claims.currentPlace &&
-         !this.userProf?.liked?.includes(user.uid)
+         !this.userProf?.matchParts?.liked?.includes(user.uid) &&
+         !this.userProf?.matchParts?.notLiked?.includes(user.uid) &&
+         !this.userProf?.matchParts?.matches?.includes(user.uid)
        );
+       if (!possMatchesArr?.length) {
+        res(possMatchesArr);
+        this.progress = 100;
+       }
        for (let usr of possMatchesArr) {
         let matchLocation = await this.locationService.getCoordsGeocodeXYZ(
          usr.claims.currentPlace
@@ -112,25 +153,32 @@ export class Tab3Page implements OnInit {
          distBetweenMeAndMatch <= +this.loggedUser.claims.lookingForDistance
         ) {
          possibleMatches.push(usr.uid);
-         this.userProf!.possMatches!.push(usr.uid);
+         this.userProf!.matchParts?.possMatches!.push(usr.uid);
         }
         this.progress = helperArr.length / possMatchesArr.length;
         if (helperArr.length === possMatchesArr.length) {
          this.userProf!.currentPlace = currCity;
-         const userProfCopy: any = { ...this.userProf };
-         await this.base.updateUserProf(this.userProf!.uid!, userProfCopy);
+         await this.base.updateUserProf(
+          this.userProf!.uid!,
+          this.userProf?.setDataForFireStore()
+         );
          this.progress = 100;
+         //  if(!this.userProf?.matchParts?.possMatches.length) this.
          res(possibleMatches);
         }
         if (!possMatchesArr?.length) res([]);
        }
       });
      if (!hasPossMatches) {
-      const userProfCopy: any = { ...this.userProf };
-      this.base.updateUserProf(this.userProf!.uid!, userProfCopy);
+      this.base.updateUserProf(
+       this.userProf!.uid!,
+       this.userProf?.setDataForFireStore()
+      );
      }
      if (hasPossMatches) this.progress = 70;
-     this.matchUserProfs = this.shuffleArray(this.userProf!.possMatches!);
+     this.matchUserProfs = this.shuffleArray(
+      this.userProf!.matchParts?.possMatches!
+     );
      this.config.initMainViewSubject.next(true);
      this.users = users;
      this.progress = 100;

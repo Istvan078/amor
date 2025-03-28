@@ -1,0 +1,52 @@
+<ion-content>
+ <!-- <ion-header collapse="condense">
+  <ion-toolbar>
+   <ion-title size="large">message</ion-title>
+  </ion-toolbar>
+ </ion-header> -->
+ <ion-grid>
+  <ion-row
+   class="ion-justify-content-center ion-align-items-center ion-text-center"
+  >
+   <ion-col size="auto">
+    <div>{{ matchProfile?.firstName }} a parod 2024.04.08 ota</div>
+    <div>
+     <h3>Te es {{ matchProfile?.firstName }} parba alltatok</h3>
+     <p>4 honappal ezelott</p>
+     <div class="match-img-cont-wrapper">
+      <div class="match-img-cont">
+       <img
+        src="https://img.freepik.com/free-vector/user-circles-set_78370-4704.jpg?t=st=1741696833~exp=1741700433~hmac=5c4d9770452bab7cb12b3a38cead02ffcd3f50b45d75a0da6324820dc1bd3df2&w=740"
+        alt="Match Profile Picture"
+       />
+      </div>
+     </div>
+     <h4>
+      Tudj rola hogy {{ matchProfile?.firstName }} mikor olvassa el az uzeneted
+     </h4>
+     <ion-button>Kerj visszaigazolast az olvasasrol</ion-button>
+    </div>
+    <ion-list>
+     @for(mess of messages.messages; track $index) {
+     <ion-item>
+      <ion-label>Uzenet szovege: {{ mess.message }}</ion-label>
+     </ion-item>
+     }
+    </ion-list>
+    <div class="ion-justify-content-center form-container">
+     <div>Ikonok</div>
+     <form
+      (ngSubmit)="onMessageSend(form)"
+      #form="ngForm"
+      class="ion-justify-content-center message-form"
+     >
+      <ion-textarea ngModel name="message" id="message"></ion-textarea>
+      <!-- Ikonra kattintasnal elojonnek a valaszthato emojik egy popupban -->
+      <ion-icon>Emoji</ion-icon>
+      <ion-button type="submit">Elkuld</ion-button>
+     </form>
+    </div>
+   </ion-col>
+  </ion-row>
+ </ion-grid>
+</ion-content>

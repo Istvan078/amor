@@ -49,10 +49,30 @@
    <ion-button>Uzenetek</ion-button>
   </div>
   <div class="pairs-and-messageheads-cont">
-   <ion-img
+   @for(match of matches; track $index) {
+   <div (click)="openMessWithMatch(match)" class="match-container">
+    <p>{{ match.firstName }}</p>
+    @if(match?.pictures){
+    <img
+     class="w-100 h-100"
+     [src]="match.pictures![0].url"
+     alt="Match Profilkep"
+    />
+
+    }@else {
+    <img
+     class="w-100 h-100"
+     src="https://img.freepik.com/free-vector/user-circles-set_78370-4704.jpg?t=st=1741696833~exp=1741700433~hmac=5c4d9770452bab7cb12b3a38cead02ffcd3f50b45d75a0da6324820dc1bd3df2&w=740"
+     alt="Match Profilkep"
+    />
+    }
+   </div>
+
+   }
+   <!-- <ion-img
     src="https://img.freepik.com/free-photo/high-fashion-look-glamor-portrait-beautiful-sexy-stylish-brunette-caucasian-young-woman-model-with-bright-makeup-with-healthy-curly-hair-black-blue-dress-studio_158538-13982.jpg?t=st=1741697498~exp=1741701098~hmac=4d68e4791a327f77bab1c5fcfb113d62449e8f2991efa7de736ea7eb2a570725&w=740"
     class="rounded-image cursor-pointer"
-   ></ion-img>
+   ></ion-img> -->
    <!-- Parok listazva, Uzenetek uzeneteknel -->
   </div>
  </div>
@@ -67,7 +87,10 @@
   <ion-grid class="m-0 p-0">
    <ion-row>
     <ion-col>
-     <ion-card class="user-card">
+     <ion-card *ngIf="isShowMessages" class="user-card">
+      <app-message [matchProfile]="selectedMessProf"></app-message>
+     </ion-card>
+     <ion-card *ngIf="!isShowMessages" class="user-card">
       @if(progress !==100) {
       <div class="match-progress-bar-container">
        <p>MATCHEK KERESESE FOLYAMATBAN...</p>
@@ -157,7 +180,11 @@
            name="return-up-back-outline"
           ></ion-icon>
          </ion-button>
-         <ion-button (click)="changeMatchProf()" fill="solid" shape="round">
+         <ion-button
+          (click)="likeOrDontUser(matchProf, false, true); changeMatchProf()"
+          fill="solid"
+          shape="round"
+         >
           <ion-icon
            slot="icon-only"
            size="large"
@@ -174,7 +201,7 @@
           ></ion-icon>
          </ion-button>
          <ion-button
-          (click)="likeUser(matchProf); changeMatchProf()"
+          (click)="likeOrDontUser(matchProf, true); changeMatchProf()"
           fill="solid"
           shape="round"
          >

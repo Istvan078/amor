@@ -20,7 +20,12 @@
   <ion-label>E-mail</ion-label>
   <ion-input [(ngModel)]="loginData.data.email" type="email"> </ion-input>
   <ion-label>Jelszo</ion-label>
-  <ion-input [(ngModel)]="loginData.data.password" type="password"> </ion-input>
+  <ion-input
+   (keydown.enter)="loginUser()"
+   [(ngModel)]="loginData.data.password"
+   type="password"
+  >
+  </ion-input>
   <ion-button (click)="loginUser()">Bejelentkezes</ion-button>
   <ion-button routerLink="/amor/register"
    >Meg nincs fiokod? Hozz letre egyet</ion-button

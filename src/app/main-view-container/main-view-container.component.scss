@@ -28,7 +28,10 @@
  height: fit-content;
  //  background-color: rgba(51, 49, 36, 0.5);
  background-color: rgba(150, 72, 150, 0.5);
-
+ //  app-message {
+ //   height: 80vh;
+ //   width: 60vw;
+ //  }
  .user-card {
   height: 80vh;
   width: 60vw;
@@ -136,6 +139,25 @@
   display: flex;
   justify-content: center;
   align-items: center;
+ }
+}
+.match-container {
+ cursor: pointer;
+ position: relative;
+ width: 90%;
+ height: 17vh;
+ margin-right: 5px;
+ margin-left: 5px;
+ img {
+  border-radius: 5px;
+ }
+ p {
+  font-family: "Courier New", Courier, monospace;
+  font-weight: bold;
+  position: absolute;
+  bottom: 0;
+  color: #9b0fc9;
+  margin: 0;
  }
 }
 #side-nav-container {
