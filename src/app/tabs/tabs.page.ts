@@ -12,7 +12,7 @@ import { LocationService } from '../services/location.service';
  styleUrls: ['tabs.page.scss'],
  standalone: false,
 })
-export class TabsPage implements OnInit {
+export class TabsPage {
  loggedUser: any;
  userProf?: UserClass;
  loggedUserSubjSub: Subscription = Subscription.EMPTY;
@@ -22,10 +22,9 @@ export class TabsPage implements OnInit {
   private router: Router,
   private location: LocationService
  ) {}
- async ngOnInit() {
+ async ionViewWillEnter() {
   this.loggedUserSubjSub = this.auth.loggedUserSubject.subscribe(
    async (usr) => {
-    this.location.getLocation();
     if (!usr) {
      this.userProf = undefined;
      this.loggedUser = undefined;
@@ -33,7 +32,6 @@ export class TabsPage implements OnInit {
     if (usr) this.loggedUser = usr;
     if (this.loggedUser?.uid) {
      this.userProf = (await this.base.getUserProf(this.loggedUser.uid)) as any;
-     console.log(this.userProf);
 
      if (this.userProf) {
       const userPosition = await this.location.getLocation();
@@ -49,7 +47,7 @@ export class TabsPage implements OnInit {
       this.base.userProfBehSubj.next(this.userProf);
       //   this.auth.setCustomClaims(this.loggedUser.uid, this.auth.customClaims);
 
-      //   if (this.loggedUser?.claims) this.router.navigate(['/amor/tab3']);
+        if (this.loggedUser?.claims) this.router.navigate(['/amor/tab3']);
       if (!this.loggedUser?.claims) {
        const userPosition = await this.location.getLocation();
        const userCoords = {
@@ -70,7 +68,6 @@ export class TabsPage implements OnInit {
        this.auth.getUsers().subscribe((users: any) => {
         //    this.auth.usersSubject.next(users);
         this.router.navigate(['/amor/tab3']);
-        console.log(users);
        });
       }
      }
@@ -78,21 +75,17 @@ export class TabsPage implements OnInit {
    }
   );
  }
+ ionViewWillLeave() {
+  if (this.loggedUserSubjSub) this.loggedUserSubjSub.unsubscribe();
+
+ }
  openUserCard() {
-//   this.base.isUserCardOpenSubj.next(true);
-this.base.mainDataSubject.next({userSettings:true, amor:true});
-//   this.base.mainDataSubject.next({amor: true})
+this.base.mainDataSubject.next({userSettings:true, amor:true, phoneView: true});
  }
  showMatchesCard() {
 this.base.mainDataSubject.next({userSettings:false});
  }
  showMessages() {
-    this.base.mainDataSubject.next({messaging: true})
-//   this.base.isUserCardOpenSubj.next(false);
-
- }
- ngOnDestroy() {
-  if (this.loggedUserSubjSub) this.loggedUserSubjSub.unsubscribe();
-  console.log('ngOnDestroy: Az oldal megsemmisült');
+    this.base.mainDataSubject.next({messaging: true, phoneView: true})
  }
 }

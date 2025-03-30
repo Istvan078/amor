@@ -42,7 +42,6 @@ export class AuthService {
    }
    this.userProfCreatedSubjSub = this.base.userProfCreatedSubject.subscribe(
     (userProfCreated) => {
-     console.log(`LEFUTOTT A SUBJ`);
      if (this.loggedUser && !userProfCreated) {
       this.getUsers().subscribe((users: any) => {
        this.usersSubject.next(users);
@@ -63,7 +62,10 @@ export class AuthService {
      }
     }
    );
-   if (!usr) this.loggedUserSubject.next(null);
+   if (!usr) {
+    this.loggedUserSubject.next(null)
+    if(this.userProfCreatedSubjSub)this.userProfCreatedSubjSub.unsubscribe()
+  };
   });
  }
  async registerEmail(data: any) {

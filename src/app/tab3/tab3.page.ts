@@ -1,7 +1,7 @@
 import { Component, OnInit } from '@angular/core';
 import { AuthService } from '../services/auth.service';
 import { BaseService } from '../services/base.service';
-import { Observable } from 'rxjs';
+import { Observable, Subscription } from 'rxjs';
 import { ConfigService } from '../services/config.service';
 import { MatchParts, UserClass } from '../models/user.model';
 import { Geolocation } from '@capacitor/geolocation';
@@ -13,7 +13,7 @@ import { LocationService } from '../services/location.service';
  styleUrls: ['tab3.page.scss'],
  standalone: false,
 })
-export class Tab3Page implements OnInit {
+export class Tab3Page{
  loggedUser: any;
  userProf?: UserClass;
  matchUserProfs: any[] = [];
@@ -21,6 +21,9 @@ export class Tab3Page implements OnInit {
  users: any[] = [];
  progress: number = 0;
  buffer: number = 0;
+ loggedUserSub: Subscription = Subscription.EMPTY
+ userProfSub: Subscription = Subscription.EMPTY
+ usersSubjSub: Subscription = Subscription.EMPTY
 
  constructor(
   private auth: AuthService,
@@ -29,27 +32,28 @@ export class Tab3Page implements OnInit {
   private locationService: LocationService
  ) {}
 
- async ngOnInit() {
+ async ionViewWillEnter() {
   console.log(`***TAB3 INIT***`);
-  this.auth.loggedUserSubject.subscribe(async (usr) => {
+  this.loggedUserSub = this.auth.loggedUserSubject.subscribe(async (usr) => {
    if (usr) this.loggedUser = usr;
    if (!usr) this.loggedUser = undefined;
   });
-  this.base.userProfBehSubj.subscribe((uProf) => {
+  this.userProfSub = this.base.userProfBehSubj.subscribe((uProf) => {
    this.userProf = uProf;
    if (this.userProf && !this.userProf?.matchParts)
     this.userProf.matchParts = new MatchParts();
   });
-  this.auth.usersSubject.subscribe(async (users) => {
-   const obs = new Observable((observer) => {
-    const int = setInterval(() => {
-     if (this.loggedUser?.claims && this.userProf) {
-      observer.next(users);
-      clearInterval(int);
-     }
-    }, 200);
-   }).subscribe(async (users: any) => {
-    if (users?.length) {
+  // if(this.auth.usersSubject) fdfdh
+  this.usersSubjSub = this.auth.usersSubject.subscribe(async (users) => {
+    const obs = new Observable((observer) => {
+      const int = setInterval(() => {
+        if (this.loggedUser?.claims && this.userProf && users?.length) {
+          observer.next(users);
+          clearInterval(int);
+        }
+      }, 200);
+    }).subscribe(async (users: any) => {
+      if (users?.length) {
      this.setProgressBuffer();
      let possibleMatches: any[] = [];
      let helperArr: any[] = [];
@@ -98,16 +102,28 @@ export class Tab3Page implements OnInit {
         );
        }
      });
-
-     setTimeout(() => {
-      // MEGCSINÁLNI
-      this.matches = []
-      this.userProf?.matchParts?.matches?.map(async (uid) => {
-        const matchProf = await this.base.getUserProf(uid);
-        this.matches.push(matchProf);
-      });
-      console.log("Timeout lefutott", this.matches);
-     }, 2000);
+     const matchesSub =new Observable(obs => {
+       this.matches = []
+      const int = setInterval(() => {
+        if(this.userProf?.matchParts?.matches?.length) {
+          this.userProf?.matchParts?.matches?.map(async (uid) => {
+            const matchProf = await this.base.getUserProf(uid);
+            this.matches.push(matchProf);
+          });
+          clearInterval(int)
+          obs.next("Match Profilok Lekerese elindult")
+        }
+      }, 200);
+     }).subscribe((data) => {
+        console.log(data)
+        const int = setInterval(() => {
+        if(this.userProf?.matchParts?.matches?.length === this.matches?.length) {
+          clearInterval(int)
+          console.log(`Matchek szama: ${this.matches?.length}`)
+          matchesSub.unsubscribe();
+        }
+        }, 200);
+     })
      if (
       !this.userProf?.matchParts?.possMatches?.length ||
       currCity !== this.userProf?.currentPlace
@@ -184,8 +200,15 @@ export class Tab3Page implements OnInit {
      this.progress = 100;
      obs.unsubscribe();
     }
+    obs.unsubscribe();
    });
   });
+ }
+
+ ionViewWillLeave() {
+  if(this.loggedUserSub) this.loggedUserSub.unsubscribe()
+  if(this.usersSubjSub) this.usersSubjSub.unsubscribe()
+  if(this.userProfSub) this.userProfSub.unsubscribe()
  }
  shuffleArray<T>(array: T[]): T[] {
   const shuffled = [...array]; // Másolat, hogy ne módosítsa az eredetit
@@ -200,8 +223,5 @@ export class Tab3Page implements OnInit {
    this.buffer = this.buffer + 0.35;
    if (this.progress > 25) clearInterval(int);
   }, 200);
- }
- ionViewWillEnter() {
-  console.log(`ionViewWillEnter TAB3***`);
  }
 }

@@ -10,9 +10,6 @@
     />
    </ion-avatar>
    <ion-text>{{ userProf?.firstName + " " + userProf?.lastName }}</ion-text>
-   <ion-button (click)="signOut()" style="margin-left: 5px">
-    <ion-icon slot="icon-only" name="exit-outline"></ion-icon>
-   </ion-button>
   </nav>
   <div class="promotions-container">
    <swiper-container
@@ -78,17 +75,21 @@
  </div>
  <!-- } -->
  <div id="main-view-container">
-  <div class="logout-container">
+  <!-- <div class="logout-container">
    <ion-button (click)="signOut()" style="margin-left: 5px">
     <ion-icon slot="icon-only" name="exit-outline"></ion-icon>
    </ion-button>
-  </div>
+  </div> -->
   @if(!isUserCardOpen) {
   <ion-grid class="m-0 p-0">
    <ion-row>
     <ion-col>
-     <ion-card *ngIf="isShowMessages" class="user-card">
-      <app-message [matchProfile]="selectedMessProf"></app-message>
+     <ion-card *ngIf="isShowMessages" class="app-message-card">
+      <app-message
+      [matches]="matches" 
+      [options]="options" 
+      [matchProfile]="selectedMessProf"
+      ></app-message>
      </ion-card>
      <ion-card *ngIf="!isShowMessages" class="user-card">
       @if(progress !==100) {
@@ -276,7 +277,9 @@
         userProf.lastName + " " + userProf.firstName + " " + userProf.age
        }}</ion-text>
       </ion-card-content>
-      <ion-button (click)="startUpdateUserProf()">Adatszerkesztes</ion-button>
+      @if(!options.phoneView) {
+          <ion-button (click)="startUpdateUserProf()">Adatszerkesztes</ion-button>
+      }
      </ion-card>
      @if(startUpdUserProf) {
      <ion-list>
@@ -306,7 +309,7 @@
        <ion-range
         [name]="lab.key"
         [label]="
-         lab.value + userProf[lab.key].lower + ' - ' + userProf[lab.key].upper
+         lab.value + userProf[lab.key]?.lower + ' - ' + userProf[lab.key]?.upper
         "
         aria-label="Milyen korban keresel?"
         [min]="14"
@@ -368,6 +371,9 @@
       } }
      </ion-list>
      <ion-button color="warning" (click)="updateUserProf()">Mentes</ion-button>
+     <ion-button (click)="signOut()" style="margin-left: 5px">
+        <ion-icon slot="icon-only" name="exit-outline"></ion-icon>
+       </ion-button>
      }
     </ion-col>
    </ion-row>

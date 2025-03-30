@@ -21,6 +21,7 @@ import { UserClass } from '../models/user.model';
 import { Observable, Subscription } from 'rxjs';
 import { FilesService } from '../services/files.service';
 import { LocationService } from '../services/location.service';
+import { Options } from '../models/options.model';
 
 @Component({
  selector: 'app-main-view-container',
@@ -55,6 +56,7 @@ export class MainViewContainerComponent
  userProf?: UserClass;
  selectedFiles: File[] = [];
  selectedMessProf?: UserClass;
+ options: Options = new Options()
  loggedUserSub: Subscription = Subscription.EMPTY;
  userProfSub: Subscription = Subscription.EMPTY;
  selectedFilesSub: Subscription = Subscription.EMPTY;
@@ -81,11 +83,9 @@ export class MainViewContainerComponent
   });
   this.loggedUserSub = this.auth.loggedUserSubject.subscribe((usr) => {
    this.user = usr;
-   console.log(`LOGED USER MAINVIEW`);
   });
   this.userProfSub = this.base.userProfBehSubj.subscribe((uProf) => {
    this.userProf = uProf;
-   console.log(`UserProf MAINVIEW`);
   });
   this.selectedFilesSub = this.config.selectedFilesSubj.subscribe((files) => {
    this.selectedFiles = files;
@@ -104,20 +104,20 @@ export class MainViewContainerComponent
       this.isShowMessages = false;
       this.selectedMessProf = undefined
     }
-    if(data?.userSettings) this.isUserCardOpen = true;
+    if(data?.userSettings) {
+      this.isUserCardOpen = true
+      this.startUpdUserProf = true;
+    };
     if(data?.userSettings === false) {
       this.isUserCardOpen = false;
       this.isMatchDetailsOpen = true;
       this.isShowMessages = false;
       
     }
-    if(data.phoneView) // folytatni
-    console.log(data);
+    if(data?.phoneView) {
+      this.options.phoneView = true
+    }
   })
- }
- ionViewWillEnter() {
-  // Ez a metódus újra lefut, amikor az oldal újra megjelenik
-  console.log('Page is about to enter');
  }
  ngAfterViewInit(): void {}
  ngOnDestroy(): void {
@@ -181,7 +181,10 @@ export class MainViewContainerComponent
     this.matchProf!['index'] = 0;
     this.setUProfLabels();
    }
-   if (!matchProfsArr.length) this.isMatchPlaceHolder = true;
+   if (!matchProfsArr.length) {
+    this.isMatchPlaceHolder = true
+    this.possMatchDetLists = []
+  };
    obs.unsubscribe();
   });
  }
@@ -286,6 +289,7 @@ export class MainViewContainerComponent
   this.auth.authAutoFillSubj.next(this.userProf?.email);
   this.userProf = undefined;
   this.base.userProfBehSubj.next({});
+  this.auth.usersSubject.next([])
   this.matchProf = undefined;
   this.selectedMessProf = undefined;
   this.matches = [];

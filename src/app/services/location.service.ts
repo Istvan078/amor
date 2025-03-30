@@ -7,7 +7,6 @@ import { Geolocation, Position } from '@capacitor/geolocation';
 })
 export class LocationService {
  constructor(private http: HttpClient) {
-  this.getLocation();
   // this.getCoordsGeocodeXYZ();
  }
 

@@ -13,7 +13,6 @@ export class ConfigService {
  selectedFilesSubj = new BehaviorSubject<File[]>([]);
  initMainViewSubject = new BehaviorSubject<boolean>(false);
  constructor() {
-  console.log(`####CONFIG SZERVICE LETREHOZASA###`);
  }
  getLabels(isUserProfL?: boolean, isPromLabels?: boolean) {
   if (isUserProfL)

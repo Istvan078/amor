@@ -2,6 +2,7 @@ import { Component, Input, OnInit } from '@angular/core';
 import { NgForm } from '@angular/forms';
 import { IonContent } from '@ionic/angular/standalone';
 import { Message, Messages } from 'src/app/models/message.model';
+import { Options } from 'src/app/models/options.model';
 import { UserClass } from 'src/app/models/user.model';
 import { BaseService } from 'src/app/services/base.service';
 
@@ -12,7 +13,9 @@ import { BaseService } from 'src/app/services/base.service';
  standalone: false,
 })
 export class MessageComponent implements OnInit {
+ @Input() matches: UserClass[] = []
  @Input() matchProfile?: UserClass;
+ @Input() options?: Options 
  messages: Messages = new Messages([]);
  message: Message = new Message();
  uProf?: UserClass;
@@ -51,6 +54,13 @@ export class MessageComponent implements OnInit {
    this.matchProfile?.uid!,
    this.messages.setMessagesForFirestore()
   );
+ }
+ selectMatch(match: UserClass) {
+  this.matchProfile = match;
+  this.options!.isSelectedMatch = true;
+ }
+ backToMsgs() {
+  this.options!.isSelectedMatch = false
  }
 
  onMessageSend(form: NgForm) {

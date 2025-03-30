@@ -105,7 +105,6 @@ export class UserClass {
  setDataForFireStore() {
   const userProfCopy = { ...this };
   if (this.matchParts) userProfCopy.matchParts = { ...this.matchParts };
-  console.log(userProfCopy);
   return userProfCopy;
  }
 }
