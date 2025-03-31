@@ -1,6 +1,8 @@
-import { Component, OnInit } from '@angular/core';
+import { AfterViewInit, Component, ElementRef, ViewChild } from '@angular/core';
 import { ModalController } from '@ionic/angular';
 import { UserClass } from 'src/app/models/user.model';
+import { SwiperContainer } from 'swiper/element';
+
 
 @Component({
   selector: 'app-ion-modal',
@@ -8,18 +10,25 @@ import { UserClass } from 'src/app/models/user.model';
   styleUrls: ['./ion-modal.page.scss'],
   standalone: false,
 })
-export class IonModalPage implements OnInit {
+export class IonModalPage implements AfterViewInit {
+  @ViewChild('swiperRef') swiperRef?: ElementRef<SwiperContainer>;
   email?: string;
   password?: string;
   regFirstPhase?: boolean;
   regSecondPhase?: boolean;
   labels?: any = {};
   userProf: UserClass = new UserClass();
-  teszt: any;
+  myPhotos: { name: string; url: string }[] = [];
+  chosenIndex: number = 0;
 
-  constructor(private modalCtrl: ModalController) {}
+  constructor(private modalCtrl: ModalController) { }
 
-  ngOnInit() {}
+  ngAfterViewInit() {
+    if (this.myPhotos?.length) {
+      this.swiperRef?.nativeElement.swiper.slideTo(this.chosenIndex)
+      this.swiperRef?.nativeElement.swiper.autoplay.start()
+    }
+  }
 
   cancel() {
     return this.modalCtrl.dismiss(null, 'cancel');

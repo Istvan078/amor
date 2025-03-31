@@ -1,0 +1,59 @@
+{
+  "$schema": "./node_modules/@angular/service-worker/config/schema.json",
+  "index": "/index.html",
+  "assetGroups": [
+    {
+      "name": "app",
+      "installMode": "prefetch",
+      "updateMode": "prefetch",
+      "resources": {
+        "files": [
+          "/favicon.ico",
+          "/index.html?version=1",
+          "/manifest.webmanifest",
+          "/*.css?version=1",
+          "/*.js?version=1"
+        ]
+      }
+    },
+    {
+      "name": "images",
+      "installMode": "lazy",
+      "updateMode": "lazy",
+      "resources": {
+        "files": [
+          "/assets/images/**",
+          "/*.(jpg|jpeg|png|gif|webp|svg|ico)"
+        ]
+      }
+    },
+    {
+      "name": "other-assets",
+      "installMode": "lazy",
+      "updateMode": "prefetch",
+      "resources": {
+        "files": [
+          "/assets/**",
+          "/*.(cur|apng|avif|otf|ttf|woff|woff2)"
+        ]
+      }
+    }
+  ],
+  "dataGroups": [
+    {
+      "name": "api-freshness",
+      "urls": [
+        "https://amor-spark.web.app/**"
+      ],
+      "cacheConfig": {
+        "strategy": "freshness",
+        "maxSize": 100,
+        "maxAge": "3d",
+        "timeout": "10s"
+      }
+    }
+  ],
+  "navigationUrls": [
+    "/**"
+  ]
+} 

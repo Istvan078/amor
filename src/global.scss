@@ -46,3 +46,55 @@
     height: 100%;
   }
 }
+.signout-alert {
+  --background: #2c2c2c;
+  --backdrop-opacity: 0.8;
+  --border-radius: 15px;
+  --box-shadow: 0 8px 24px rgba(0, 0, 0, 0.3);
+}
+.signout-alert .signout-alert-button {
+  background: #9b0fc9;
+  color: white;
+  border-radius: 8px;
+  box-shadow: 0 4px 12px rgba(155, 15, 201, 0.3);
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+  margin: 8px;
+  transition: all 0.3s ease;
+}
+.signout-alert .signout-alert-button:hover {
+  background: #bc4ee1;
+  transform: translateY(-2px);
+  box-shadow: 0 6px 16px rgba(155, 15, 201, 0.4);
+}
+.signout-alert .signout-alert-cancel-button {
+  background: #2f3542;
+  color: #dfe4ea;
+  border-radius: 8px;
+  box-shadow: 0 4px 12px rgba(47, 53, 66, 0.3);
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+  margin: 8px;
+  transition: all 0.3s ease;
+}
+.signout-alert .signout-alert-cancel-button:hover {
+  background: #3f4756;
+  transform: translateY(-2px);
+  box-shadow: 0 6px 16px rgba(47, 53, 66, 0.4);
+}
+.signout-alert .alert-message {
+  color: #dfe4ea;
+  font-size: 1.1em;
+  line-height: 1.5;
+  padding: 0 20px;
+}
+.signout-alert .alert-title {
+  color: #ffffff;
+  font-size: 1.4em;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+  margin-bottom: 15px;
+}

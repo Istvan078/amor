@@ -75,11 +75,6 @@
  </div>
  <!-- } -->
  <div id="main-view-container">
-  <!-- <div class="logout-container">
-   <ion-button (click)="signOut()" style="margin-left: 5px">
-    <ion-icon slot="icon-only" name="exit-outline"></ion-icon>
-   </ion-button>
-  </div> -->
   @if(!isUserCardOpen) {
   <ion-grid class="m-0 p-0">
    <ion-row>
@@ -337,8 +332,8 @@
       </ion-item>
       <ion-grid>
        <ion-row>
-        @for(pic of userProf.pictures; track pic.url){
-        <ion-col sizeXs="4" sizeSm="4" sizeMd="3" sizeLg="2">
+        @for(pic of userProf.pictures; track pic.url; let i = $index){
+        <ion-col (click)="showProfPics(i)" sizeXs="4" sizeSm="4" sizeMd="3" sizeLg="2">
          <ion-img class="user-pictures" [src]="pic.url"></ion-img>
         </ion-col>
         }
@@ -371,7 +366,7 @@
       } }
      </ion-list>
      <ion-button color="warning" (click)="updateUserProf()">Mentes</ion-button>
-     <ion-button (click)="signOut()" style="margin-left: 5px">
+     <ion-button (click)="signOutAlert()" style="margin-left: 5px">
         <ion-icon slot="icon-only" name="exit-outline"></ion-icon>
        </ion-button>
      }

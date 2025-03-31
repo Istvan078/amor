@@ -7,14 +7,17 @@ import { IonicModule } from '@ionic/angular';
 import { IonModalPageRoutingModule } from './ion-modal-routing.module';
 
 import { IonModalPage } from './ion-modal.page';
+import { CUSTOM_ELEMENTS_SCHEMA } from '@angular/core';
+
 
 @NgModule({
   imports: [
     CommonModule,
     FormsModule,
     IonicModule,
-    IonModalPageRoutingModule
+    IonModalPageRoutingModule,
   ],
-  declarations: [IonModalPage]
+  declarations: [IonModalPage],
+  schemas: [CUSTOM_ELEMENTS_SCHEMA],
 })
-export class IonModalPageModule {}
+export class IonModalPageModule { }

@@ -92,3 +92,29 @@
  </ion-buttons>
 </ion-toolbar>
 }
+  @if(myPhotos.length) {
+<ion-content [fullscreen]="true">
+  <swiper-wrapper >
+  <swiper-container
+  [grabCursor]="true"
+  [pagination]="true"
+  [navigation]="true"
+  [zoom]="true"
+  #swiperRef
+  style="height: 100%; width: 100%;"
+  >
+    @for(photo of myPhotos; track $index; let i = $index) {
+    <swiper-slide class="d-flex ion-justify-content-center ion-align-items-center">
+      <ion-img style="height: 100%; width: 100%;" [src]="photo?.url"></ion-img>
+    </swiper-slide>
+    }
+  </swiper-container>
+  </swiper-wrapper>
+  <div class="d-flex ion-justify-content-center">
+    <ion-chip (click)="cancel()">
+      <ion-label>Vissza</ion-label>
+      <ion-icon color="medium" name="close-circle"></ion-icon>
+    </ion-chip>
+  </div>
+</ion-content>
+}
