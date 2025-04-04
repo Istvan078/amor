@@ -1,1 +1,94 @@
+ion-tabs {
+  ion-tab-bar {
+    background: rgba(26, 26, 46, 0.95);
+    backdrop-filter: blur(10px);
+    border-top: 1px solid rgba(255, 255, 255, 0.1);
+    box-shadow: 0 -4px 20px rgba(0, 0, 0, 0.2);
+    height: 65px;
+    padding: 5px 0;
+  }
 
+  ion-tab-button {
+    --color: rgba(255, 255, 255, 0.5);
+    --color-selected: #9b0fc9;
+    --color-focused: #9b0fc9;
+    --color-hover: #9b0fc9;
+    --ripple-color: rgba(155, 15, 201, 0.2);
+    --background-hover: rgba(155, 15, 201, 0.1);
+    --background-focused: rgba(155, 15, 201, 0.1);
+    --background-selected: rgba(155, 15, 201, 0.1);
+    --padding-top: 5px;
+    --padding-bottom: 5px;
+    transition: all 0.3s ease;
+
+    &::before {
+      content: '';
+      position: absolute;
+      bottom: 0;
+      left: 50%;
+      transform: translateX(-50%);
+      width: 0;
+      height: 3px;
+      background: linear-gradient(90deg, #9b0fc9, #bc4ee1);
+      transition: width 0.3s ease;
+      border-radius: 3px;
+    }
+
+    &.tab-selected {
+      &::before {
+        width: 30px;
+      }
+    }
+
+    ion-icon {
+      font-size: 24px;
+      margin-bottom: 4px;
+      transition: all 0.3s ease;
+    }
+
+    ion-label {
+      font-size: 12px;
+      font-weight: 500;
+      letter-spacing: 0.5px;
+      transition: all 0.3s ease;
+    }
+
+    &:hover {
+      ion-icon {
+        transform: translateY(-2px);
+      }
+      ion-label {
+        transform: translateY(-2px);
+      }
+    }
+
+    &.tab-selected {
+      ion-icon {
+        transform: translateY(-2px);
+      }
+      ion-label {
+        transform: translateY(-2px);
+      }
+    }
+  }
+}
+
+// Mobil nézet optimalizálása
+@media screen and (max-width: 400px) {
+  ion-tabs {
+    ion-tab-bar {
+      height: 60px;
+      padding: 4px 0;
+    }
+
+    ion-tab-button {
+      ion-icon {
+        font-size: 22px;
+      }
+
+      ion-label {
+        font-size: 11px;
+      }
+    }
+  }
+}

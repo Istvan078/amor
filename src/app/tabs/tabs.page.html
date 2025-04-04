@@ -2,13 +2,13 @@
  <ion-tab-bar slot="bottom" class="ion-hide-sm-up">
   @if(!loggedUser?.uid) {
   <ion-tab-button tab="register" href="/amor/register">
-   <ion-icon aria-hidden="true" name="triangle"></ion-icon>
-   <ion-label>Regisztracio</ion-label>
+   <ion-icon aria-hidden="true" name="person-add-outline"></ion-icon>
+   <ion-label>Regisztráció</ion-label>
   </ion-tab-button>
 
   <ion-tab-button tab="login" href="/amor/login">
-   <ion-icon aria-hidden="true" name="ellipse"></ion-icon>
-   <ion-label>Bejelentkezes</ion-label>
+   <ion-icon aria-hidden="true" name="log-in-outline"></ion-icon>
+   <ion-label>Bejelentkezés</ion-label>
   </ion-tab-button>
   } @if(userProf?.uid) {
   <ion-tab-button
@@ -26,7 +26,7 @@
    tab="tab3"
    href="/amor/tab3"
   >
-   <ion-icon aria-hidden="true" name="person"></ion-icon>
+   <ion-icon aria-hidden="true" name="person-circle-outline"></ion-icon>
    <ion-label>Profilom</ion-label>
   </ion-tab-button>
   <ion-tab-button
@@ -35,8 +35,8 @@
    tab="tab3"
    href="/amor/tab3"
   >
-   <ion-icon aria-hidden="true" name="chatbubble-ellipses-outline"></ion-icon>
-   <ion-label>Uzenetek</ion-label>
+   <ion-icon aria-hidden="true" name="chatbubbles-outline"></ion-icon>
+   <ion-label>Üzenetek</ion-label>
   </ion-tab-button>
   }
  </ion-tab-bar>

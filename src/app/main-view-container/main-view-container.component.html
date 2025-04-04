@@ -42,8 +42,14 @@
    </swiper-container>
   </div>
   <div class="matches-and-messages-cont">
-   <ion-button>Parok</ion-button>
-   <ion-button>Uzenetek</ion-button>
+   <ion-button fill="outline">
+    <ion-icon name="people-outline" slot="start"></ion-icon>
+    Párok
+   </ion-button>
+   <ion-button fill="outline">
+    <ion-icon name="chatbubbles-outline" slot="start"></ion-icon>
+    Üzenetek
+   </ion-button>
   </div>
   <div class="pairs-and-messageheads-cont">
    @for(match of matches; track $index) {
@@ -55,7 +61,6 @@
      [src]="match.pictures![0].url"
      alt="Match Profilkep"
     />
-
     }@else {
     <img
      class="w-100 h-100"
@@ -64,22 +69,16 @@
     />
     }
    </div>
-
    }
-   <!-- <ion-img
-    src="https://img.freepik.com/free-photo/high-fashion-look-glamor-portrait-beautiful-sexy-stylish-brunette-caucasian-young-woman-model-with-bright-makeup-with-healthy-curly-hair-black-blue-dress-studio_158538-13982.jpg?t=st=1741697498~exp=1741701098~hmac=4d68e4791a327f77bab1c5fcfb113d62449e8f2991efa7de736ea7eb2a570725&w=740"
-    class="rounded-image cursor-pointer"
-   ></ion-img> -->
-   <!-- Parok listazva, Uzenetek uzeneteknel -->
   </div>
  </div>
  <!-- } -->
- <div id="main-view-container">
+ <div id="main-view-container" class="m-0 p-0">
   @if(!isUserCardOpen) {
   <ion-grid class="m-0 p-0">
-   <ion-row>
-    <ion-col>
-     <ion-card *ngIf="isShowMessages" class="app-message-card">
+   <ion-row class="m-0 p-0 ion-justify-content-center">
+    <ion-col class="m-0 p-0" size="12">
+     <ion-card *ngIf="isShowMessages" class="app-message-card m-0 p-0">
       <app-message
       [matches]="matches" 
       [options]="options" 
@@ -89,7 +88,7 @@
      <ion-card *ngIf="!isShowMessages" class="user-card">
       @if(progress !==100) {
       <div class="match-progress-bar-container">
-       <p>MATCHEK KERESESE FOLYAMATBAN...</p>
+       <p>MATCHEK KERESÉSE FOLYAMATBAN...</p>
        <ion-progress-bar
         [buffer]="buffer"
         [value]="progress"
@@ -130,9 +129,7 @@
        </swiper-slide>
        }
       </swiper-container>
-
       }
-      <!-- </div> -->
       <div class="card-content-cont-wrapper">
        <div class="card-content-cont">
         <div class="pos-abs bottom-130 w-100 poss-match-name-cont">
@@ -140,12 +137,12 @@
           @if(!isMatchPlaceHolder) {
           <ion-text>{{ matchProf?.firstName + " " + matchProf?.age }}</ion-text>
           } @else {
-          <p>Elfogytak a lehetseges matchek, nezz vissza kesobb</p>
-
+          <p>Elfogytak a lehetséges matchek, nézz vissza később</p>
           } @if(!isMatchPlaceHolder) {
           <ion-button
            (click)="isMatchDetailsOpen = !isMatchDetailsOpen"
            class="show-match-details-button"
+           fill="clear"
           >
            <ion-icon name="arrow-down-outline"></ion-icon>
           </ion-button>
@@ -155,8 +152,8 @@
         @if(matchProf?.interests){
         <ion-card-content class="pos-abs bottom-30 d-flex flex-cols">
          <p class="interests-title">
-          <ion-icon name="business-outline"></ion-icon>
-          Erdeklodesi korok
+          <ion-icon name="heart-outline"></ion-icon>
+          Érdeklődési körök
          </p>
          <div class="d-flex">
           @for(interest of matchProf?.interests;track $index){
@@ -167,12 +164,11 @@
          </div>
         </ion-card-content>
         } @if(!isMatchPlaceHolder) {
-        <ion-buttons style="padding-left: 12px">
-         <ion-button fill="solid" shape="round">
+        <ion-buttons style="padding: 20px">
+         <ion-button fill="solid" shape="round" class="action-button">
           <ion-icon
            slot="icon-only"
            size="large"
-           color="success"
            name="return-up-back-outline"
           ></ion-icon>
          </ion-button>
@@ -180,19 +176,18 @@
           (click)="likeOrDontUser(matchProf, false, true); changeMatchProf()"
           fill="solid"
           shape="round"
+          class="action-button dislike"
          >
           <ion-icon
            slot="icon-only"
            size="large"
-           color="danger"
            name="close-outline"
           ></ion-icon>
          </ion-button>
-         <ion-button fill="solid" shape="round">
+         <ion-button fill="solid" shape="round" class="action-button">
           <ion-icon
            slot="icon-only"
            size="large"
-           color="primary"
            name="star-outline"
           ></ion-icon>
          </ion-button>
@@ -200,11 +195,11 @@
           (click)="likeOrDontUser(matchProf, true); changeMatchProf()"
           fill="solid"
           shape="round"
+          class="action-button like"
          >
           <ion-icon
            slot="icon-only"
            size="large"
-           color="success"
            name="heart-outline"
           ></ion-icon>
          </ion-button>
@@ -213,39 +208,34 @@
        </div>
       </div>
      </ion-card>
-     <div class="bottom-buttons">
-      Billentyu kombo segitseg, egy megjelenites gomb hozza majd elo
-     </div>
-     <!-- A LEHETSEGES PAR RESZLETES ADATAI -->
      @if(isMatchDetailsOpen) {
      <div class="poss-match-details-container">
+      <ion-button fill="clear" (click)="isMatchDetailsOpen = false" style="position: absolute; top: 10px; right: 10px;" class="hide-on-mobile">
+        <ion-icon name="close-outline" size="large"></ion-icon>
+      </ion-button>
       @for(listNum of possMatchDetLists;track $index){
       <ion-list style="margin-top: 10px">
-       @for(lab of labels.userProfLabels; track $index) { @if(matchProf &&
-       lab?.inMatch && lab.listNum === listNum && matchProf[lab.key]) {
-       <ion-item>
-        <ion-label>
-         <!-- <h2 style="margin-bottom: 20px; font-weight: bold">Eletmod</h2> -->
-         <h2>{{ lab.value }}</h2>
-         @if(lab.type === "checkbox") {
-         <div class="d-flex">
-          @for(ch of matchProf[lab.key]; track $index;) {
-
-          <p class="m-r-1 m-t-1 border-rounded user-choices-style">
-           {{ ch }}
-          </p>
-          }
-         </div>
-
-         } @if(lab.type !== "checkbox") {
-         <p>
-          {{ typeof matchProf[lab.key] === "object"? matchProf[lab.key].lower + " - " + matchProf[lab.key].upper : matchProf[lab.key] }}
-         </p>
-
-         }
-        </ion-label>
-       </ion-item>
-       } }
+        @for(lab of labels.userProfLabels; track $index) { @if(matchProf &&
+        lab?.inMatch && lab.listNum === listNum && matchProf[lab.key]) {
+        <ion-item>
+          <ion-label>
+            <h2>{{ lab.value }}</h2>
+            @if(lab.type === "checkbox") {
+            <div class="d-flex">
+              @for(ch of matchProf[lab.key]; track $index;) {
+              <p class="m-r-1 m-t-1 border-rounded user-choices-style">
+                {{ ch }}
+              </p>
+              }
+            </div>
+            } @if(lab.type !== "checkbox") {
+            <p>
+              {{ typeof matchProf[lab.key] === "object"? matchProf[lab.key].lower + " - " + matchProf[lab.key].upper : matchProf[lab.key] }}
+            </p>
+            }
+          </ion-label>
+        </ion-item>
+        } }
       </ion-list>
       }
      </div>
@@ -273,7 +263,10 @@
        }}</ion-text>
       </ion-card-content>
       @if(!options.phoneView) {
-          <ion-button (click)="startUpdateUserProf()">Adatszerkesztes</ion-button>
+          <ion-button (click)="startUpdateUserProf()" fill="outline">
+            <ion-icon name="create-outline" slot="start"></ion-icon>
+            Adatszerkesztés
+          </ion-button>
       }
      </ion-card>
      @if(startUpdUserProf) {
@@ -327,7 +320,7 @@
         (change)="lab.change($event)"
        ></ion-input>
        <ion-button [disabled]="!this.selectedFiles" (click)="savePictures()"
-        >Feltoltes</ion-button
+        >Feltöltés</ion-button
        >
       </ion-item>
       <ion-grid>
@@ -365,10 +358,14 @@
       </ion-item>
       } }
      </ion-list>
-     <ion-button color="warning" (click)="updateUserProf()">Mentes</ion-button>
-     <ion-button (click)="signOutAlert()" style="margin-left: 5px">
-        <ion-icon slot="icon-only" name="exit-outline"></ion-icon>
-       </ion-button>
+     <ion-button color="warning" (click)="updateUserProf()">
+       <ion-icon name="save-outline" slot="start"></ion-icon>
+       Mentés
+     </ion-button>
+     <ion-button (click)="signOutAlert()" style="margin-left: 5px" color="danger">
+       <ion-icon name="exit-outline" slot="start"></ion-icon>
+       Kilépés
+     </ion-button>
      }
     </ion-col>
    </ion-row>
