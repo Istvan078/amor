@@ -12,14 +12,14 @@ import { NgForm } from '@angular/forms';
 import { ConfigService } from '../services/config.service';
 import { AlertController, ModalController } from '@ionic/angular';
 import { AuthService } from '../services/auth.service';
-import { Promotions } from '../models/promotions.model';
+import { Promotions } from '../shared/models/promotions.model';
 import { Router } from '@angular/router';
 import { BaseService } from '../services/base.service';
-import { UserClass } from '../models/user.model';
+import { UserClass } from '../shared/models/user.model';
 import { Observable, Subscription } from 'rxjs';
 import { FilesService } from '../services/files.service';
 import { LocationService } from '../services/location.service';
-import { Options } from '../models/options.model';
+import { Options } from '../shared/models/options.model';
 import { IonModalPage } from '../modals/ion-modal/ion-modal.page';
 
 
@@ -35,7 +35,6 @@ import {
   IonCardTitle,
   IonCheckbox,
   IonCol,
-  IonContent,
   IonGrid,
   IonIcon,
   IonImg,
@@ -71,7 +70,6 @@ import { MessageComponent } from '../messages/message/message.component';
     IonCardTitle,
     IonCheckbox,
     IonCol,
-    IonContent,
     IonGrid,
     IonIcon,
     IonImg,
@@ -84,7 +82,7 @@ import { MessageComponent } from '../messages/message/message.component';
     IonRow,
     IonText,
     IonTextarea
-],
+  ],
 })
 export class MainViewContainerComponent
   implements OnInit, AfterViewInit, OnDestroy {

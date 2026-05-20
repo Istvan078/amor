@@ -45,7 +45,7 @@ export class AuthService {
   loggedUserSubject = new BehaviorSubject<any>(null);
   usersSubject = new BehaviorSubject<any[]>([]);
   userClaimsSubj = new BehaviorSubject<Partial<CustomClaims>>({});
-  authAutoFillSubj = new BehaviorSubject<string | null>(null);
+  authAutoFillSubj = new BehaviorSubject<string | undefined>(undefined);
 
   httpHeaders = new HttpHeaders();
 

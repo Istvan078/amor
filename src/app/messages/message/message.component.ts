@@ -6,7 +6,6 @@ import {
   IonCard,
   IonCardContent,
   IonCol,
-  IonContent,
   IonGrid,
   IonIcon,
   IonItem,
@@ -16,7 +15,6 @@ import {
   IonTextarea,
   IonThumbnail,
 } from '@ionic/angular/standalone';
-import { Subscription } from 'rxjs';
 
 import { BaseService } from '../../services/base.service';
 import { Message, Messages } from '../../shared/models/message.model';
@@ -27,14 +25,9 @@ import { UserClass } from '../../shared/models/user.model';
   selector: 'app-message',
   templateUrl: './message.component.html',
   styleUrls: ['./message.component.scss'],
-  standalone: false,
-  selector: 'app-message',
-  templateUrl: './message.component.html',
-  styleUrls: ['./message.component.scss'],
   standalone: true,
   imports: [
     FormsModule,
-    IonContent,
     IonGrid,
     IonRow,
     IonCol,
@@ -47,7 +40,7 @@ import { UserClass } from '../../shared/models/user.model';
     IonCard,
     IonCardContent,
     IonThumbnail
-],
+  ],
 })
 export class MessageComponent implements OnInit {
   @Input() matches: UserClass[] = []
@@ -105,7 +98,8 @@ export class MessageComponent implements OnInit {
       message: form.value.message,
       senderUid: this.uProf?.uid!,
       sentToUid: this.matchProfile?.uid!,
-      number: this.messages.messages[this.messages.messages.length - 1].number + 1
+      number: this.messages.messages[this.messages.messages.length - 1].number + 1,
+      sentAt: new Date().toISOString() as any,
     }
     this.messages.messages.push(this.message)
     this.addMessagesWithMatch();
