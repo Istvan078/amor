@@ -1,4 +1,4 @@
-import { CommonModule } from '@angular/common';
+
 import {
   AfterViewInit,
   Component,
@@ -35,9 +35,7 @@ import { UserClass } from '../../shared/models/user.model';
   standalone: true,
   schemas: [CUSTOM_ELEMENTS_SCHEMA],
   imports: [
-    CommonModule,
     FormsModule,
-
     IonButton,
     IonButtons,
     IonChip,
@@ -51,8 +49,8 @@ import { UserClass } from '../../shared/models/user.model';
     IonSelect,
     IonSelectOption,
     IonTitle,
-    IonToolbar,
-  ],
+    IonToolbar
+],
 })
 export class IonModalPage implements AfterViewInit {
   @ViewChild('swiperRef') swiperRef?: ElementRef<SwiperContainer>;

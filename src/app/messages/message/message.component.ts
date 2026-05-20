@@ -1,4 +1,4 @@
-import { CommonModule } from '@angular/common';
+
 import { Component, Input, OnDestroy, OnInit } from '@angular/core';
 import { FormsModule, NgForm } from '@angular/forms';
 import {
@@ -33,9 +33,7 @@ import { UserClass } from '../../shared/models/user.model';
   styleUrls: ['./message.component.scss'],
   standalone: true,
   imports: [
-    CommonModule,
     FormsModule,
-
     IonContent,
     IonGrid,
     IonRow,
@@ -48,8 +46,8 @@ import { UserClass } from '../../shared/models/user.model';
     IonIcon,
     IonCard,
     IonCardContent,
-    IonThumbnail,
-  ],
+    IonThumbnail
+],
 })
 export class MessageComponent implements OnInit {
   @Input() matches: UserClass[] = []

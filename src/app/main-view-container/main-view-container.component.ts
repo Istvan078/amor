@@ -22,7 +22,7 @@ import { LocationService } from '../services/location.service';
 import { Options } from '../models/options.model';
 import { IonModalPage } from '../modals/ion-modal/ion-modal.page';
 
-import { CommonModule } from '@angular/common';
+
 import { FormsModule } from '@angular/forms';
 import {
   IonAvatar,
@@ -59,10 +59,8 @@ import { MessageComponent } from '../messages/message/message.component';
   standalone: true,
   schemas: [CUSTOM_ELEMENTS_SCHEMA],
   imports: [
-    CommonModule,
     FormsModule,
     MessageComponent,
-
     IonAvatar,
     IonButton,
     IonButtons,
@@ -85,8 +83,8 @@ import { MessageComponent } from '../messages/message/message.component';
     IonRange,
     IonRow,
     IonText,
-    IonTextarea,
-  ],
+    IonTextarea
+],
 })
 export class MainViewContainerComponent
   implements OnInit, AfterViewInit, OnDestroy {
