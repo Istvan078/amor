@@ -1,4 +1,4 @@
-import { Injectable, inject } from '@angular/core';
+import { Injectable, Injector, inject, runInInjectionContext } from '@angular/core';
 import {
     Firestore,
     doc,
@@ -12,11 +12,15 @@ import { UserClass } from '../../../shared/models/user.model';
     providedIn: 'root',
 })
 export class DiscoverRepository {
+    private injector = inject(Injector);
     private firestore = inject(Firestore);
 
     async getUserProfile(uid: string): Promise<UserClass | undefined> {
-        const profileRef = doc(this.firestore, `users/${uid}`);
-        const snapshot = await getDoc(profileRef);
+        const snapshot = await this.runInFirebaseContext(() => {
+            const profileRef = doc(this.firestore, `users/${uid}`);
+
+            return getDoc(profileRef);
+        });
 
         if (!snapshot.exists()) {
             return undefined;
@@ -47,7 +51,14 @@ export class DiscoverRepository {
     }
 
     async updateUserProfile(uid: string, profile: Partial<UserClass>) {
-        const profileRef = doc(this.firestore, `users/${uid}`);
-        await updateDoc(profileRef, profile);
+        await this.runInFirebaseContext(() => {
+            const profileRef = doc(this.firestore, `users/${uid}`);
+
+            return updateDoc(profileRef, profile);
+        });
+    }
+
+    private runInFirebaseContext<T>(callback: () => T): T {
+        return runInInjectionContext(this.injector, callback);
     }
 }

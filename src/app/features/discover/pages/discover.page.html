@@ -1,8 +1,70 @@
 <ion-content [fullscreen]="true">
-  <app-main-view-container
-    [matchProfiles]="discoverStore.possibleMatchIds()"
-    [progress]="discoverStore.progress()"
-    [buffer]="discoverStore.buffer()"
-    [matches]="discoverStore.matches()"
-  ></app-main-view-container>
+  @if(user?.uid){
+  <div id="main-container">
+    <app-discover-sidebar
+      [userProfile]="userProf"
+      [promotions]="promotions"
+      [matches]="matches"
+      (profileOpened)="openUserCard()"
+      (messageOpened)="openMessWithMatch($event)"
+    ></app-discover-sidebar>
+
+    <div id="main-view-container" class="m-0 p-0">
+      @if(!isUserCardOpen) {
+      <ion-grid class="m-0 p-0">
+        <ion-row class="m-0 p-0 ion-justify-content-center">
+          <ion-col class="m-0 p-0" size="12">
+            @if(isShowMessages) {
+            <ion-card class="app-message-card m-0 p-0">
+              <app-message
+                [matches]="matches"
+                [options]="options"
+                [matchProfile]="selectedMessProf"
+              ></app-message>
+            </ion-card>
+            }
+
+            @if(!isShowMessages) {
+            <app-discover-match-card
+              [progress]="progress"
+              [buffer]="buffer"
+              [matchProfile]="matchProf"
+              [isMatchPlaceHolder]="isMatchPlaceHolder"
+              (detailsToggled)="toggleMatchDetails()"
+              (liked)="likeCurrentMatch()"
+              (disliked)="dislikeCurrentMatch()"
+            ></app-discover-match-card>
+            }
+
+            @if(isMatchDetailsOpen) {
+            <app-discover-match-details
+              [labels]="labels"
+              [matchProfile]="matchProf"
+              [possibleDetailLists]="possMatchDetLists"
+              (closed)="isMatchDetailsOpen = false"
+            ></app-discover-match-details>
+            }
+          </ion-col>
+        </ion-row>
+      </ion-grid>
+      }
+
+      @if(isUserCardOpen && userProf) {
+      <app-discover-profile-panel
+        [userProfile]="userProf"
+        [labels]="labels"
+        [options]="options"
+        [selectedFiles]="selectedFiles"
+        [startUpdate]="startUpdUserProf"
+        (startUpdateRequested)="startUpdateUserProf()"
+        (profilePictureOpened)="showProfPics($event)"
+        (picturesSaved)="savePictures()"
+        (profileUpdated)="updateUserProf()"
+        (signOutRequested)="signOutAlert()"
+        (choicesSelected)="handleChoiceSelected($event)"
+      ></app-discover-profile-panel>
+      }
+    </div>
+  </div>
+  }
 </ion-content>

@@ -1,5 +1,5 @@
 import { HttpClient, HttpHeaders } from '@angular/common/http';
-import { Injectable, inject } from '@angular/core';
+import { Injectable, Injector, inject, runInInjectionContext } from '@angular/core';
 import {
     Auth,
     User,
@@ -22,23 +22,30 @@ type LoginData = {
     providedIn: 'root',
 })
 export class AuthRepository {
+    private injector = inject(Injector);
     private auth = inject(Auth);
     private http = inject(HttpClient);
 
     private usersApiUrl = environment.API_URL;
 
-    readonly user$: Observable<User | null> = authState(this.auth);
+    readonly user$: Observable<User | null> = this.runInFirebaseContext(() =>
+        authState(this.auth)
+    );
 
     registerWithEmail(data: LoginData) {
-        return createUserWithEmailAndPassword(this.auth, data.email, data.password);
+        return this.runInFirebaseContext(() =>
+            createUserWithEmailAndPassword(this.auth, data.email, data.password)
+        );
     }
 
     signInWithEmail(data: LoginData) {
-        return signInWithEmailAndPassword(this.auth, data.email, data.password);
+        return this.runInFirebaseContext(() =>
+            signInWithEmailAndPassword(this.auth, data.email, data.password)
+        );
     }
 
     signOut() {
-        return signOut(this.auth);
+        return this.runInFirebaseContext(() => signOut(this.auth));
     }
 
     async createAuthUser(user: User): Promise<AuthUser> {
@@ -102,5 +109,9 @@ export class AuthRepository {
 
     private createAuthHeaders(idToken: string) {
         return new HttpHeaders().set('Authorization', idToken);
+    }
+
+    private runInFirebaseContext<T>(callback: () => T): T {
+        return runInInjectionContext(this.injector, callback);
     }
 }

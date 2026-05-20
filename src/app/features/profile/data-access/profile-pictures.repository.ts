@@ -1,4 +1,4 @@
-import { Injectable, inject } from '@angular/core';
+import { Injectable, Injector, inject, runInInjectionContext } from '@angular/core';
 import {
     Storage,
     deleteObject,
@@ -14,6 +14,7 @@ import { ProfileRepository } from './profile.repository';
     providedIn: 'root',
 })
 export class ProfilePicturesRepository {
+    private injector = inject(Injector);
     private storage = inject(Storage);
     private profileRepository = inject(ProfileRepository);
 
@@ -32,11 +33,15 @@ export class ProfilePicturesRepository {
 
         for (const file of files) {
             const picturePath = `pictures/${uid}/${file.name}`;
-            const storageRef = ref(this.storage, picturePath);
+            const storageRef = this.runInFirebaseContext(() =>
+                ref(this.storage, picturePath)
+            );
 
-            await uploadBytes(storageRef, file);
+            await this.runInFirebaseContext(() => uploadBytes(storageRef, file));
 
-            const url = await getDownloadURL(storageRef);
+            const url = await this.runInFirebaseContext(() =>
+                getDownloadURL(storageRef)
+            );
 
             if (!uploadedFileNames.has(file.name)) {
                 userProfile.pictures.push({
@@ -64,16 +69,24 @@ export class ProfilePicturesRepository {
 
     async getFileFromStorage(uid: string, fileName: string) {
         const filePath = `pictures/${uid}/${fileName}`;
-        const pictureRef = ref(this.storage, filePath);
+        const pictureRef = this.runInFirebaseContext(() =>
+            ref(this.storage, filePath)
+        );
 
-        return getDownloadURL(pictureRef);
+        return this.runInFirebaseContext(() => getDownloadURL(pictureRef));
     }
 
     async deleteFilesFromStorage(path: string, fileName: string) {
         const normalizedPath = path.endsWith('/') ? path.slice(0, -1) : path;
         const filePath = `${normalizedPath}/${fileName}`;
-        const storageRef = ref(this.storage, filePath);
+        const storageRef = this.runInFirebaseContext(() =>
+            ref(this.storage, filePath)
+        );
 
-        return deleteObject(storageRef);
+        return this.runInFirebaseContext(() => deleteObject(storageRef));
+    }
+
+    private runInFirebaseContext<T>(callback: () => T): T {
+        return runInInjectionContext(this.injector, callback);
     }
 }

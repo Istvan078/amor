@@ -1,0 +1,74 @@
+<div id="side-nav-container">
+  <nav class="nav">
+    <ion-avatar (click)="profileOpened.emit()" class="user-img" slot="start">
+      <img
+        src="https://img.freepik.com/free-vector/user-circles-set_78370-4704.jpg?t=st=1741696833~exp=1741700433~hmac=5c4d9770452bab7cb12b3a38cead02ffcd3f50b45d75a0da6324820dc1bd3df2&w=740"
+        alt="Profilkep"
+      />
+    </ion-avatar>
+    <ion-text>{{ userProfile?.firstName + " " + userProfile?.lastName }}</ion-text>
+  </nav>
+
+  <div class="promotions-container">
+    <swiper-container
+      class="swiper-cont"
+      [grabCursor]="true"
+      [scrollbar]="true"
+      [pagination]="true"
+      [navigation]="true"
+    >
+      @for(prom of promotions; track $index){
+      <swiper-slide>
+        <ion-card class="prom-card">
+          <div class="prom-img-cont">
+            <img
+              alt="Promocio"
+              src="https://img.freepik.com/free-vector/charity-logo-hands-supporting-heart-icon-flat-design-vector-illustration_53876-136266.jpg?t=st=1741773727~exp=1741777327~hmac=becc45b6f6afbc13365d2d5af57597f93f383178e53d29891a3399fac4753b63&w=740"
+              height="100px"
+            />
+          </div>
+          <ion-card-header>
+            <ion-card-title>{{ prom.title }}</ion-card-title>
+            <ion-card-subtitle>{{ prom.discount }} %</ion-card-subtitle>
+          </ion-card-header>
+          <ion-card-content>
+            {{ prom.description }}
+          </ion-card-content>
+        </ion-card>
+      </swiper-slide>
+      }
+    </swiper-container>
+  </div>
+
+  <div class="matches-and-messages-cont">
+    <ion-button fill="outline">
+      <ion-icon name="people-outline" slot="start"></ion-icon>
+      Párok
+    </ion-button>
+    <ion-button fill="outline">
+      <ion-icon name="chatbubbles-outline" slot="start"></ion-icon>
+      Üzenetek
+    </ion-button>
+  </div>
+
+  <div class="pairs-and-messageheads-cont">
+    @for(match of matches; track $index) {
+    <div (click)="messageOpened.emit(match)" class="match-container">
+      <p>{{ match.firstName }}</p>
+      @if(match?.pictures){
+      <img
+        class="w-100 h-100"
+        [src]="match.pictures![0].url"
+        alt="Match Profilkep"
+      />
+      } @else {
+      <img
+        class="w-100 h-100"
+        src="https://img.freepik.com/free-vector/user-circles-set_78370-4704.jpg?t=st=1741696833~exp=1741700433~hmac=5c4d9770452bab7cb12b3a38cead02ffcd3f50b45d75a0da6324820dc1bd3df2&w=740"
+        alt="Match Profilkep"
+      />
+      }
+    </div>
+    }
+  </div>
+</div>

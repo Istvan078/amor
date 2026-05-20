@@ -1,4 +1,4 @@
-import { Injectable, inject } from '@angular/core';
+import { Injectable, Injector, inject, runInInjectionContext } from '@angular/core';
 import {
     Firestore,
     doc,
@@ -12,6 +12,7 @@ import { Message, Messages } from '../../../shared/models/message.model';
     providedIn: 'root',
 })
 export class MessagesRepository {
+    private injector = inject(Injector);
     private firestore = inject(Firestore);
 
     async getMessages(
@@ -22,18 +23,23 @@ export class MessagesRepository {
     ) {
         const msgsCopy: Messages = new Messages([]);
 
-        const myMessageRef = doc(
-            this.firestore,
-            `matches/messages/${myEmail}/${matchUid}_${myUid}`
-        );
+        const [myMessageSnapshot, matchMessageSnapshot] =
+            await this.runInFirebaseContext(() => {
+                const myMessageRef = doc(
+                    this.firestore,
+                    `matches/messages/${myEmail}/${matchUid}_${myUid}`
+                );
 
-        const matchMessageRef = doc(
-            this.firestore,
-            `matches/messages/${matchEmail}/${myUid}_${matchUid}`
-        );
+                const matchMessageRef = doc(
+                    this.firestore,
+                    `matches/messages/${matchEmail}/${myUid}_${matchUid}`
+                );
 
-        const myMessageSnapshot = await getDoc(myMessageRef);
-        const matchMessageSnapshot = await getDoc(matchMessageRef);
+                return Promise.all([
+                    getDoc(myMessageRef),
+                    getDoc(matchMessageRef),
+                ]);
+            });
 
         const myMsgs = myMessageSnapshot.exists()
             ? (myMessageSnapshot.data() as Message)
@@ -60,13 +66,19 @@ export class MessagesRepository {
         matchUid: string,
         messages: Message[]
     ) {
-        const messageRef = doc(
-            this.firestore,
-            `matches/messages/${myEmail}/${matchUid}_${myUid}`
-        );
+        await this.runInFirebaseContext(() => {
+            const messageRef = doc(
+                this.firestore,
+                `matches/messages/${myEmail}/${matchUid}_${myUid}`
+            );
 
-        await setDoc(messageRef, new Messages(messages).setMessagesForFirestore(), {
-            merge: true,
+            return setDoc(messageRef, new Messages(messages).setMessagesForFirestore(), {
+                merge: true,
+            });
         });
+    }
+
+    private runInFirebaseContext<T>(callback: () => T): T {
+        return runInInjectionContext(this.injector, callback);
     }
 }
