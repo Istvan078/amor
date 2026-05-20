@@ -1,6 +1,7 @@
 import {
   AfterViewInit,
   Component,
+  CUSTOM_ELEMENTS_SCHEMA,
   HostListener,
   Input,
   OnDestroy,
@@ -21,11 +22,71 @@ import { LocationService } from '../services/location.service';
 import { Options } from '../models/options.model';
 import { IonModalPage } from '../modals/ion-modal/ion-modal.page';
 
+import { CommonModule } from '@angular/common';
+import { FormsModule } from '@angular/forms';
+import {
+  IonAvatar,
+  IonButton,
+  IonButtons,
+  IonCard,
+  IonCardContent,
+  IonCardHeader,
+  IonCardSubtitle,
+  IonCardTitle,
+  IonCheckbox,
+  IonCol,
+  IonContent,
+  IonGrid,
+  IonIcon,
+  IonImg,
+  IonInput,
+  IonItem,
+  IonLabel,
+  IonList,
+  IonProgressBar,
+  IonRange,
+  IonRow,
+  IonText,
+  IonTextarea,
+} from '@ionic/angular/standalone';
+
+import { MessageComponent } from '../messages/message/message.component';
+
 @Component({
   selector: 'app-main-view-container',
   templateUrl: './main-view-container.component.html',
   styleUrls: ['./main-view-container.component.scss'],
-  standalone: false,
+  standalone: true,
+  schemas: [CUSTOM_ELEMENTS_SCHEMA],
+  imports: [
+    CommonModule,
+    FormsModule,
+    MessageComponent,
+
+    IonAvatar,
+    IonButton,
+    IonButtons,
+    IonCard,
+    IonCardContent,
+    IonCardHeader,
+    IonCardSubtitle,
+    IonCardTitle,
+    IonCheckbox,
+    IonCol,
+    IonContent,
+    IonGrid,
+    IonIcon,
+    IonImg,
+    IonInput,
+    IonItem,
+    IonLabel,
+    IonList,
+    IonProgressBar,
+    IonRange,
+    IonRow,
+    IonText,
+    IonTextarea,
+  ],
 })
 export class MainViewContainerComponent
   implements OnInit, AfterViewInit, OnDestroy {

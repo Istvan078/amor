@@ -1,16 +1,55 @@
-import { Component, Input, OnInit } from '@angular/core';
-import { NgForm } from '@angular/forms';
-import { IonContent } from '@ionic/angular/standalone';
-import { Message, Messages } from 'src/app/models/message.model';
-import { Options } from 'src/app/models/options.model';
-import { UserClass } from 'src/app/models/user.model';
-import { BaseService } from 'src/app/services/base.service';
+import { CommonModule } from '@angular/common';
+import { Component, Input, OnDestroy, OnInit } from '@angular/core';
+import { FormsModule, NgForm } from '@angular/forms';
+import {
+  IonButton,
+  IonCard,
+  IonCardContent,
+  IonCol,
+  IonContent,
+  IonGrid,
+  IonIcon,
+  IonItem,
+  IonLabel,
+  IonList,
+  IonRow,
+  IonTextarea,
+  IonThumbnail,
+} from '@ionic/angular/standalone';
+import { Subscription } from 'rxjs';
+
+import { BaseService } from '../../services/base.service';
+import { Message, Messages } from '../../shared/models/message.model';
+import { Options } from '../../shared/models/options.model';
+import { UserClass } from '../../shared/models/user.model';
 
 @Component({
   selector: 'app-message',
   templateUrl: './message.component.html',
   styleUrls: ['./message.component.scss'],
   standalone: false,
+  selector: 'app-message',
+  templateUrl: './message.component.html',
+  styleUrls: ['./message.component.scss'],
+  standalone: true,
+  imports: [
+    CommonModule,
+    FormsModule,
+
+    IonContent,
+    IonGrid,
+    IonRow,
+    IonCol,
+    IonList,
+    IonItem,
+    IonLabel,
+    IonTextarea,
+    IonButton,
+    IonIcon,
+    IonCard,
+    IonCardContent,
+    IonThumbnail,
+  ],
 })
 export class MessageComponent implements OnInit {
   @Input() matches: UserClass[] = []
@@ -68,9 +107,7 @@ export class MessageComponent implements OnInit {
       message: form.value.message,
       senderUid: this.uProf?.uid!,
       sentToUid: this.matchProfile?.uid!,
-      number: this.messages.messages.length ? this.messages.messages[this.messages.messages.length - 1].number + 1 : 1,
-      sentAt: new Date(),
-      isSent: true,
+      number: this.messages.messages[this.messages.messages.length - 1].number + 1
     }
     this.messages.messages.push(this.message)
     this.addMessagesWithMatch();
