@@ -23,23 +23,35 @@ const initialState: ProfileState = {
 };
 
 export const ProfileStore = signalStore(
-    { providedIn: 'root' },
+    {
+        providedIn: 'root',
+    },
 
     withState(initialState),
 
     withComputed((store) => ({
         hasProfile: computed(() => !!store.profile()),
         firstName: computed(() => store.profile()?.firstName ?? ''),
+        uid: computed(() => store.profile()?.uid ?? null),
     })),
 
     withMethods((store, repository = inject(ProfileRepository)) => ({
         async loadProfile(uid: string) {
-            patchState(store, { loading: true, error: null });
+            patchState(store, {
+                loading: true,
+                error: null,
+            });
 
             try {
                 const profile = await repository.getProfile(uid);
-                patchState(store, { profile: profile ?? null, loading: false });
+
+                patchState(store, {
+                    profile: profile ?? null,
+                    loading: false,
+                });
             } catch (error) {
+                console.error(error);
+
                 patchState(store, {
                     loading: false,
                     error: 'Failed to load profile',
@@ -47,11 +59,41 @@ export const ProfileStore = signalStore(
             }
         },
 
+        async createProfile(uid: string, profile: Partial<UserClass>) {
+            patchState(store, {
+                loading: true,
+                error: null,
+            });
+
+            try {
+                await repository.createProfile(uid, profile);
+
+                patchState(store, {
+                    profile: {
+                        uid,
+                        ...profile,
+                    } as UserClass,
+                    loading: false,
+                });
+            } catch (error) {
+                console.error(error);
+
+                patchState(store, {
+                    loading: false,
+                    error: 'Failed to create profile',
+                });
+            }
+        },
+
         async updateProfile(uid: string, profile: Partial<UserClass>) {
-            patchState(store, { loading: true, error: null });
+            patchState(store, {
+                loading: true,
+                error: null,
+            });
 
             try {
                 await repository.updateProfile(uid, profile);
+
                 patchState(store, {
                     profile: {
                         ...(store.profile() ?? {}),
@@ -60,6 +102,8 @@ export const ProfileStore = signalStore(
                     loading: false,
                 });
             } catch (error) {
+                console.error(error);
+
                 patchState(store, {
                     loading: false,
                     error: 'Failed to update profile',

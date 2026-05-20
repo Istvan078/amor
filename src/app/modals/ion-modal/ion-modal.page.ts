@@ -1,14 +1,58 @@
-import { AfterViewInit, Component, ElementRef, ViewChild } from '@angular/core';
+import { CommonModule } from '@angular/common';
+import {
+  AfterViewInit,
+  Component,
+  CUSTOM_ELEMENTS_SCHEMA,
+  ElementRef,
+  ViewChild,
+} from '@angular/core';
+import { FormsModule } from '@angular/forms';
 import { ModalController } from '@ionic/angular';
-import { UserClass } from 'src/app/models/user.model';
+import {
+  IonButton,
+  IonButtons,
+  IonChip,
+  IonContent,
+  IonIcon,
+  IonImg,
+  IonInput,
+  IonItem,
+  IonLabel,
+  IonRange,
+  IonSelect,
+  IonSelectOption,
+  IonTitle,
+  IonToolbar,
+} from '@ionic/angular/standalone';
 import { SwiperContainer } from 'swiper/element';
 
+import { UserClass } from '../../shared/models/user.model';
 
 @Component({
   selector: 'app-ion-modal',
   templateUrl: './ion-modal.page.html',
   styleUrls: ['./ion-modal.page.scss'],
-  standalone: false,
+  standalone: true,
+  schemas: [CUSTOM_ELEMENTS_SCHEMA],
+  imports: [
+    CommonModule,
+    FormsModule,
+
+    IonButton,
+    IonButtons,
+    IonChip,
+    IonContent,
+    IonIcon,
+    IonImg,
+    IonInput,
+    IonItem,
+    IonLabel,
+    IonRange,
+    IonSelect,
+    IonSelectOption,
+    IonTitle,
+    IonToolbar,
+  ],
 })
 export class IonModalPage implements AfterViewInit {
   @ViewChild('swiperRef') swiperRef?: ElementRef<SwiperContainer>;

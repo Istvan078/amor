@@ -1,5 +1,6 @@
-import { Component, inject, OnInit } from '@angular/core';
+import { Component, OnDestroy, OnInit, inject } from '@angular/core';
 import { Router, RouterLink } from '@angular/router';
+import { ModalController } from '@ionic/angular';
 import {
     IonButton,
     IonContent,
@@ -7,15 +8,15 @@ import {
     IonIcon,
     IonTitle,
     IonToolbar,
-    ModalController,
 } from '@ionic/angular/standalone';
 import { TranslocoDirective } from '@jsverse/transloco';
+import { Subscription } from 'rxjs';
 
+import { IonModalPage } from '../../../modals/ion-modal/ion-modal.page';
 import { AuthService } from '../../../services/auth.service';
 import { BaseService } from '../../../services/base.service';
 import { ConfigService } from '../../../services/config.service';
 import { UserClass } from '../../../shared/models/user.model';
-import { IonModalPage } from '../../../modals/ion-modal/ion-modal.page';
 
 @Component({
     selector: 'app-register',
@@ -33,7 +34,7 @@ import { IonModalPage } from '../../../modals/ion-modal/ion-modal.page';
         IonIcon,
     ],
 })
-export class RegisterPage implements OnInit {
+export class RegisterPage implements OnInit, OnDestroy {
     private auth = inject(AuthService);
     private base = inject(BaseService);
     private config = inject(ConfigService);
@@ -43,12 +44,18 @@ export class RegisterPage implements OnInit {
     user: any;
     labels: any;
 
+    private authSub = Subscription.EMPTY;
+
     ngOnInit(): void {
         this.labels = this.config.getLabels(true);
 
-        this.auth.loggedUserSubject.subscribe((user) => {
+        this.authSub = this.auth.loggedUserSubject.subscribe((user) => {
             this.user = user;
         });
+    }
+
+    ngOnDestroy() {
+        this.authSub.unsubscribe();
     }
 
     async createModal(componentProps: {}) {
@@ -67,11 +74,15 @@ export class RegisterPage implements OnInit {
         let profileCreatedSuccessfully = false;
 
         if (!this.user) {
-            const ionModal = await this.createModal({ regFirstPhase: true });
+            const ionModal = await this.createModal({
+                regFirstPhase: true,
+            });
+
             const data = await ionModal.onWillDismiss();
 
             if (data.role === 'confirm') {
-                await this.auth.registerEmail(data.data);
+                const userCredentials = await this.auth.registerEmail(data.data);
+                this.user = userCredentials.user;
 
                 const ionModal2 = await this.createModal({
                     regSecondPhase: true,
@@ -81,16 +92,14 @@ export class RegisterPage implements OnInit {
                 const data2 = await ionModal2.onWillDismiss();
 
                 if (data2.role === 'created-successfully') {
-                    data2.data.uid = this.user?.uid ?? '';
+                    data2.data.uid = this.user.uid;
+
                     await this.createUserProfile(data2);
+
                     profileCreatedSuccessfully = true;
                     this.base.userProfCreatedSubject.next(true);
 
-                    if (!this.user?.uid) {
-                        this.router.navigate(['/amor/login']);
-                    } else {
-                        this.router.navigate(['/amor/discover']);
-                    }
+                    this.router.navigate(['/amor/discover']);
                 }
             }
         }
@@ -105,7 +114,9 @@ export class RegisterPage implements OnInit {
 
             if (data.role === 'created-successfully') {
                 data.data.uid = this.user.uid;
+
                 await this.createUserProfile(data);
+
                 this.base.userProfCreatedSubject.next(true);
                 this.router.navigate(['/amor/discover']);
             }
@@ -117,7 +128,8 @@ export class RegisterPage implements OnInit {
 
         Object.setPrototypeOf(userProfile, UserClass.prototype);
 
-        userProfile.email = this.user?.email;
+        userProfile.uid = this.user.uid;
+        userProfile.email = this.user.email;
         userProfile.calcAge();
 
         Object.setPrototypeOf(userProfile, Object.prototype);

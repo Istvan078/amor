@@ -1,151 +1,243 @@
 import { HttpClient, HttpHeaders } from '@angular/common/http';
-import { Injectable } from '@angular/core';
-import { AngularFireAuth } from '@angular/fire/compat/auth';
-import { BehaviorSubject, Observable, of, Subscription } from 'rxjs';
-import { FirebaseUser } from '../models/user.model';
-import { environment } from 'src/environments/environment.prod';
-import { BaseService } from './base.service';
+import { Injectable, inject } from '@angular/core';
+import {
+  Auth,
+  User,
+  authState,
+  createUserWithEmailAndPassword,
+  signInWithEmailAndPassword,
+  signOut,
+} from '@angular/fire/auth';
+import { BehaviorSubject, Observable, of } from 'rxjs';
 
-@Injectable({
- providedIn: 'root',
-})
-export class AuthService {
- usersApiUrl = environment.API_URL;
- loggedUser: any;
- loggedUserSubject: BehaviorSubject<any> = new BehaviorSubject(null);
- usersSubject: BehaviorSubject<any> = new BehaviorSubject([]);
- userClaimsSubj: BehaviorSubject<{}> = new BehaviorSubject({});
- authAutoFillSubj: BehaviorSubject<any> = new BehaviorSubject(null);
- httpHeaders: HttpHeaders = new HttpHeaders();
- customClaims?: {
+import { environment } from 'src/environments/environment';
+
+type LoginData = {
+  email: string;
+  password: string;
+};
+
+type CustomClaims = {
   gender: 'No' | 'Ferfi' | 'Egyeb';
   lookingForGender: 'No' | 'Ferfi';
   lookingForDistance: number;
   currentPlace: string;
-  currentLocCoords: { lat: number; lon: number };
-  lookingForAge: { lower: number; upper: number };
- };
- userProfCreatedSubjSub: Subscription = Subscription.EMPTY;
- constructor(
-  private afAuth: AngularFireAuth,
-  private http: HttpClient,
-  private base: BaseService
- ) {
-  this.getLoggedInUser();
- }
- getLoggedInUser() {
-  this.afAuth.authState.subscribe(async (usr) => {
-   this.loggedUser = usr;
-   if (usr) {
-    await this.setAuthHeaderAndIdToken(usr);
-    // this.loggedUserSubject.next(this.loggedUser);
-   }
-   this.userProfCreatedSubjSub = this.base.userProfCreatedSubject.subscribe(
-    (userProfCreated) => {
-     if (this.loggedUser && !userProfCreated) {
-      this.getUsers().subscribe((users: any) => {
-       this.usersSubject.next(users);
-      });
-      this.getClaims().subscribe((claims: any) => {
-       this.loggedUser.claims = claims;
-       this.userClaimsSubj.next(claims);
-       this.loggedUserSubject.next(this.loggedUser);
-       if (this.loggedUser.claims && !userProfCreated) {
-        console.log(`A felhasznalonak mar van claims-je!`);
-        this.userProfCreatedSubjSub.unsubscribe();
-       }
-      });
-     }
-     if (userProfCreated) {
-      this.loggedUserSubject.next(this.loggedUser);
-      this.userProfCreatedSubjSub.unsubscribe();
-     }
-    }
-   );
-   if (!usr) {
-    this.loggedUserSubject.next(null)
-    if(this.userProfCreatedSubjSub)this.userProfCreatedSubjSub.unsubscribe()
+  currentLocCoords: {
+    lat: number;
+    lon: number;
   };
-  });
- }
- async registerEmail(data: any) {
-  const userCreds = await this.afAuth.createUserWithEmailAndPassword(
-   data.email,
-   data.password
-  );
-  return userCreds;
- }
- async signInWithEmail(data: any) {
-  const userCreds = await this.afAuth.signInWithEmailAndPassword(
-   data.email,
-   data.password
-  );
-  return userCreds;
- }
+  lookingForAge: {
+    lower: number;
+    upper: number;
+  };
+};
 
- async signOut() {
-  await this.afAuth.signOut();
- }
+@Injectable({
+  providedIn: 'root',
+})
+export class AuthService {
+  private auth = inject(Auth);
+  private http = inject(HttpClient);
 
- async setAuthHeaderAndIdToken(user: FirebaseUser) {
-  const idToken = await user?.getIdToken();
-  this.loggedUser.idToken = idToken;
-  this.httpHeaders = this.httpHeaders.set(
-   'Authorization',
-   this.loggedUser.idToken
-  );
- }
+  usersApiUrl = environment.API_URL;
 
- //  getIdToken(user: any) {
- //   user?.getIdToken().then((idToken: string) => {
- //    this.loggedUser.idToken = idToken;
- //    this.httpHeaders = this.httpHeaders.set(
- //     'Authorization',
- //     this.loggedUser.idToken
- //    );
- //    this.getClaims().subscribe((claims: any) => {
- //     if (claims) {
- //      this.loggedUser.claims = claims;
- //      this.userClaimsSubj.next(claims);
- //      this.getUsers().subscribe((users: any) => {
- //       this.usersSubject.next(users);
- //      });
- //     } else {
- //      if (this.loggedUser.uid) {
- //       this.setCustomClaims(this.loggedUser.uid, this.customClaims);
- //       this.loggedUserSubject.next(this.loggedUser);
- //      }
- //     }
- //    });
- //   });
- //  }
+  loggedUser: any = null;
+  loggedUserSubject = new BehaviorSubject<any>(null);
+  usersSubject = new BehaviorSubject<any[]>([]);
+  userClaimsSubj = new BehaviorSubject<Partial<CustomClaims>>({});
+  authAutoFillSubj = new BehaviorSubject<string | null>(null);
 
- getClaims() {
-  return this.http.get(
-   this.usersApiUrl + `users/${this.loggedUser.uid}/claims`,
-   {
-    headers: this.httpHeaders,
-   }
-  );
- }
+  httpHeaders = new HttpHeaders();
 
- getUsers(): Observable<FirebaseUser[]> {
-  if (this.loggedUser.idToken) {
-   // let headers = new HttpHeaders().set('Authorization', this.user.idToken);
-   return this.http.get<FirebaseUser[]>(this.usersApiUrl + 'users', {
-    headers: this.httpHeaders,
-   });
+  customClaims?: CustomClaims;
+
+  private authListenerStarted = false;
+
+  constructor() {
+    this.getLoggedInUser();
   }
-  return of([]);
- }
- setCustomClaims(uid: string, claims: any) {
-  const body = { uid, claims };
-  this.http
-   .post(this.usersApiUrl + 'setCustomClaims', body, {
-    headers: this.httpHeaders,
-   })
-   .subscribe({
-    next: () => console.log('A claims beállítása sikeres!'),
-   });
- }
+
+  getLoggedInUser() {
+    if (this.authListenerStarted) {
+      return;
+    }
+
+    this.authListenerStarted = true;
+
+    authState(this.auth).subscribe(async (user) => {
+      if (!user) {
+        this.loggedUser = null;
+        this.httpHeaders = new HttpHeaders();
+        this.loggedUserSubject.next(null);
+        this.usersSubject.next([]);
+        this.userClaimsSubj.next({});
+        return;
+      }
+
+      this.loggedUser = await this.createLoggedUserData(user);
+      this.loggedUserSubject.next(this.loggedUser);
+
+      this.loadClaimsForLoggedUser();
+      this.loadUsers();
+    });
+  }
+
+  async registerEmail(data: LoginData) {
+    const userCredentials = await createUserWithEmailAndPassword(
+      this.auth,
+      data.email,
+      data.password
+    );
+
+    this.loggedUser = await this.createLoggedUserData(userCredentials.user);
+    this.loggedUserSubject.next(this.loggedUser);
+
+    return userCredentials;
+  }
+
+  async signInWithEmail(data: LoginData) {
+    const userCredentials = await signInWithEmailAndPassword(
+      this.auth,
+      data.email,
+      data.password
+    );
+
+    this.loggedUser = await this.createLoggedUserData(userCredentials.user);
+    this.loggedUserSubject.next(this.loggedUser);
+
+    this.loadClaimsForLoggedUser();
+    this.loadUsers();
+
+    return userCredentials;
+  }
+
+  async signOut() {
+    await signOut(this.auth);
+
+    this.loggedUser = null;
+    this.httpHeaders = new HttpHeaders();
+
+    this.loggedUserSubject.next(null);
+    this.usersSubject.next([]);
+    this.userClaimsSubj.next({});
+  }
+
+  async setAuthHeaderAndIdToken(user: User) {
+    const idToken = await user.getIdToken();
+
+    if (!this.loggedUser) {
+      this.loggedUser = {};
+    }
+
+    this.loggedUser.idToken = idToken;
+    this.httpHeaders = new HttpHeaders().set('Authorization', idToken);
+  }
+
+  getClaims(): Observable<any> {
+    if (!this.loggedUser?.uid || !this.loggedUser?.idToken) {
+      return of(null);
+    }
+
+    return this.http.get(
+      this.usersApiUrl + `users/${this.loggedUser.uid}/claims`,
+      {
+        headers: this.httpHeaders,
+      }
+    );
+  }
+
+  getUsers(): Observable<any[]> {
+    if (!this.loggedUser?.idToken) {
+      return of([]);
+    }
+
+    return this.http.get<any[]>(this.usersApiUrl + 'users', {
+      headers: this.httpHeaders,
+    });
+  }
+
+  setCustomClaims(uid: string, claims: CustomClaims | any) {
+    if (!this.loggedUser?.idToken) {
+      return;
+    }
+
+    const body = {
+      uid,
+      claims,
+    };
+
+    this.http
+      .post(this.usersApiUrl + 'setCustomClaims', body, {
+        headers: this.httpHeaders,
+      })
+      .subscribe({
+        next: () => {
+          this.customClaims = claims;
+          this.loggedUser = {
+            ...this.loggedUser,
+            claims,
+          };
+
+          this.userClaimsSubj.next(claims);
+          this.loggedUserSubject.next(this.loggedUser);
+
+          console.log('Custom claims updated successfully.');
+        },
+        error: (error) => {
+          console.error('Custom claims update failed:', error);
+        },
+      });
+  }
+
+  private async createLoggedUserData(user: User) {
+    const idToken = await user.getIdToken();
+
+    this.httpHeaders = new HttpHeaders().set('Authorization', idToken);
+
+    return {
+      uid: user.uid,
+      email: user.email,
+      displayName: user.displayName,
+      photoURL: user.photoURL,
+      emailVerified: user.emailVerified,
+      idToken,
+      claims: null,
+      raw: user,
+    };
+  }
+
+  private loadClaimsForLoggedUser() {
+    this.getClaims().subscribe({
+      next: (claims) => {
+        if (!claims) {
+          this.loggedUserSubject.next(this.loggedUser);
+          return;
+        }
+
+        this.loggedUser = {
+          ...this.loggedUser,
+          claims,
+        };
+
+        this.userClaimsSubj.next(claims);
+        this.loggedUserSubject.next(this.loggedUser);
+      },
+      error: (error) => {
+        console.error('Claims loading failed:', error);
+        this.loggedUserSubject.next(this.loggedUser);
+      },
+    });
+  }
+
+  private loadUsers() {
+    this.getUsers().subscribe({
+      next: (users) => {
+        this.usersSubject.next(users ?? []);
+      },
+      error: (error) => {
+        console.error('Users loading failed:', error);
+        this.usersSubject.next([]);
+      },
+    });
+  }
 }

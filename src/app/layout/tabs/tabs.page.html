@@ -1,43 +1,45 @@
 <ion-tabs>
- <ion-tab-bar slot="bottom" class="ion-hide-sm-up">
-  @if(!loggedUser?.uid) {
-  <ion-tab-button tab="register" href="/amor/register">
-   <ion-icon aria-hidden="true" name="triangle"></ion-icon>
-   <ion-label>Regisztracio</ion-label>
-  </ion-tab-button>
+  <ion-tab-bar slot="bottom" class="ion-hide-sm-up">
+    @if (!loggedUser?.uid) {
+    <ion-tab-button tab="register" href="/amor/register">
+      <ion-icon aria-hidden="true" name="person-add-outline"></ion-icon>
+      <ion-label>Register</ion-label>
+    </ion-tab-button>
 
-  <ion-tab-button tab="login" href="/amor/login">
-   <ion-icon aria-hidden="true" name="ellipse"></ion-icon>
-   <ion-label>Bejelentkezes</ion-label>
-  </ion-tab-button>
-  } @if(userProf?.uid) {
-  <ion-tab-button
-   style="color: purple"
-   (click)="showMatchesCard()"
-   tab="tab3"
-   href="/amor/tab3"
-  >
-   <ion-icon aria-hidden="true" name="heart"></ion-icon>
-   <ion-label>Amor</ion-label>
-  </ion-tab-button>
-  <ion-tab-button
-   style="color: rgb(33, 24, 157)"
-   (click)="openUserCard()"
-   tab="tab3"
-   href="/amor/tab3"
-  >
-   <ion-icon aria-hidden="true" name="person"></ion-icon>
-   <ion-label>Profilom</ion-label>
-  </ion-tab-button>
-  <ion-tab-button
-   style="color: rgb(24, 157, 44)"
-   (click)="showMessages()"
-   tab="tab3"
-   href="/amor/tab3"
-  >
-   <ion-icon aria-hidden="true" name="chatbubble-ellipses-outline"></ion-icon>
-   <ion-label>Uzenetek</ion-label>
-  </ion-tab-button>
-  }
- </ion-tab-bar>
+    <ion-tab-button tab="login" href="/amor/login">
+      <ion-icon aria-hidden="true" name="log-in-outline"></ion-icon>
+      <ion-label>Sign in</ion-label>
+    </ion-tab-button>
+    } @if (userProf?.uid) {
+    <ion-tab-button
+      style="color: purple"
+      tab="discover"
+      href="/amor/discover"
+      (click)="showMatchesCard()"
+    >
+      <ion-icon aria-hidden="true" name="heart"></ion-icon>
+      <ion-label>Amor</ion-label>
+    </ion-tab-button>
+
+    <ion-tab-button
+      style="color: rgb(33, 24, 157)"
+      tab="profile"
+      href="/amor/discover"
+      (click)="openUserCard()"
+    >
+      <ion-icon aria-hidden="true" name="person"></ion-icon>
+      <ion-label>Profile</ion-label>
+    </ion-tab-button>
+
+    <ion-tab-button
+      style="color: rgb(24, 157, 44)"
+      tab="messages"
+      href="/amor/discover"
+      (click)="showMessages()"
+    >
+      <ion-icon aria-hidden="true" name="chatbubble-ellipses-outline"></ion-icon>
+      <ion-label>Messages</ion-label>
+    </ion-tab-button>
+    }
+  </ion-tab-bar>
 </ion-tabs>

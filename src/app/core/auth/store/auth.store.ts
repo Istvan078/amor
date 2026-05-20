@@ -10,6 +10,8 @@ import {
 export type AuthUser = {
   uid: string;
   email: string | null;
+  displayName?: string | null;
+  photoURL?: string | null;
   idToken?: string;
   claims?: UserClaims | null;
 };
@@ -44,7 +46,9 @@ const initialState: AuthState = {
 };
 
 export const AuthStore = signalStore(
-  { providedIn: 'root' },
+  {
+    providedIn: 'root',
+  },
 
   withState(initialState),
 
@@ -52,23 +56,32 @@ export const AuthStore = signalStore(
     isLoggedIn: computed(() => !!store.user()),
     hasClaims: computed(() => !!store.claims()),
     uid: computed(() => store.user()?.uid ?? null),
+    email: computed(() => store.user()?.email ?? null),
   })),
 
   withMethods((store) => ({
     setUser(user: AuthUser | null) {
-      patchState(store, { user });
+      patchState(store, {
+        user,
+      });
     },
 
     setClaims(claims: UserClaims | null) {
-      patchState(store, { claims });
+      patchState(store, {
+        claims,
+      });
     },
 
     setLoading(loading: boolean) {
-      patchState(store, { loading });
+      patchState(store, {
+        loading,
+      });
     },
 
     setError(error: string | null) {
-      patchState(store, { error });
+      patchState(store, {
+        error,
+      });
     },
 
     clear() {

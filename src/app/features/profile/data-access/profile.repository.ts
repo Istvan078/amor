@@ -1,7 +1,7 @@
-import { inject, Injectable } from '@angular/core';
+import { Injectable, inject } from '@angular/core';
 import {
-    doc,
     Firestore,
+    doc,
     getDoc,
     setDoc,
     updateDoc,
@@ -9,7 +9,9 @@ import {
 
 import { UserClass } from '../../../shared/models/user.model';
 
-@Injectable({ providedIn: 'root' })
+@Injectable({
+    providedIn: 'root',
+})
 export class ProfileRepository {
     private firestore = inject(Firestore);
 

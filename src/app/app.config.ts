@@ -1,4 +1,4 @@
-import { ApplicationConfig, importProvidersFrom, isDevMode } from '@angular/core';
+import { ApplicationConfig, isDevMode } from '@angular/core';
 import {
     PreloadAllModules,
     RouteReuseStrategy,
