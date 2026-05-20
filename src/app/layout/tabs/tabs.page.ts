@@ -1,4 +1,4 @@
-import { Component, OnDestroy, OnInit, inject } from '@angular/core';
+import { Component, inject } from '@angular/core';
 import {
   IonIcon,
   IonLabel,
@@ -6,11 +6,10 @@ import {
   IonTabButton,
   IonTabs,
 } from '@ionic/angular/standalone';
-import { Subscription } from 'rxjs';
 
-import { AuthService } from '../../services/auth.service';
-import { BaseService } from '../../services/base.service';
-import { UserClass } from '../../shared/models/user.model';
+import { AuthStore } from '../../features/auth/store/auth.store';
+import { DiscoverUiStore } from '../../features/discover/store/discover-ui.store';
+import { ProfileStore } from '../../features/profile/store/profile.store';
 
 @Component({
   selector: 'app-tabs',
@@ -19,51 +18,22 @@ import { UserClass } from '../../shared/models/user.model';
   standalone: true,
   imports: [IonTabs, IonTabBar, IonTabButton, IonIcon, IonLabel],
 })
-export class TabsPage implements OnInit, OnDestroy {
-  private auth = inject(AuthService);
-  private base = inject(BaseService);
-
-  loggedUser: any;
-  userProf?: UserClass;
-
-  private subscriptions = new Subscription();
-
-  ngOnInit() {
-    this.subscriptions.add(
-      this.auth.loggedUserSubject.subscribe((user) => {
-        this.loggedUser = user;
-      })
-    );
-
-    this.subscriptions.add(
-      this.base.userProfBehSubj.subscribe((profile) => {
-        this.userProf = profile;
-      })
-    );
-  }
-
-  ngOnDestroy() {
-    this.subscriptions.unsubscribe();
-  }
+export class TabsPage {
+  readonly authStore = inject(AuthStore);
+  readonly profileStore = inject(ProfileStore);
+  private discoverUiStore = inject(DiscoverUiStore);
 
   openUserCard() {
-    this.base.mainDataSubject.next({
-      userSettings: true,
-      amor: true,
-      phoneView: true,
-    });
+    this.discoverUiStore.setPhoneView(true);
+    this.discoverUiStore.openUserCard();
   }
 
   showMatchesCard() {
-    this.base.mainDataSubject.next({
-      userSettings: false,
-    });
+    this.discoverUiStore.showMatchesCard();
   }
 
   showMessages() {
-    this.base.mainDataSubject.next({
-      messaging: true,
-      phoneView: true,
-    });
+    this.discoverUiStore.setPhoneView(true);
+    this.discoverUiStore.showMessages();
   }
 }

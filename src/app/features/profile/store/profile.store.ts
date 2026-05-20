@@ -12,15 +12,25 @@ import { ProfileRepository } from '../data-access/profile.repository';
 
 type ProfileState = {
     profile: UserClass | null;
+    profileCreated: boolean;
     loading: boolean;
     error: string | null;
 };
 
 const initialState: ProfileState = {
     profile: null,
+    profileCreated: false,
     loading: false,
     error: null,
 };
+
+function toUserClass(profile: UserClass | null) {
+    if (profile) {
+        Object.setPrototypeOf(profile, UserClass.prototype);
+    }
+
+    return profile;
+}
 
 export const ProfileStore = signalStore(
     {
@@ -36,6 +46,18 @@ export const ProfileStore = signalStore(
     })),
 
     withMethods((store, repository = inject(ProfileRepository)) => ({
+        setProfile(profile: UserClass | null) {
+            patchState(store, {
+                profile: toUserClass(profile),
+            });
+        },
+
+        setProfileCreated(profileCreated: boolean) {
+            patchState(store, {
+                profileCreated,
+            });
+        },
+
         async loadProfile(uid: string) {
             patchState(store, {
                 loading: true,
@@ -46,7 +68,8 @@ export const ProfileStore = signalStore(
                 const profile = await repository.getProfile(uid);
 
                 patchState(store, {
-                    profile: profile ?? null,
+                    profile: toUserClass(profile ?? null),
+                    profileCreated: !!profile,
                     loading: false,
                 });
             } catch (error) {
@@ -68,11 +91,14 @@ export const ProfileStore = signalStore(
             try {
                 await repository.createProfile(uid, profile);
 
-                patchState(store, {
-                    profile: {
+                const createdProfile = toUserClass({
                         uid,
                         ...profile,
-                    } as UserClass,
+                    } as UserClass);
+
+                patchState(store, {
+                    profile: createdProfile,
+                    profileCreated: true,
                     loading: false,
                 });
             } catch (error) {
@@ -94,11 +120,14 @@ export const ProfileStore = signalStore(
             try {
                 await repository.updateProfile(uid, profile);
 
-                patchState(store, {
-                    profile: {
+                const updatedProfile = toUserClass({
                         ...(store.profile() ?? {}),
                         ...profile,
-                    } as UserClass,
+                    } as UserClass);
+
+                patchState(store, {
+                    profile: updatedProfile,
+                    profileCreated: true,
                     loading: false,
                 });
             } catch (error) {

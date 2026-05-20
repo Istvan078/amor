@@ -1,0 +1,87 @@
+<div class="main-ion-content m-0 p-0">
+  <ion-grid class="m-0 p-0">
+    @if(!options?.phoneView || options?.isSelectedMatch) {
+    <ion-row class="m-0 p-0 ion-justify-content-center">
+      <ion-col class="m-0 p-0 d-flex ion-justify-content-center flex-cols ion-align-items-center" size="12">
+        <div class="back-button">
+          <ion-button (click)="backToMsgs()" fill="clear">
+            <ion-icon name="arrow-back-outline" color="light"></ion-icon>
+          </ion-button>
+          <p>{{ matchProfile?.firstName }} a pÃ¡rod 2024.04.08 Ã³ta</p>
+        </div>
+
+        <div class="match-info">
+          <h3>Te Ã©s {{ matchProfile?.firstName }} pÃ¡rba Ã¡lltatok</h3>
+          <p>4 hÃ³nappal ezelÅ‘tt</p>
+
+          <div class="match-img-cont-wrapper">
+            <div class="match-img-cont">
+              <img
+                src="https://img.freepik.com/free-vector/user-circles-set_78370-4704.jpg?t=st=1741696833~exp=1741700433~hmac=5c4d9770452bab7cb12b3a38cead02ffcd3f50b45d75a0da6324820dc1bd3df2&w=740"
+                alt="Match Profile Picture"
+              />
+            </div>
+          </div>
+
+          <h4>
+            Tudj rÃ³la, hogy {{ matchProfile?.firstName }} mikor olvassa el az Ã¼zeneted
+          </h4>
+          <ion-button fill="outline">KÃ©rj visszaigazolÃ¡st az olvasÃ¡srÃ³l</ion-button>
+        </div>
+
+        <ion-list>
+          @for(mess of messagesStore.messages(); track mess.number) {
+          <ion-item>
+            <ion-label>{{ mess.message }}</ion-label>
+          </ion-item>
+          }
+        </ion-list>
+
+        <div class="form-container">
+          <form
+            (ngSubmit)="onMessageSend(form)"
+            #form="ngForm"
+            class="message-form"
+          >
+            <ion-textarea
+              ngModel
+              name="message"
+              id="message"
+              placeholder="Ãrd ide az Ã¼zeneted..."
+              rows="1"
+              autoGrow="true"
+            ></ion-textarea>
+            <ion-button type="submit" fill="clear">
+              <ion-icon name="send-outline"></ion-icon>
+            </ion-button>
+          </form>
+        </div>
+      </ion-col>
+    </ion-row>
+    }
+
+    @if(options?.phoneView && !options?.isSelectedMatch) {
+    @for(match of matches; track match.uid) {
+    <ion-row>
+      <ion-col size="12">
+        <ion-card (click)="selectMatch(match)">
+          <ion-card-content>
+            <ion-item>
+              <ion-thumbnail slot="start">
+                <img [src]="match.pictures?.[0]?.url || 'https://ionicframework.com/docs/img/demos/thumbnail.svg'" alt="ProfilkÃ©p" />
+              </ion-thumbnail>
+              <ion-label>
+                <h2>{{match.firstName}}</h2>
+                @if(messagesStore.messages().length) {
+                <p>{{messagesStore.messages()[messagesStore.messages().length - 1].message}}</p>
+                }
+              </ion-label>
+            </ion-item>
+          </ion-card-content>
+        </ion-card>
+      </ion-col>
+    </ion-row>
+    }
+    }
+  </ion-grid>
+</div>

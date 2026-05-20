@@ -1,4 +1,4 @@
-import { Component, inject, OnInit } from '@angular/core';
+import { Component, effect, inject } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { Router, RouterLink } from '@angular/router';
 import {
@@ -12,8 +12,8 @@ import {
 } from '@ionic/angular/standalone';
 import { TranslocoDirective } from '@jsverse/transloco';
 
-import { AuthService } from '../../../services/auth.service';
-import { BaseService } from '../../../services/base.service';
+import { ProfileStore } from '../../profile/store/profile.store';
+import { AuthStore } from '../store/auth.store';
 
 @Component({
     selector: 'app-login',
@@ -33,10 +33,10 @@ import { BaseService } from '../../../services/base.service';
         IonButton,
     ],
 })
-export class LoginPage implements OnInit {
-    private auth = inject(AuthService);
+export class LoginPage {
+    private authStore = inject(AuthStore);
     private router = inject(Router);
-    private base = inject(BaseService);
+    private profileStore = inject(ProfileStore);
 
     loginData = {
         data: {
@@ -45,8 +45,10 @@ export class LoginPage implements OnInit {
         },
     };
 
-    ngOnInit(): void {
-        this.auth.authAutoFillSubj.subscribe((email) => {
+    constructor() {
+        effect(() => {
+            const email = this.authStore.autoFillEmail();
+
             if (email) {
                 this.loginData.data.email = email;
             }
@@ -54,8 +56,8 @@ export class LoginPage implements OnInit {
     }
 
     async loginUser() {
-        this.base.userProfCreatedSubject.next(false);
-        await this.auth.signInWithEmail(this.loginData.data);
+        this.profileStore.setProfileCreated(false);
+        await this.authStore.signInWithEmail(this.loginData.data);
         this.router.navigate(['/amor/discover']);
     }
 }

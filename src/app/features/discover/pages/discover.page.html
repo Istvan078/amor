@@ -1,8 +1,8 @@
 <ion-content [fullscreen]="true">
   <app-main-view-container
-    [matchProfiles]="matchUserProfs"
-    [progress]="progress"
-    [buffer]="buffer"
-    [matches]="matches"
+    [matchProfiles]="discoverStore.possibleMatchIds()"
+    [progress]="discoverStore.progress()"
+    [buffer]="discoverStore.buffer()"
+    [matches]="discoverStore.matches()"
   ></app-main-view-container>
 </ion-content>

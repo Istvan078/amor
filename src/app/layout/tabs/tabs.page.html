@@ -1,6 +1,6 @@
 <ion-tabs>
   <ion-tab-bar slot="bottom" class="ion-hide-sm-up">
-    @if (!loggedUser?.uid) {
+    @if (!authStore.user()?.uid) {
     <ion-tab-button tab="register" href="/amor/register">
       <ion-icon aria-hidden="true" name="person-add-outline"></ion-icon>
       <ion-label>Register</ion-label>
@@ -10,7 +10,7 @@
       <ion-icon aria-hidden="true" name="log-in-outline"></ion-icon>
       <ion-label>Sign in</ion-label>
     </ion-tab-button>
-    } @if (userProf?.uid) {
+    } @if (profileStore.profile()?.uid) {
     <ion-tab-button
       style="color: purple"
       tab="discover"

@@ -22,7 +22,7 @@
       ],
       "tsConfig": "tsconfig.app.json",
       "inlineStyleLanguage": "scss",
-      "serviceWorker": true,
+      "serviceWorker": false,
       "assets": [
        {
         "glob": "**/*",
@@ -67,7 +67,8 @@
         "optimization": false,
        "extractLicenses": false,
        "sourceMap": true,
-       "namedChunks": true
+       "namedChunks": true,
+       "serviceWorker": false
       },
       "ci": {
        "progress": false

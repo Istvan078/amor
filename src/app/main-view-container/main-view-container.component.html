@@ -93,8 +93,8 @@
                             <div class="match-progress-bar-container">
                               <p>MATCHEK KERESÉSE FOLYAMATBAN...</p>
                               <ion-progress-bar
-                                [buffer]="buffer"
-                                [value]="progress"
+                                [buffer]="buffer / 100"
+                                [value]="progress / 100"
                               ></ion-progress-bar>
                             </div>
                             } @if(progress === 100) {
@@ -323,7 +323,7 @@
                                             [multiple]="lab.multiple"
                                             (change)="lab.change($event)"
                                           ></ion-input>
-                                          <ion-button [disabled]="!this.selectedFiles" (click)="savePictures()"
+                                          <ion-button [disabled]="!selectedFiles.length" (click)="savePictures()"
                                             >Feltöltés</ion-button
                                             >
                                           </ion-item>

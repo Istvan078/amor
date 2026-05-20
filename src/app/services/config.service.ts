@@ -1,5 +1,4 @@
-import { Injectable } from '@angular/core';
-import { BehaviorSubject } from 'rxjs';
+import { Injectable, signal } from '@angular/core';
 
 import { Promotions } from '../shared/models/promotions.model';
 import { UserClass } from '../shared/models/user.model';
@@ -10,10 +9,17 @@ import { UserClass } from '../shared/models/user.model';
 export class ConfigService {
   labels: any = {};
   promotions: Promotions[] = [];
-  selectedFiles: File[] = [];
 
-  selectedFilesSubj = new BehaviorSubject<File[]>([]);
-  initMainViewSubject = new BehaviorSubject<boolean>(false);
+  readonly selectedFiles = signal<File[]>([]);
+  readonly mainViewInitVersion = signal(0);
+
+  requestMainViewInit() {
+    this.mainViewInitVersion.update((version) => version + 1);
+  }
+
+  clearSelectedFiles() {
+    this.selectedFiles.set([]);
+  }
 
   getLabels(isUserProfL?: boolean, isPromLabels?: boolean) {
     if (isUserProfL) {
@@ -285,13 +291,11 @@ export class ConfigService {
     const input = event.target as HTMLInputElement;
 
     if (!input.files) {
-      this.selectedFiles = [];
-      this.selectedFilesSubj.next([]);
+      this.selectedFiles.set([]);
       return;
     }
 
-    this.selectedFiles = Array.from(input.files);
-    this.selectedFilesSubj.next(this.selectedFiles);
+    this.selectedFiles.set(Array.from(input.files));
   }
 
   getListNum(matchProf: UserClass, labelName: string) {

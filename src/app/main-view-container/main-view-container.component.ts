@@ -1,26 +1,27 @@
 import {
-  AfterViewInit,
   Component,
   CUSTOM_ELEMENTS_SCHEMA,
   HostListener,
   Input,
-  OnDestroy,
   OnInit,
   ViewChild,
+  effect,
+  inject,
 } from '@angular/core';
 import { NgForm } from '@angular/forms';
 import { ConfigService } from '../services/config.service';
-import { AlertController, ModalController } from '@ionic/angular';
-import { AuthService } from '../services/auth.service';
 import { Promotions } from '../shared/models/promotions.model';
 import { Router } from '@angular/router';
-import { BaseService } from '../services/base.service';
 import { UserClass } from '../shared/models/user.model';
-import { Observable, Subscription } from 'rxjs';
-import { FilesService } from '../services/files.service';
 import { LocationService } from '../services/location.service';
 import { Options } from '../shared/models/options.model';
 import { IonModalPage } from '../modals/ion-modal/ion-modal.page';
+import { AuthStore } from '../features/auth/store/auth.store';
+import { DiscoverRepository } from '../features/discover/data-access/discover.repository';
+import { DiscoverStore } from '../features/discover/store/discover.store';
+import { DiscoverUiStore } from '../features/discover/store/discover-ui.store';
+import { ProfilePicturesRepository } from '../features/profile/data-access/profile-pictures.repository';
+import { ProfileStore } from '../features/profile/store/profile.store';
 
 
 import { FormsModule } from '@angular/forms';
@@ -47,9 +48,11 @@ import {
   IonRow,
   IonText,
   IonTextarea,
+  AlertController,
+  ModalController,
 } from '@ionic/angular/standalone';
 
-import { MessageComponent } from '../messages/message/message.component';
+import { MessageComponent } from '../features/messages/ui/message/message.component';
 
 @Component({
   selector: 'app-main-view-container',
@@ -85,7 +88,7 @@ import { MessageComponent } from '../messages/message/message.component';
   ],
 })
 export class MainViewContainerComponent
-  implements OnInit, AfterViewInit, OnDestroy {
+  implements OnInit {
   @Input() matchProfiles: any;
   @Input() progress: number = 0;
   @Input() buffer: number = 0;
@@ -111,72 +114,66 @@ export class MainViewContainerComponent
   selectedFiles: File[] = [];
   selectedMessProf?: UserClass;
   options: Options = new Options()
-  loggedUserSub: Subscription = Subscription.EMPTY;
-  userProfSub: Subscription = Subscription.EMPTY;
-  selectedFilesSub: Subscription = Subscription.EMPTY;
-  initMainViewSubjectSub: Subscription = Subscription.EMPTY;
+  private authStore = inject(AuthStore);
+  private profileStore = inject(ProfileStore);
+  private discoverStore = inject(DiscoverStore);
+  private discoverUiStore = inject(DiscoverUiStore);
 
   constructor(
     private modalCtrl: ModalController,
-    private auth: AuthService,
     private config: ConfigService,
     private router: Router,
-    private base: BaseService,
-    private fileServ: FilesService,
     private locationService: LocationService,
-    private alertCtrl: AlertController
-  ) { }
+    private alertCtrl: AlertController,
+    private discoverRepository: DiscoverRepository,
+    private profilePicturesRepository: ProfilePicturesRepository
+  ) {
+    effect(() => {
+      this.user = this.authStore.user();
+    });
+
+    effect(() => {
+      this.userProf = this.profileStore.profile() ?? undefined;
+    });
+
+    effect(() => {
+      this.selectedFiles = this.config.selectedFiles();
+    });
+
+    effect(() => {
+      const initVersion = this.config.mainViewInitVersion();
+
+      if (initVersion > 0) {
+        this.initMainView();
+      }
+    });
+
+    effect(() => {
+      this.isUserCardOpen = this.discoverUiStore.isUserCardOpen();
+      this.isShowMessages = this.discoverUiStore.isShowMessages();
+      this.options.phoneView = this.discoverUiStore.phoneView();
+
+      const selectedMessageProfile =
+        this.discoverUiStore.selectedMessageProfile();
+
+      if (selectedMessageProfile) {
+        this.selectedMessProf = selectedMessageProfile;
+      }
+
+      if (this.isShowMessages && !this.selectedMessProf) {
+        this.selectedMessProf = this.matches[0];
+      }
+    });
+  }
+
   ngOnInit(): void {
     if (window.innerWidth < 400) this.isMatchDetailsOpen = true;
-    this.config.initMainViewSubject.subscribe((isInit) => {
-      if (isInit) {
-        this.setMatchProfiles();
-        this.setPromotion();
-        this.setUProfLabels();
-        console.log(`****INIT MAIN VIEW****`);
-      }
-    });
-    this.loggedUserSub = this.auth.loggedUserSubject.subscribe((usr) => {
-      this.user = usr;
-    });
-    this.userProfSub = this.base.userProfBehSubj.subscribe((uProf) => {
-      this.userProf = uProf;
-    });
-    this.selectedFilesSub = this.config.selectedFilesSubj.subscribe((files) => {
-      this.selectedFiles = files;
-    });
-    this.base.mainDataSubject.subscribe(data => {
-      if (data?.messaging) {
-        this.isShowMessages = true;
-        this.selectedMessProf = this.matches[0]
-        this.isUserCardOpen = false;
-        this.isMatchDetailsOpen = false;
-      }
-      if (data?.amor) {
-        this.isShowMessages = false;
-        this.selectedMessProf = undefined
-      }
-      if (data?.userSettings) {
-        this.isUserCardOpen = true
-        this.startUpdUserProf = true;
-      };
-      if (data?.userSettings === false) {
-        this.isUserCardOpen = false;
-        this.isMatchDetailsOpen = true;
-        this.isShowMessages = false;
-
-      }
-      if (data?.phoneView) {
-        this.options.phoneView = true
-      }
-    })
   }
-  ngAfterViewInit(): void { }
-  ngOnDestroy(): void {
-    if (this.loggedUserSub) this.loggedUserSub.unsubscribe();
-    if (this.userProfSub) this.userProfSub.unsubscribe();
-    if (this.initMainViewSubjectSub) this.initMainViewSubjectSub.unsubscribe();
-    if (this.selectedFilesSub) this.selectedFilesSub.unsubscribe();
+
+  private initMainView() {
+    void this.setMatchProfiles();
+    this.setPromotion();
+    this.setUProfLabels();
   }
 
   setPromotion() {
@@ -202,43 +199,32 @@ export class MainViewContainerComponent
     });
   }
 
-  setMatchProfiles() {
-    let matchProfsArr: any[] = [];
-    let isMapFuncStarted: boolean = false;
-    const obs = new Observable((obs) => {
-      const int = setInterval(() => {
-        if (this.progress === 100 && !this.matchProfiles?.length) {
-          obs.next([]);
-          clearInterval(int);
-        }
-        if (this.matchProfiles?.length && !isMapFuncStarted) {
-          this.matchProfiles.map(async (matchUid: any) => {
-            isMapFuncStarted = true;
-            const matchProf = await this.base.getPossibleMatch(matchUid);
-            matchProfsArr.push(matchProf);
-          });
-        }
-        if (
-          matchProfsArr.length === this.matchProfiles?.length &&
-          isMapFuncStarted
-        ) {
-          obs.next(matchProfsArr);
-          clearInterval(int);
-        }
-      }, 200);
-    }).subscribe((matchProfsArr: any) => {
-      if (matchProfsArr.length) {
-        this.matchProfiles = matchProfsArr;
-        this.matchProf = this.matchProfiles[0];
-        this.matchProf!['index'] = 0;
-        this.setUProfLabels();
-      }
-      if (!matchProfsArr.length) {
-        this.isMatchPlaceHolder = true
-        this.possMatchDetLists = []
-      };
-      obs.unsubscribe();
-    });
+  async setMatchProfiles() {
+    const matchIds = Array.isArray(this.matchProfiles) ? this.matchProfiles : [];
+
+    if (this.progress === 100 && !matchIds.length) {
+      this.isMatchPlaceHolder = true;
+      this.possMatchDetLists = [];
+      return;
+    }
+
+    if (!matchIds.length) {
+      return;
+    }
+
+    const matchProfiles = await this.discoverRepository.getMatchProfiles(matchIds);
+
+    if (matchProfiles.length) {
+      this.matchProfiles = matchProfiles;
+      this.matchProf = this.matchProfiles[0];
+      this.matchProf!['index'] = 0;
+      this.isMatchPlaceHolder = false;
+      this.setUProfLabels();
+      return;
+    }
+
+    this.isMatchPlaceHolder = true;
+    this.possMatchDetLists = [];
   }
   changeMatchProf() {
     if (!this.matchProf) return;
@@ -254,7 +240,7 @@ export class MainViewContainerComponent
       this.isMatchPlaceHolder = true;
     }
   }
-  likeOrDontUser(
+  async likeOrDontUser(
     usr: UserClass | undefined,
     isLike?: boolean,
     isDontLike?: boolean
@@ -273,14 +259,15 @@ export class MainViewContainerComponent
         this.userProf.matchParts.possMatches =
           this.userProf.matchParts?.possMatches.filter((uid) => uid !== usr.uid);
       }
-      this.base.updateUserProf(
+      await this.profileStore.updateProfile(
         this.userProf?.uid!,
         this.userProf.setDataForFireStore()
       );
+      this.profileStore.setProfile(this.userProf);
     }
   }
   openUserCard() {
-    this.isUserCardOpen = true;
+    this.discoverUiStore.openUserCard();
   }
   async showProfPics(i: number) {
     const modal = await this.modalCtrl.create({
@@ -303,17 +290,21 @@ export class MainViewContainerComponent
   async updateUserProf() {
     const userProf = { ...this.userProf };
     userProf.uid = this.user.uid;
+    const currentPosition = await this.locationService.getLocation();
     const claims = {
       gender: userProf.gender,
       lookingForGender: userProf.lookingForGender,
       lookingForAge: userProf.lookingForAge,
       lookingForDistance: userProf.lookingForDistance,
-      currentLocCoords: await this.locationService.getLocation(),
+      currentLocCoords: {
+        lat: currentPosition.coords.latitude,
+        lon: currentPosition.coords.longitude,
+      },
       currentPlace: this.userProf!.currentPlace as string,
     };
     if (userProf?.uid) {
-      await this.base.updateUserProf(userProf.uid, userProf);
-      this.auth.setCustomClaims(userProf.uid, claims);
+      await this.profileStore.updateProfile(userProf.uid, userProf);
+      await this.authStore.setCustomClaims(userProf.uid, claims);
     }
   }
 
@@ -339,8 +330,19 @@ export class MainViewContainerComponent
     }
   }
 
-  savePictures() {
-    this.fileServ.addPictures(this.userProf!.uid!, { ...this.userProf });
+  async savePictures() {
+    if (!this.userProf?.uid || !this.selectedFiles.length) {
+      return;
+    }
+
+    const updatedProfile = await this.profilePicturesRepository.addPictures(
+      this.userProf.uid,
+      this.userProf,
+      this.selectedFiles
+    );
+
+    this.profileStore.setProfile(updatedProfile);
+    this.config.clearSelectedFiles();
   }
   async signOutAlert() {
     const alert = await this.alertCtrl.create({
@@ -352,12 +354,16 @@ export class MainViewContainerComponent
     await alert.present();
   }
   async signOut() {
-    await this.auth.signOut();
+    const autoFillEmail = this.userProf?.email;
+
+    await this.authStore.signOut();
+    this.authStore.setAutoFillEmail(autoFillEmail);
+    this.profileStore.clearProfile();
+    this.discoverStore.clearDiscoverData();
+    this.discoverUiStore.reset();
+
     this.user = null;
-    this.auth.authAutoFillSubj.next(this.userProf?.email);
     this.userProf = undefined;
-    this.base.userProfBehSubj.next({});
-    this.auth.usersSubject.next([])
     this.matchProf = undefined;
     this.selectedMessProf = undefined;
     this.matches = [];

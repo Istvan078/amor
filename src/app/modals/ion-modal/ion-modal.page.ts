@@ -7,7 +7,6 @@ import {
   ViewChild,
 } from '@angular/core';
 import { FormsModule } from '@angular/forms';
-import { ModalController } from '@ionic/angular';
 import {
   IonButton,
   IonButtons,
@@ -23,6 +22,7 @@ import {
   IonSelectOption,
   IonTitle,
   IonToolbar,
+  ModalController,
 } from '@ionic/angular/standalone';
 import { SwiperContainer } from 'swiper/element';
 

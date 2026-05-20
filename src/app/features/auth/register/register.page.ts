@@ -1,6 +1,5 @@
-import { Component, OnDestroy, OnInit, inject } from '@angular/core';
+import { Component, OnInit, effect, inject } from '@angular/core';
 import { Router, RouterLink } from '@angular/router';
-import { ModalController } from '@ionic/angular';
 import {
     IonButton,
     IonContent,
@@ -8,15 +7,15 @@ import {
     IonIcon,
     IonTitle,
     IonToolbar,
+    ModalController,
 } from '@ionic/angular/standalone';
 import { TranslocoDirective } from '@jsverse/transloco';
-import { Subscription } from 'rxjs';
 
 import { IonModalPage } from '../../../modals/ion-modal/ion-modal.page';
-import { AuthService } from '../../../services/auth.service';
-import { BaseService } from '../../../services/base.service';
 import { ConfigService } from '../../../services/config.service';
 import { UserClass } from '../../../shared/models/user.model';
+import { ProfileStore } from '../../profile/store/profile.store';
+import { AuthStore } from '../store/auth.store';
 
 @Component({
     selector: 'app-register',
@@ -34,9 +33,9 @@ import { UserClass } from '../../../shared/models/user.model';
         IonIcon,
     ],
 })
-export class RegisterPage implements OnInit, OnDestroy {
-    private auth = inject(AuthService);
-    private base = inject(BaseService);
+export class RegisterPage implements OnInit {
+    private authStore = inject(AuthStore);
+    private profileStore = inject(ProfileStore);
     private config = inject(ConfigService);
     private modalCtrl = inject(ModalController);
     private router = inject(Router);
@@ -44,18 +43,14 @@ export class RegisterPage implements OnInit, OnDestroy {
     user: any;
     labels: any;
 
-    private authSub = Subscription.EMPTY;
-
-    ngOnInit(): void {
-        this.labels = this.config.getLabels(true);
-
-        this.authSub = this.auth.loggedUserSubject.subscribe((user) => {
-            this.user = user;
+    constructor() {
+        effect(() => {
+            this.user = this.authStore.user();
         });
     }
 
-    ngOnDestroy() {
-        this.authSub.unsubscribe();
+    ngOnInit(): void {
+        this.labels = this.config.getLabels(true);
     }
 
     async createModal(componentProps: {}) {
@@ -81,7 +76,7 @@ export class RegisterPage implements OnInit, OnDestroy {
             const data = await ionModal.onWillDismiss();
 
             if (data.role === 'confirm') {
-                const userCredentials = await this.auth.registerEmail(data.data);
+                const userCredentials = await this.authStore.registerEmail(data.data);
                 this.user = userCredentials.user;
 
                 const ionModal2 = await this.createModal({
@@ -97,7 +92,7 @@ export class RegisterPage implements OnInit, OnDestroy {
                     await this.createUserProfile(data2);
 
                     profileCreatedSuccessfully = true;
-                    this.base.userProfCreatedSubject.next(true);
+                    this.profileStore.setProfileCreated(true);
 
                     this.router.navigate(['/amor/discover']);
                 }
@@ -117,7 +112,7 @@ export class RegisterPage implements OnInit, OnDestroy {
 
                 await this.createUserProfile(data);
 
-                this.base.userProfCreatedSubject.next(true);
+                this.profileStore.setProfileCreated(true);
                 this.router.navigate(['/amor/discover']);
             }
         }
@@ -134,7 +129,7 @@ export class RegisterPage implements OnInit, OnDestroy {
 
         Object.setPrototypeOf(userProfile, Object.prototype);
 
-        await this.base.registerUserProf(this.user.uid, userProfile as {});
-        this.base.userProfBehSubj.next(userProfile);
+        await this.profileStore.createProfile(this.user.uid, userProfile);
+        this.profileStore.setProfile(userProfile);
     }
 }
