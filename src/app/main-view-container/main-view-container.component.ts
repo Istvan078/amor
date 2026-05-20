@@ -21,11 +21,47 @@ import { LocationService } from '../services/location.service';
 import { Options } from '../models/options.model';
 import { IonModalPage } from '../modals/ion-modal/ion-modal.page';
 
+import { CommonModule } from '@angular/common';
+import { FormsModule } from '@angular/forms';
+import {
+  IonButton,
+  IonIcon,
+  IonContent,
+  IonLabel,
+  IonInput,
+  IonItem,
+  IonList,
+  IonCard,
+  IonCardContent,
+  IonCardHeader,
+  IonCardTitle,
+  IonProgressBar,
+} from '@ionic/angular/standalone';
+
+import { MessageComponent } from '../messages/message/message.component';
+
 @Component({
   selector: 'app-main-view-container',
   templateUrl: './main-view-container.component.html',
   styleUrls: ['./main-view-container.component.scss'],
-  standalone: false,
+  standalone: true,
+  imports: [
+    CommonModule,
+    FormsModule,
+    MessageComponent,
+    IonButton,
+    IonIcon,
+    IonContent,
+    IonLabel,
+    IonInput,
+    IonItem,
+    IonList,
+    IonCard,
+    IonCardContent,
+    IonCardHeader,
+    IonCardTitle,
+    IonProgressBar,
+  ],
 })
 export class MainViewContainerComponent
   implements OnInit, AfterViewInit, OnDestroy {

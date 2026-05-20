@@ -1,0 +1,36 @@
+{
+  "app": {
+    "name": "Amor"
+  },
+  "auth": {
+    "headline": "Find your true connection",
+    "login": {
+      "title": "Sign in",
+      "email": "Email",
+      "password": "Password",
+      "submit": "Sign in",
+      "goToRegister": "Don't have an account yet? Create one"
+    },
+    "register": {
+      "title": "Create account",
+      "continue": "Continue to Amor",
+      "createAccount": "Create account",
+      "goToLogin": "Already have an account? Sign in"
+    },
+    "signOut": {
+      "title": "Sign out",
+      "message": "Are you sure you want to sign out?",
+      "confirm": "Sign out"
+    }
+  },
+  "discover": {
+    "title": "Discover",
+    "empty": "No profiles found yet.",
+    "loading": "Finding people near you..."
+  },
+  "common": {
+    "cancel": "Cancel",
+    "save": "Save",
+    "loading": "Loading..."
+  }
+}

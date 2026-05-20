@@ -1,0 +1,36 @@
+{
+  "app": {
+    "name": "Amor"
+  },
+  "auth": {
+    "headline": "Találd meg az igazit",
+    "login": {
+      "title": "Bejelentkezés",
+      "email": "Email",
+      "password": "Jelszó",
+      "submit": "Bejelentkezés",
+      "goToRegister": "Még nincs fiókod? Hozz létre egyet"
+    },
+    "register": {
+      "title": "Fiók létrehozása",
+      "continue": "Folytatás az Amorba",
+      "createAccount": "Fiók létrehozása",
+      "goToLogin": "Már van fiókod? Jelentkezz be"
+    },
+    "signOut": {
+      "title": "Kilépés",
+      "message": "Biztosan ki szeretnél lépni?",
+      "confirm": "Kilépés"
+    }
+  },
+  "discover": {
+    "title": "Felfedezés",
+    "empty": "Még nem találtunk profilokat.",
+    "loading": "Embereket keresünk a közeledben..."
+  },
+  "common": {
+    "cancel": "Mégsem",
+    "save": "Mentés",
+    "loading": "Betöltés..."
+  }
+}
