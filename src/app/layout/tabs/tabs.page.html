@@ -1,5 +1,5 @@
 <ion-tabs>
-  <ion-tab-bar slot="bottom" class="ion-hide-sm-up">
+  <ion-tab-bar slot="bottom" class="mobile-tab-bar">
     @if (!authStore.user()?.uid) {
     <ion-tab-button tab="register" href="/amor/register">
       <ion-icon aria-hidden="true" name="person-add-outline"></ion-icon>
@@ -12,9 +12,7 @@
     </ion-tab-button>
     } @if (profileStore.profile()?.uid) {
     <ion-tab-button
-      style="color: purple"
-      tab="discover"
-      href="/amor/discover"
+      [class.tab-selected]="isDiscoverActive()"
       (click)="showMatchesCard()"
     >
       <ion-icon aria-hidden="true" name="heart"></ion-icon>
@@ -22,9 +20,7 @@
     </ion-tab-button>
 
     <ion-tab-button
-      style="color: rgb(33, 24, 157)"
-      tab="profile"
-      href="/amor/discover"
+      [class.tab-selected]="isProfileActive()"
       (click)="openUserCard()"
     >
       <ion-icon aria-hidden="true" name="person"></ion-icon>
@@ -32,9 +28,7 @@
     </ion-tab-button>
 
     <ion-tab-button
-      style="color: rgb(24, 157, 44)"
-      tab="messages"
-      href="/amor/discover"
+      [class.tab-selected]="isMessagesActive()"
       (click)="showMessages()"
     >
       <ion-icon aria-hidden="true" name="chatbubble-ellipses-outline"></ion-icon>

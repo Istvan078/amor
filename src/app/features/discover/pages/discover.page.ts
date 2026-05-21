@@ -117,6 +117,14 @@ export class DiscoverPage implements OnInit {
       const selectedMessageProfile =
         this.discoverUiStore.selectedMessageProfile();
 
+      if (
+        this.isShowMessages &&
+        this.options.phoneView &&
+        !selectedMessageProfile
+      ) {
+        this.options.isSelectedMatch = false;
+      }
+
       if (selectedMessageProfile) {
         this.selectedMessProf = selectedMessageProfile;
       }
@@ -132,12 +140,21 @@ export class DiscoverPage implements OnInit {
     this.signOut();
   }
 
+  @HostListener('window:resize')
+  handleResize() {
+    this.updatePhoneView();
+  }
+
   async ngOnInit() {
-    if (window.innerWidth < 400) this.isMatchDetailsOpen = true;
+    this.updatePhoneView();
 
     await this.discoverStore.loadDiscoverData();
     this.syncDiscoverState();
     this.initMainView();
+  }
+
+  private updatePhoneView() {
+    this.discoverUiStore.setPhoneView(window.innerWidth <= 768);
   }
 
   private initMainView() {
@@ -264,7 +281,20 @@ export class DiscoverPage implements OnInit {
   }
 
   openUserCard() {
+    this.options.isSelectedMatch = false;
     this.discoverUiStore.openUserCard();
+  }
+
+  showMatchesCard() {
+    this.options.isSelectedMatch = false;
+    this.discoverUiStore.showMatchesCard();
+  }
+
+  showMessages() {
+    this.options.isSelectedMatch = false;
+    this.discoverUiStore.showMessages(
+      this.selectedMessProf ?? this.matches[0] ?? null
+    );
   }
 
   toggleMatchDetails() {
@@ -291,6 +321,7 @@ export class DiscoverPage implements OnInit {
 
   openMessWithMatch(match: UserClass) {
     this.selectedMessProf = match;
+    this.options.isSelectedMatch = true;
     this.discoverUiStore.showMessages(match);
   }
 

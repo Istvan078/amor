@@ -1,146 +1,254 @@
-<ion-grid class="m-0 p-0">
-  <ion-row>
-    <ion-col>
-      <ion-card class="user-card">
-        <div class="user-settings-card-img-cont">
-          <img
-            class="w-100 h-100"
-            src="https://img.freepik.com/free-photo/smiling-beautiful-young-woman-standing-posing_171337-11412.jpg?t=st=1741774526~exp=1741778126~hmac=a7231668e4c5404255597ab2c791cd321150de59b3eacd1ab254649c4e1d2ee4&w=740"
-            alt="Felhasznalo Kepe"
-          />
-        </div>
-        <ion-card-content class="poss-match-name">
-          <ion-text>
-            {{
-              userProfile.lastName + " " + userProfile.firstName + " " + userProfile.age
-            }}
-          </ion-text>
-        </ion-card-content>
-
-        @if(!options.phoneView) {
-        <ion-button (click)="startUpdateRequested.emit()" fill="outline">
-          <ion-icon name="create-outline" slot="start"></ion-icon>
-          Adatszerkesztés
-        </ion-button>
-        }
-      </ion-card>
-
-      @if(startUpdate) {
-      <ion-list>
-        @for(lab of labels.userProfLabels; track $index) {
-        @if(lab.type === "text-area"){
-        <ion-item>
-          <ion-textarea
-            [(ngModel)]="userProfile[lab.key]"
-            [placeholder]="lab.placeholder"
-            [label]="lab.value"
-            maxlength="1000"
-            [counter]="true"
-            [autoGrow]="true"
-          ></ion-textarea>
-        </ion-item>
-        }
-
-        @if(lab.type !== "text-area" && lab.type !== "file" && lab.type !== "range") {
-        <ion-item>
-          <ion-input
-            [label]="lab.value"
-            [(ngModel)]="userProfile[lab.key]"
-            [type]="lab.type"
-          ></ion-input>
-        </ion-item>
-        }
-
-        @if(lab.type === "range"){
-        <ion-item>
-          <ion-range
-            [name]="lab.key"
-            [label]="lab.value + userProfile[lab.key]?.lower + ' - ' + userProfile[lab.key]?.upper"
-            aria-label="Milyen korban keresel?"
-            [min]="14"
-            [max]="100"
-            [pin]="true"
-            [snaps]="true"
-            [dualKnobs]="true"
-            [(ngModel)]="userProfile[lab.key]"
-          >
-            <ion-icon slot="start" name="accessibility-outline"></ion-icon>
-            <ion-icon slot="end" name="briefcase-outline"></ion-icon>
-          </ion-range>
-        </ion-item>
-        }
-
-        @if(lab.type === "file") {
-        <ion-item>
-          <ion-input
-            [label]="lab.value"
-            [type]="lab.type"
-            [multiple]="lab.multiple"
-            (change)="lab.change($event)"
-          ></ion-input>
-          <ion-button [disabled]="!selectedFiles.length" (click)="picturesSaved.emit()">
-            Feltöltés
-          </ion-button>
-        </ion-item>
-        <ion-grid>
-          <ion-row>
-            @for(pic of userProfile.pictures; track pic.url; let i = $index){
-            <ion-col
-              (click)="profilePictureOpened.emit(i)"
-              sizeXs="4"
-              sizeSm="4"
-              sizeMd="3"
-              sizeLg="2"
-            >
-              <ion-img class="user-pictures" [src]="pic.url"></ion-img>
-            </ion-col>
+<ion-grid class="profile-panel m-0 p-0">
+  <ion-row class="m-0 p-0">
+    <ion-col class="m-0 p-0" size="12">
+      <section class="profile-shell">
+        <ion-card class="user-card profile-hero">
+          <div class="user-settings-card-img-cont">
+            @if(userProfile.pictures?.length) {
+            <img
+              class="w-100 h-100"
+              [src]="userProfile.pictures![0].url"
+              alt="Felhasznalo Kepe"
+            />
+            } @else {
+            <img
+              class="w-100 h-100"
+              src="https://img.freepik.com/free-photo/front-view-smiley-man-posing-cv_23-2149927614.jpg?t=st=1742682395~exp=1742685995~hmac=0c894e9ca76b334b0ed1f69f37ab56764bd4db0ab471e43578c54a97734e0f79&w=740"
+              alt="Felhasznalo Kepe"
+            />
             }
-          </ion-row>
-        </ion-grid>
-        }
+          </div>
 
-        @if(lab.type === "checkbox") {
-        <ion-item>
-          <ion-grid>
-            <ion-row>
-              @for(ch of lab.choices; track $index;) {
-              <ion-col
-                size-xl="auto"
-                size-lg="auto"
-                size-md="3"
-                size-sm="6"
-                size-xs="12"
-              >
-                <ion-checkbox
-                  justify="start"
-                  [checked]="userProfile[lab.key]?.includes(ch.value)"
-                  [value]="ch"
-                  (ionChange)="choicesSelected.emit({ event: $event, labelKey: lab.key })"
-                >
-                  {{ ch.value }}
-                </ion-checkbox>
-              </ion-col>
+          <div class="profile-hero-overlay">
+            <span class="profile-eyebrow">Profilom</span>
+            <ion-card-content class="poss-match-name">
+              <ion-text>
+                {{
+                  userProfile.lastName +
+                    " " +
+                    userProfile.firstName +
+                    (userProfile.age ? " " + userProfile.age : "")
+                }}
+              </ion-text>
+            </ion-card-content>
+          </div>
+        </ion-card>
+
+        <div class="profile-actions">
+          <ion-button
+            class="profile-edit-button"
+            (click)="startUpdateRequested.emit()"
+            fill="solid"
+          >
+            <ion-icon name="create-outline" slot="start"></ion-icon>
+            Adatszerkesztés
+          </ion-button>
+          <ion-button
+            class="profile-signout-button"
+            (click)="signOutRequested.emit()"
+            fill="outline"
+          >
+            <ion-icon name="exit-outline" slot="start"></ion-icon>
+            Kilépés
+          </ion-button>
+        </div>
+
+        <section class="profile-info-panel">
+          <div class="profile-section-heading">
+            <span>Profiladatok</span>
+            @if(userProfile.currentPlace) {
+            <small>{{ userProfile.currentPlace }}</small>
+            }
+          </div>
+
+          <div class="profile-stat-grid">
+            @if(userProfile.gender) {
+            <div class="profile-stat">
+              <small>Nem</small>
+              <strong>{{ userProfile.gender }}</strong>
+            </div>
+            }
+            @if(userProfile.lookingForGender) {
+            <div class="profile-stat">
+              <small>Keresek</small>
+              <strong>{{ userProfile.lookingForGender }}</strong>
+            </div>
+            }
+            @if(userProfile.lookingForAge) {
+            <div class="profile-stat">
+              <small>Kor</small>
+              <strong>
+                {{ userProfile.lookingForAge.lower }} -
+                {{ userProfile.lookingForAge.upper }}
+              </strong>
+            </div>
+            }
+            @if(userProfile.lookingForDistance) {
+            <div class="profile-stat">
+              <small>Táv</small>
+              <strong>{{ userProfile.lookingForDistance }} km</strong>
+            </div>
+            }
+          </div>
+
+          @if(userProfile.aboutMe) {
+          <article class="profile-copy-block">
+            <small>Rólam</small>
+            <p>{{ userProfile.aboutMe }}</p>
+          </article>
+          }
+
+          @if(userProfile.lookingForType) {
+          <article class="profile-copy-block">
+            <small>Milyen társat keresek?</small>
+            <p>{{ userProfile.lookingForType }}</p>
+          </article>
+          }
+
+          @if(userProfile.interests?.length) {
+          <div class="profile-chip-group">
+            <small>Érdeklődési körök</small>
+            <div>
+              @for(interest of userProfile.interests; track $index) {
+              <span class="user-choices-style">{{ interest }}</span>
               }
-            </ion-row>
-          </ion-grid>
-        </ion-item>
-        }
-        }
-      </ion-list>
+            </div>
+          </div>
+          }
 
-      <ion-button color="warning" (click)="profileUpdated.emit()">
-        <ion-icon name="save-outline" slot="start"></ion-icon>
-        Mentés
-      </ion-button>
-      <ion-button
-        (click)="signOutRequested.emit()"
-        style="margin-left: 5px"
-        color="danger"
-      >
-        <ion-icon name="exit-outline" slot="start"></ion-icon>
-        Kilépés
-      </ion-button>
-      }
+          @if(userProfile.freeTimeAct?.length) {
+          <div class="profile-chip-group">
+            <small>Szabadidő</small>
+            <div>
+              @for(activity of userProfile.freeTimeAct; track $index) {
+              <span class="user-choices-style">{{ activity }}</span>
+              }
+            </div>
+          </div>
+          }
+        </section>
+
+        @if(startUpdate) {
+        <section class="profile-editor-panel">
+          <div class="profile-section-heading">
+            <span>Adatok szerkesztése</span>
+          </div>
+
+          <ion-list>
+            @for(lab of labels.userProfLabels; track $index) {
+            @if(lab.type === "text-area"){
+            <ion-item>
+              <ion-textarea
+                [(ngModel)]="userProfile[lab.key]"
+                [placeholder]="lab.placeholder"
+                [label]="lab.value"
+                maxlength="1000"
+                [counter]="true"
+                [autoGrow]="true"
+              ></ion-textarea>
+            </ion-item>
+            }
+
+            @if(lab.type !== "text-area" && lab.type !== "file" && lab.type !== "range") {
+            <ion-item>
+              <ion-input
+                [label]="lab.value"
+                [(ngModel)]="userProfile[lab.key]"
+                [type]="lab.type"
+              ></ion-input>
+            </ion-item>
+            }
+
+            @if(lab.type === "range"){
+            <ion-item>
+              <ion-range
+                [name]="lab.key"
+                [label]="lab.value + userProfile[lab.key]?.lower + ' - ' + userProfile[lab.key]?.upper"
+                aria-label="Milyen korban keresel?"
+                [min]="14"
+                [max]="100"
+                [pin]="true"
+                [snaps]="true"
+                [dualKnobs]="true"
+                [(ngModel)]="userProfile[lab.key]"
+              >
+                <ion-icon slot="start" name="accessibility-outline"></ion-icon>
+                <ion-icon slot="end" name="briefcase-outline"></ion-icon>
+              </ion-range>
+            </ion-item>
+            }
+
+            @if(lab.type === "file") {
+            <ion-item>
+              <ion-input
+                [label]="lab.value"
+                [type]="lab.type"
+                [multiple]="lab.multiple"
+                (change)="lab.change($event)"
+              ></ion-input>
+              <ion-button
+                class="profile-upload-button"
+                [disabled]="!selectedFiles.length"
+                (click)="picturesSaved.emit()"
+              >
+                Feltöltés
+              </ion-button>
+            </ion-item>
+            <ion-grid>
+              <ion-row>
+                @for(pic of userProfile.pictures ?? []; track pic.url; let i = $index){
+                <ion-col
+                  (click)="profilePictureOpened.emit(i)"
+                  sizeXs="4"
+                  sizeSm="4"
+                  sizeMd="3"
+                  sizeLg="2"
+                >
+                  <ion-img class="user-pictures" [src]="pic.url"></ion-img>
+                </ion-col>
+                }
+              </ion-row>
+            </ion-grid>
+            }
+
+            @if(lab.type === "checkbox") {
+            <ion-item>
+              <ion-grid>
+                <ion-row>
+                  @for(ch of lab.choices; track $index;) {
+                  <ion-col
+                    size-xl="auto"
+                    size-lg="auto"
+                    size-md="3"
+                    size-sm="6"
+                    size-xs="12"
+                  >
+                    <ion-checkbox
+                      justify="start"
+                      [checked]="userProfile[lab.key]?.includes(ch.value)"
+                      [value]="ch"
+                      (ionChange)="choicesSelected.emit({ event: $event, labelKey: lab.key })"
+                    >
+                      {{ ch.value }}
+                    </ion-checkbox>
+                  </ion-col>
+                  }
+                </ion-row>
+              </ion-grid>
+            </ion-item>
+            }
+            }
+          </ion-list>
+
+          <div class="profile-actions profile-save-actions">
+            <ion-button class="profile-save-button" (click)="profileUpdated.emit()">
+              <ion-icon name="save-outline" slot="start"></ion-icon>
+              Mentés
+            </ion-button>
+          </div>
+        </section>
+        }
+      </section>
     </ion-col>
   </ion-row>
 </ion-grid>

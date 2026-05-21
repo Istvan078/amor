@@ -8,18 +8,13 @@ import {
 } from '@angular/core';
 import { FormsModule, NgForm } from '@angular/forms';
 import {
+  IonAvatar,
   IonButton,
-  IonCard,
-  IonCardContent,
-  IonCol,
-  IonGrid,
   IonIcon,
   IonItem,
   IonLabel,
   IonList,
-  IonRow,
   IonTextarea,
-  IonThumbnail,
 } from '@ionic/angular/standalone';
 
 import { Message } from '../../../../shared/models/message.model';
@@ -35,18 +30,13 @@ import { MessagesStore } from '../../store/messages.store';
   standalone: true,
   imports: [
     FormsModule,
-    IonGrid,
-    IonRow,
-    IonCol,
     IonList,
     IonItem,
     IonLabel,
     IonTextarea,
     IonButton,
     IonIcon,
-    IonCard,
-    IonCardContent,
-    IonThumbnail,
+    IonAvatar,
   ],
 })
 export class MessageComponent implements OnChanges {
@@ -58,6 +48,8 @@ export class MessageComponent implements OnChanges {
 
   private profileStore = inject(ProfileStore);
   private userProfile?: UserClass;
+  readonly fallbackAvatar =
+    'https://img.freepik.com/free-vector/user-circles-set_78370-4704.jpg?t=st=1741696833~exp=1741700433~hmac=5c4d9770452bab7cb12b3a38cead02ffcd3f50b45d75a0da6324820dc1bd3df2&w=740';
 
   constructor() {
     effect(() => {
@@ -79,6 +71,18 @@ export class MessageComponent implements OnChanges {
     }
 
     await this.messagesStore.loadMessages(this.userProfile, this.matchProfile);
+  }
+
+  getProfileImage(profile?: UserClass) {
+    return profile?.pictures?.[0]?.url || this.fallbackAvatar;
+  }
+
+  getDisplayName(profile?: UserClass) {
+    return [profile?.firstName, profile?.lastName].filter(Boolean).join(' ');
+  }
+
+  isOwnMessage(message: Message) {
+    return !!this.userProfile?.uid && message.senderUid === this.userProfile.uid;
   }
 
   selectMatch(match: UserClass) {

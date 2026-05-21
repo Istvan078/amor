@@ -1,12 +1,21 @@
 <div id="side-nav-container">
   <nav class="nav">
-    <ion-avatar (click)="profileOpened.emit()" class="user-img" slot="start">
-      <img
-        src="https://img.freepik.com/free-vector/user-circles-set_78370-4704.jpg?t=st=1741696833~exp=1741700433~hmac=5c4d9770452bab7cb12b3a38cead02ffcd3f50b45d75a0da6324820dc1bd3df2&w=740"
-        alt="Profilkep"
-      />
-    </ion-avatar>
-    <ion-text>{{ userProfile?.firstName + " " + userProfile?.lastName }}</ion-text>
+    <button type="button" class="profile-entry" (click)="profileOpened.emit()">
+      <ion-avatar class="user-img" slot="start">
+        @if(userProfile?.pictures?.length) {
+        <img [src]="userProfile?.pictures?.[0]?.url" alt="Profilkep" />
+        } @else {
+        <img
+          src="https://img.freepik.com/free-vector/user-circles-set_78370-4704.jpg?t=st=1741696833~exp=1741700433~hmac=5c4d9770452bab7cb12b3a38cead02ffcd3f50b45d75a0da6324820dc1bd3df2&w=740"
+          alt="Profilkep"
+        />
+        }
+      </ion-avatar>
+      <span>
+        <small>Profilom</small>
+        <ion-text>{{ userProfile?.firstName + " " + userProfile?.lastName }}</ion-text>
+      </span>
+    </button>
   </nav>
 
   <div class="promotions-container">
@@ -41,11 +50,11 @@
   </div>
 
   <div class="matches-and-messages-cont">
-    <ion-button fill="outline">
+    <ion-button fill="outline" (click)="matchesOpened.emit()">
       <ion-icon name="people-outline" slot="start"></ion-icon>
       Párok
     </ion-button>
-    <ion-button fill="outline">
+    <ion-button fill="outline" (click)="messagesOpened.emit()">
       <ion-icon name="chatbubbles-outline" slot="start"></ion-icon>
       Üzenetek
     </ion-button>

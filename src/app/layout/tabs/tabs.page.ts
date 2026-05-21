@@ -1,4 +1,5 @@
 import { Component, inject } from '@angular/core';
+import { Router } from '@angular/router';
 import {
   IonIcon,
   IonLabel,
@@ -21,19 +22,39 @@ import { ProfileStore } from '../../features/profile/store/profile.store';
 export class TabsPage {
   readonly authStore = inject(AuthStore);
   readonly profileStore = inject(ProfileStore);
-  private discoverUiStore = inject(DiscoverUiStore);
+  private router = inject(Router);
+  readonly discoverUiStore = inject(DiscoverUiStore);
 
   openUserCard() {
     this.discoverUiStore.setPhoneView(true);
     this.discoverUiStore.openUserCard();
+    void this.router.navigate(['/amor/discover']);
   }
 
   showMatchesCard() {
+    this.discoverUiStore.setPhoneView(true);
     this.discoverUiStore.showMatchesCard();
+    void this.router.navigate(['/amor/discover']);
   }
 
   showMessages() {
     this.discoverUiStore.setPhoneView(true);
     this.discoverUiStore.showMessages();
+    void this.router.navigate(['/amor/discover']);
+  }
+
+  isDiscoverActive() {
+    return (
+      !this.discoverUiStore.isUserCardOpen() &&
+      !this.discoverUiStore.isShowMessages()
+    );
+  }
+
+  isProfileActive() {
+    return this.discoverUiStore.isUserCardOpen();
+  }
+
+  isMessagesActive() {
+    return this.discoverUiStore.isShowMessages();
   }
 }

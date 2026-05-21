@@ -44,4 +44,6 @@ export class DiscoverSidebarComponent {
 
   @Output() profileOpened = new EventEmitter<void>();
   @Output() messageOpened = new EventEmitter<UserClass>();
+  @Output() matchesOpened = new EventEmitter<void>();
+  @Output() messagesOpened = new EventEmitter<void>();
 }
