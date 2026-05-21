@@ -38,7 +38,8 @@
             ></app-discover-match-card>
             }
 
-            @if(isMatchDetailsOpen) {
+            @if(isMatchDetailsOpen || (options.phoneView && !isShowMessages &&
+            !isMatchPlaceHolder && matchProf)) {
             <app-discover-match-details
               [labels]="labels"
               [matchProfile]="matchProf"

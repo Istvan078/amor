@@ -376,6 +376,8 @@ app-discover {
     border-radius: 8px;
     background: var(--amor-card);
     box-shadow: none;
+    display: grid;
+    justify-items: center;
   }
 
   .prom-img-cont img {
@@ -387,6 +389,7 @@ app-discover {
   .prom-card ion-card-header,
   .prom-card ion-card-content {
     padding-inline: 0;
+    text-align: center;
   }
 
   .prom-card ion-card-title {
@@ -815,14 +818,12 @@ app-discover {
     }
 
     .poss-match-details-container {
-      top: auto;
-      right: 12px;
-      bottom: 78px;
-      left: 12px;
-      width: auto;
-      max-height: 46dvh;
-      padding: 14px;
-      border-radius: 8px 8px 0 0;
+      position: static;
+      width: 100%;
+      max-width: 460px;
+      max-height: none;
+      margin: 14px auto 0;
+      overflow: visible;
     }
 
     .hide-on-mobile {
