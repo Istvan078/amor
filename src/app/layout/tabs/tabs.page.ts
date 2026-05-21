@@ -7,6 +7,7 @@ import {
   IonTabButton,
   IonTabs,
 } from '@ionic/angular/standalone';
+import { TranslocoDirective } from '@jsverse/transloco';
 
 import { AuthStore } from '../../features/auth/store/auth.store';
 import { DiscoverUiStore } from '../../features/discover/store/discover-ui.store';
@@ -17,7 +18,7 @@ import { ProfileStore } from '../../features/profile/store/profile.store';
   templateUrl: './tabs.page.html',
   styleUrls: ['./tabs.page.scss'],
   standalone: true,
-  imports: [IonTabs, IonTabBar, IonTabButton, IonIcon, IonLabel],
+  imports: [TranslocoDirective, IonTabs, IonTabBar, IonTabButton, IonIcon, IonLabel],
 })
 export class TabsPage {
   readonly authStore = inject(AuthStore);

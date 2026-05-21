@@ -14,7 +14,9 @@ import {
   IonProgressBar,
   IonText,
 } from '@ionic/angular/standalone';
+import { TranslocoDirective } from '@jsverse/transloco';
 
+import { translatedProfileValue } from '../../../../shared/i18n/profile-value-labels';
 import { UserClass } from '../../../../shared/models/user.model';
 
 @Component({
@@ -23,6 +25,7 @@ import { UserClass } from '../../../../shared/models/user.model';
   standalone: true,
   schemas: [CUSTOM_ELEMENTS_SCHEMA],
   imports: [
+    TranslocoDirective,
     IonButton,
     IonButtons,
     IonCard,
@@ -33,6 +36,8 @@ import { UserClass } from '../../../../shared/models/user.model';
   ],
 })
 export class DiscoverMatchCardComponent {
+  readonly profileValueText = translatedProfileValue;
+
   @Input() progress = 0;
   @Input() buffer = 0;
   @Input() matchProfile?: UserClass;

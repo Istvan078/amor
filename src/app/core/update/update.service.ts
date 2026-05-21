@@ -2,6 +2,7 @@ import { Injectable } from '@angular/core';
 import { SwUpdate } from '@angular/service-worker';
 import { interval } from 'rxjs';
 import { Platform, ToastController } from '@ionic/angular';
+import { TranslocoService } from '@jsverse/transloco';
 
 @Injectable({
   providedIn: 'root'
@@ -11,7 +12,8 @@ export class UpdateService {
   constructor(
     private swUpdate: SwUpdate,
     private toastController: ToastController,
-    private platform: Platform
+    private platform: Platform,
+    private transloco: TranslocoService
   ) {
   }
 
@@ -60,19 +62,19 @@ export class UpdateService {
 
   private async showUpdateNotification(): Promise<void> {
     const toast = await this.toastController.create({
-      message: 'Új verzió elérhető!',
+      message: this.transloco.translate('update.available'),
       position: 'top',
       duration: 120000,
       buttons: [
         {
-          text: 'Frissítés',
+          text: this.transloco.translate('update.reload'),
           role: 'update',
           handler: () => {
             this.activateUpdate();
           }
         },
         {
-          text: 'Mégse',
+          text: this.transloco.translate('update.dismiss'),
           role: 'cancel'
         }
       ]

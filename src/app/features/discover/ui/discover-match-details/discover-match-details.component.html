@@ -1,43 +1,39 @@
-<div class="poss-match-details-container">
-  <ion-button
-    fill="clear"
-    (click)="closed.emit()"
-    style="position: absolute; top: 10px; right: 10px;"
-    class="hide-on-mobile"
-  >
-    <ion-icon name="close-outline" size="large"></ion-icon>
-  </ion-button>
+<ng-container *transloco="let t">
+  <div class="poss-match-details-container">
+    <ion-button
+      fill="clear"
+      (click)="closed.emit()"
+      style="position: absolute; top: 10px; right: 10px;"
+      class="hide-on-mobile"
+    >
+      <ion-icon name="close-outline" size="large"></ion-icon>
+    </ion-button>
 
-  @for(listNum of possibleDetailLists;track $index){
-  <ion-list style="margin-top: 10px">
-    @for(lab of labels.userProfLabels; track $index) {
-    @if(matchProfile && lab?.inMatch && lab.listNum === listNum && matchProfile[lab.key]) {
-    <ion-item>
-      <ion-label>
-        <h2>{{ lab.value }}</h2>
-        @if(lab.type === "checkbox") {
-        <div class="d-flex">
-          @for(ch of matchProfile[lab.key]; track $index;) {
-          <p class="m-r-1 m-t-1 border-rounded user-choices-style">
-            {{ ch }}
-          </p>
+    @for(listNum of possibleDetailLists;track $index){
+    <ion-list style="margin-top: 10px">
+      @for(lab of labels.userProfLabels; track $index) {
+      @if(matchProfile && lab?.inMatch && lab.listNum === listNum && matchProfile[lab.key]) {
+      <ion-item>
+        <ion-label>
+          <h2>{{ fieldLabel(t, lab) }}</h2>
+          @if(lab.type === "checkbox") {
+          <div class="d-flex">
+            @for(ch of matchProfile[lab.key]; track $index;) {
+            <p class="m-r-1 m-t-1 border-rounded user-choices-style">
+              {{ profileValueText(t, ch) }}
+            </p>
+            }
+          </div>
           }
-        </div>
-        }
 
-        @if(lab.type !== "checkbox") {
-        <p>
-          {{
-            typeof matchProfile[lab.key] === "object"
-              ? matchProfile[lab.key].lower + " - " + matchProfile[lab.key].upper
-              : matchProfile[lab.key]
-          }}
-        </p>
-        }
-      </ion-label>
-    </ion-item>
+          @if(lab.type !== "checkbox") {
+          <p>{{ profileValueText(t, matchProfile[lab.key]) }}</p>
+          }
+        </ion-label>
+      </ion-item>
+      }
+      }
+    </ion-list>
     }
-    }
-  </ion-list>
-  }
-</div>
+  </div>
+</ng-container>

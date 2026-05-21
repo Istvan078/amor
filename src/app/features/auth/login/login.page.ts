@@ -4,11 +4,9 @@ import { Router, RouterLink } from '@angular/router';
 import {
     IonButton,
     IonContent,
-    IonHeader,
+    IonIcon,
     IonInput,
     IonLabel,
-    IonTitle,
-    IonToolbar,
 } from '@ionic/angular/standalone';
 import { TranslocoDirective } from '@jsverse/transloco';
 
@@ -24,10 +22,8 @@ import { AuthStore } from '../store/auth.store';
         FormsModule,
         RouterLink,
         TranslocoDirective,
-        IonHeader,
-        IonToolbar,
-        IonTitle,
         IonContent,
+        IonIcon,
         IonLabel,
         IonInput,
         IonButton,

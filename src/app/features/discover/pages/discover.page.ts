@@ -16,6 +16,7 @@ import {
   IonRow,
   ModalController,
 } from '@ionic/angular/standalone';
+import { TranslocoService } from '@jsverse/transloco';
 
 import { IonModalPage } from '../../../modals/ion-modal/ion-modal.page';
 import { ConfigService } from '../../../services/config.service';
@@ -83,6 +84,7 @@ export class DiscoverPage implements OnInit {
   private profileStore = inject(ProfileStore);
   readonly discoverStore = inject(DiscoverStore);
   private discoverUiStore = inject(DiscoverUiStore);
+  private transloco = inject(TranslocoService);
 
   constructor(
     private modalCtrl: ModalController,
@@ -398,18 +400,18 @@ export class DiscoverPage implements OnInit {
 
   async signOutAlert() {
     const alert = await this.alertCtrl.create({
-      header: 'Kilépés',
-      message: 'Biztosan ki szeretnél lépni?',
+      header: this.transloco.translate('auth.signOut.title'),
+      message: this.transloco.translate('auth.signOut.message'),
       cssClass: 'signout-alert',
       buttons: [
         {
-          text: 'Kilépés',
+          text: this.transloco.translate('auth.signOut.confirm'),
           role: 'confirm',
           handler: () => this.signOut(),
           cssClass: 'signout-alert-button',
         },
         {
-          text: 'Mégsem',
+          text: this.transloco.translate('common.cancel'),
           role: 'cancel',
           cssClass: 'signout-alert-cancel-button',
         },

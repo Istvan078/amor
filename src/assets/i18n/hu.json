@@ -1,21 +1,63 @@
 {
   "app": {
-    "name": "Amor"
+    "name": "Amor",
+    "tagline": "Találd meg az igazi kapcsolódást"
+  },
+  "language": {
+    "selector": "Nyelv",
+    "english": "Angol",
+    "hungarian": "Magyar"
+  },
+  "common": {
+    "back": "Vissza",
+    "cancel": "Mégsem",
+    "continue": "Tovább",
+    "loading": "Betöltés...",
+    "save": "Mentés",
+    "signOut": "Kilépés",
+    "upload": "Feltöltés"
+  },
+  "tabs": {
+    "amor": "Amor",
+    "messages": "Üzenetek",
+    "profile": "Profil",
+    "register": "Regisztráció",
+    "signIn": "Belépés"
   },
   "auth": {
-    "headline": "Találd meg az igazit",
+    "headline": "Találd meg az igazi kapcsolódást",
     "login": {
-      "title": "Bejelentkezés",
+      "title": "Belépés",
+      "eyebrow": "Prémium társkeresés",
+      "subtitle": "Nyugodtabb mód arra, hogy olyan emberekkel találkozz, akik valódi kapcsolódást keresnek.",
       "email": "Email",
+      "emailPlaceholder": "nev@example.com",
       "password": "Jelszó",
-      "submit": "Bejelentkezés",
-      "goToRegister": "Még nincs fiókod? Hozz létre egyet"
+      "passwordPlaceholder": "Jelszavad",
+      "submit": "Belépés",
+      "goToRegister": "Még nincs fiókod? Hozz létre egyet",
+      "secureNote": "Biztonságos Firebase belépés",
+      "heroTitle": "Ismerkedj tudatosan",
+      "heroCopy": "Válogatott profilok, lényegi részletek és valódi beszélgetések egy elegáns felületen.",
+      "featureOne": "Válogatott matchek",
+      "featureTwo": "Privát üzenetek",
+      "featureThree": "Prémium profilfolyamat"
     },
     "register": {
       "title": "Fiók létrehozása",
       "continue": "Folytatás az Amorba",
       "createAccount": "Fiók létrehozása",
       "goToLogin": "Már van fiókod? Jelentkezz be"
+    },
+    "modal": {
+      "emailLabel": "Email cím",
+      "emailPlaceholder": "Email",
+      "passwordLabel": "Minimum 6 karakter",
+      "passwordPlaceholder": "Jelszó",
+      "welcome": "Üdvözlünk az Amorban",
+      "basicData": "Alapadatok",
+      "createAccount": "Fiók létrehozása",
+      "next": "Tovább"
     },
     "signOut": {
       "title": "Kilépés",
@@ -26,11 +68,125 @@
   "discover": {
     "title": "Felfedezés",
     "empty": "Még nem találtunk profilokat.",
-    "loading": "Embereket keresünk a közeledben..."
+    "loading": "Embereket keresünk a közeledben...",
+    "searching": "Matchek keresése folyamatban...",
+    "profileLoading": "Profil betöltése...",
+    "noMoreMatches": "Elfogytak a lehetséges matchek, nézz vissza később.",
+    "interests": "Érdeklődési körök",
+    "sidebar": {
+      "profile": "Profilom",
+      "pairs": "Párok",
+      "messages": "Üzenetek",
+      "promotionAlt": "Promóció",
+      "profileImageAlt": "Profilkép",
+      "matchImageAlt": "Match profilkép"
+    },
+    "profile": {
+      "myProfile": "Profilom",
+      "edit": "Adatszerkesztés",
+      "details": "Profiladatok",
+      "editing": "Adatok szerkesztése",
+      "gender": "Nem",
+      "lookingFor": "Keresek",
+      "age": "Kor",
+      "distance": "Táv",
+      "aboutMe": "Rólam",
+      "lookingForType": "Milyen társat keresek?",
+      "interests": "Érdeklődési körök",
+      "freeTime": "Szabadidő"
+    }
   },
-  "common": {
-    "cancel": "Mégsem",
-    "save": "Mentés",
-    "loading": "Betöltés..."
+  "profile": {
+    "fields": {
+      "pictures": "Képeim",
+      "aboutMe": "Rólam",
+      "lookingForType": "Milyen társat keresel?",
+      "lookingForGender": "Kit keresel?",
+      "lookingForAge": "Keresett korosztály:",
+      "gender": "Nemed",
+      "firstName": "Keresztneved",
+      "lastName": "Vezetékneved",
+      "userName": "Felhasználónév",
+      "birthDate": "Születési dátum",
+      "currentPlace": "Jelenlegi helyed",
+      "lookingForDistance": "Maximum távolság (km)",
+      "age": "Kor",
+      "job": "Munkahely",
+      "highestSchool": "Legmagasabb iskolai végzettség",
+      "zodiacSign": "Csillagjegy",
+      "currStudy": "Jelenlegi tanulmány",
+      "freeTimeAct": "Szabadidős tevékenységek",
+      "interests": "Érdeklődési körök"
+    },
+    "placeholders": {
+      "pictures": "Tölts fel képeket magadról",
+      "aboutMe": "Mesélj magadról",
+      "lookingForType": "Írd le, milyen embert keresel"
+    },
+    "values": {
+      "man": "Férfi",
+      "woman": "Nő",
+      "other": "Egyéb",
+      "football": "Foci",
+      "handball": "Kézilabda",
+      "meditation": "Meditáció",
+      "selfDevelopment": "Önfejlesztés",
+      "reading": "Olvasás",
+      "training": "Edzés",
+      "astrology": "Asztrológia",
+      "painting": "Festészet",
+      "art": "Művészet",
+      "oneNightStands": "Egyéjszakás kalandok",
+      "makingFriends": "Új ismeretségek kötése",
+      "listeningToMusic": "Zenehallgatás"
+    }
+  },
+  "messages": {
+    "title": "Üzenetek",
+    "subtitle": "Folytasd a beszélgetést a párjaiddal.",
+    "openConversation": "Beszélgetés megnyitása",
+    "emptyTitle": "Még nincs aktív beszélgetésed",
+    "emptyText": "Ha létrejön egy pár, itt tudsz neki írni.",
+    "backAria": "Vissza az üzenetekhez",
+    "partnerLabel": "Párod",
+    "fallbackTitle": "Beszélgetés",
+    "matchedText": "Te és {{name}} párba álltatok.",
+    "readReceiptTitle": "Olvasási visszaigazolás",
+    "readReceiptText": "Tudd meg, hogy {{name}} mikor olvassa el az üzeneted.",
+    "enableReadReceipt": "Bekapcsolom",
+    "loading": "Üzenetek betöltése...",
+    "startTitle": "Kezdj beszélgetést",
+    "startText": "Egy rövid, személyes nyitás jobban működik.",
+    "placeholder": "Írd ide az üzeneted...",
+    "sendAria": "Üzenet küldése"
+  },
+  "promotions": {
+    "category": {
+      "subscription": "Előfizetés"
+    },
+    "fields": {
+      "title": "Cím",
+      "description": "Leírás",
+      "startDate": "Érvényes ettől",
+      "endDate": "Érvényes eddig",
+      "category": "Kategória",
+      "price": "Ár",
+      "discount": "Leárazás"
+    },
+    "gold": {
+      "description": "3 hónapig 50%-os áron veheted meg az Amorino Gold csomagot."
+    },
+    "boost": {
+      "title": "Kiemelés",
+      "description": "1 hónapig 70% kedvezményt kapsz minden kiemelésre."
+    }
+  },
+  "update": {
+    "available": "Új verzió elérhető.",
+    "reload": "Frissítés",
+    "dismiss": "Később"
+  },
+  "findMatch": {
+    "title": "Match keresése"
   }
 }

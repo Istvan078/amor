@@ -1,40 +1,68 @@
 <ng-container *transloco="let t">
-  <ion-header [translucent]="true">
-    <ion-toolbar>
-      <ion-title>{{ t('auth.headline') }}</ion-title>
-    </ion-toolbar>
-  </ion-header>
+  <ion-content class="login-page" [fullscreen]="true">
+    <section class="login-shell">
+      <article class="login-hero">
+        <img
+          src="https://img.freepik.com/free-photo/silhouette-couple-love-being-affectionate_23-2150984243.jpg?t=st=1741881261~exp=1741884861~hmac=f9d3a5a0a33547efaac51151634c9c05c1de7deadfe301a56e56ff9cd2d284a9&w=740"
+          alt="Romantic couple"
+        />
+        <div class="login-hero-content">
+          <span>{{ t('auth.login.eyebrow') }}</span>
+          <h1>{{ t('auth.login.heroTitle') }}</h1>
+          <p>{{ t('auth.login.heroCopy') }}</p>
+          <ul>
+            <li>{{ t('auth.login.featureOne') }}</li>
+            <li>{{ t('auth.login.featureTwo') }}</li>
+            <li>{{ t('auth.login.featureThree') }}</li>
+          </ul>
+        </div>
+      </article>
 
-  <ion-content [fullscreen]="true">
-    <ion-header collapse="condense">
-      <ion-toolbar>
-        <ion-title size="large">{{ t('auth.login.title') }}</ion-title>
-      </ion-toolbar>
-    </ion-header>
+      <form class="login-card" (ngSubmit)="loginUser()" #loginForm="ngForm">
+        <div class="login-card-heading">
+          <span>{{ t('app.name') }}</span>
+          <h2>{{ t('auth.login.title') }}</h2>
+          <p>{{ t('auth.login.subtitle') }}</p>
+        </div>
 
-    <div class="background-image-cont">
-      <img
-        src="https://img.freepik.com/free-vector/flat-dia-del-amor-y-la-amistad-text-illustration_23-2150627670.jpg?t=st=1741890904~exp=1741894504~hmac=b0a2aac9dc648b594e6cca4962f827fb66c9861843ff154e3c7545d917fc14c8&w=740"
-        alt="Romantic illustration"
-      />
-    </div>
+        <ion-label>{{ t('auth.login.email') }}</ion-label>
+        <ion-input
+          [(ngModel)]="loginData.data.email"
+          [placeholder]="t('auth.login.emailPlaceholder')"
+          autocomplete="email"
+          inputmode="email"
+          name="email"
+          type="email"
+          required
+        ></ion-input>
 
-    <div class="ion-padding login-container">
-      <ion-label>{{ t('auth.login.email') }}</ion-label>
-      <ion-input [(ngModel)]="loginData.data.email" type="email"></ion-input>
+        <ion-label>{{ t('auth.login.password') }}</ion-label>
+        <ion-input
+          [(ngModel)]="loginData.data.password"
+          [placeholder]="t('auth.login.passwordPlaceholder')"
+          autocomplete="current-password"
+          name="password"
+          type="password"
+          required
+        ></ion-input>
 
-      <ion-label>{{ t('auth.login.password') }}</ion-label>
-      <ion-input
-        [(ngModel)]="loginData.data.password"
-        type="password"
-        (keydown.enter)="loginUser()"
-      ></ion-input>
+        <ion-button
+          class="login-submit"
+          expand="block"
+          type="submit"
+          [disabled]="loginForm.invalid"
+        >
+          {{ t('auth.login.submit') }}
+          <ion-icon name="arrow-forward-outline" slot="end"></ion-icon>
+        </ion-button>
 
-      <ion-button expand="block" (click)="loginUser()"> {{ t('auth.login.submit') }} </ion-button>
-
-      <ion-button expand="block" fill="clear" routerLink="/amor/register">
-        {{ t('auth.login.goToRegister') }}
-      </ion-button>
-    </div>
+        <div class="login-footer">
+          <span>{{ t('auth.login.secureNote') }}</span>
+          <ion-button fill="clear" routerLink="/amor/register">
+            {{ t('auth.login.goToRegister') }}
+          </ion-button>
+        </div>
+      </form>
+    </section>
   </ion-content>
 </ng-container>

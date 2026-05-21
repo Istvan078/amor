@@ -16,6 +16,7 @@ import {
   IonList,
   IonTextarea,
 } from '@ionic/angular/standalone';
+import { TranslocoDirective } from '@jsverse/transloco';
 
 import { Message } from '../../../../shared/models/message.model';
 import { Options } from '../../../../shared/models/options.model';
@@ -37,6 +38,7 @@ import { MessagesStore } from '../../store/messages.store';
     IonButton,
     IonIcon,
     IonAvatar,
+    TranslocoDirective,
   ],
 })
 export class MessageComponent implements OnChanges {

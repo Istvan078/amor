@@ -16,6 +16,7 @@ import {
   IonIcon,
   IonText,
 } from '@ionic/angular/standalone';
+import { TranslocoDirective } from '@jsverse/transloco';
 
 import { Promotions } from '../../../../shared/models/promotions.model';
 import { UserClass } from '../../../../shared/models/user.model';
@@ -26,6 +27,7 @@ import { UserClass } from '../../../../shared/models/user.model';
   standalone: true,
   schemas: [CUSTOM_ELEMENTS_SCHEMA],
   imports: [
+    TranslocoDirective,
     IonAvatar,
     IonButton,
     IonCard,

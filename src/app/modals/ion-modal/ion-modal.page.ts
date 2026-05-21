@@ -24,8 +24,13 @@ import {
   IonToolbar,
   ModalController,
 } from '@ionic/angular/standalone';
+import { TranslocoDirective } from '@jsverse/transloco';
 import { SwiperContainer } from 'swiper/element';
 
+import {
+  translatedFieldLabel,
+  translatedOptionLabel,
+} from '../../shared/i18n/profile-value-labels';
 import { UserClass } from '../../shared/models/user.model';
 
 @Component({
@@ -36,6 +41,7 @@ import { UserClass } from '../../shared/models/user.model';
   schemas: [CUSTOM_ELEMENTS_SCHEMA],
   imports: [
     FormsModule,
+    TranslocoDirective,
     IonButton,
     IonButtons,
     IonChip,
@@ -49,10 +55,13 @@ import { UserClass } from '../../shared/models/user.model';
     IonSelect,
     IonSelectOption,
     IonTitle,
-    IonToolbar
-],
+    IonToolbar,
+  ],
 })
 export class IonModalPage implements AfterViewInit {
+  readonly fieldLabel = translatedFieldLabel;
+  readonly optionLabel = translatedOptionLabel;
+
   @ViewChild('swiperRef') swiperRef?: ElementRef<SwiperContainer>;
   email?: string;
   password?: string;

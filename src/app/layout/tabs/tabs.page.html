@@ -1,39 +1,41 @@
-<ion-tabs>
-  <ion-tab-bar slot="bottom" class="mobile-tab-bar">
-    @if (!authStore.user()?.uid) {
-    <ion-tab-button tab="register" href="/amor/register">
-      <ion-icon aria-hidden="true" name="person-add-outline"></ion-icon>
-      <ion-label>Register</ion-label>
-    </ion-tab-button>
+<ng-container *transloco="let t">
+  <ion-tabs>
+    <ion-tab-bar slot="bottom" class="mobile-tab-bar">
+      @if (!authStore.user()?.uid) {
+      <ion-tab-button tab="register" href="/amor/register">
+        <ion-icon aria-hidden="true" name="person-add-outline"></ion-icon>
+        <ion-label>{{ t('tabs.register') }}</ion-label>
+      </ion-tab-button>
 
-    <ion-tab-button tab="login" href="/amor/login">
-      <ion-icon aria-hidden="true" name="log-in-outline"></ion-icon>
-      <ion-label>Sign in</ion-label>
-    </ion-tab-button>
-    } @if (profileStore.profile()?.uid) {
-    <ion-tab-button
-      [class.tab-selected]="isDiscoverActive()"
-      (click)="showMatchesCard()"
-    >
-      <ion-icon aria-hidden="true" name="heart"></ion-icon>
-      <ion-label>Amor</ion-label>
-    </ion-tab-button>
+      <ion-tab-button tab="login" href="/amor/login">
+        <ion-icon aria-hidden="true" name="log-in-outline"></ion-icon>
+        <ion-label>{{ t('tabs.signIn') }}</ion-label>
+      </ion-tab-button>
+      } @if (profileStore.profile()?.uid) {
+      <ion-tab-button
+        [class.tab-selected]="isDiscoverActive()"
+        (click)="showMatchesCard()"
+      >
+        <ion-icon aria-hidden="true" name="heart"></ion-icon>
+        <ion-label>{{ t('tabs.amor') }}</ion-label>
+      </ion-tab-button>
 
-    <ion-tab-button
-      [class.tab-selected]="isProfileActive()"
-      (click)="openUserCard()"
-    >
-      <ion-icon aria-hidden="true" name="person"></ion-icon>
-      <ion-label>Profile</ion-label>
-    </ion-tab-button>
+      <ion-tab-button
+        [class.tab-selected]="isProfileActive()"
+        (click)="openUserCard()"
+      >
+        <ion-icon aria-hidden="true" name="person"></ion-icon>
+        <ion-label>{{ t('tabs.profile') }}</ion-label>
+      </ion-tab-button>
 
-    <ion-tab-button
-      [class.tab-selected]="isMessagesActive()"
-      (click)="showMessages()"
-    >
-      <ion-icon aria-hidden="true" name="chatbubble-ellipses-outline"></ion-icon>
-      <ion-label>Messages</ion-label>
-    </ion-tab-button>
-    }
-  </ion-tab-bar>
-</ion-tabs>
+      <ion-tab-button
+        [class.tab-selected]="isMessagesActive()"
+        (click)="showMessages()"
+      >
+        <ion-icon aria-hidden="true" name="chatbubble-ellipses-outline"></ion-icon>
+        <ion-label>{{ t('tabs.messages') }}</ion-label>
+      </ion-tab-button>
+      }
+    </ion-tab-bar>
+  </ion-tabs>
+</ng-container>

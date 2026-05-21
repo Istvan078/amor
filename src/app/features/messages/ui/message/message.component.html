@@ -1,120 +1,121 @@
-<div class="messages-shell">
-  @if(options?.phoneView && !options?.isSelectedMatch) {
-  <section class="conversation-list">
-    <header class="messages-heading">
-      <span>Üzenetek</span>
-      <p>Folytasd a beszélgetést a párjaiddal.</p>
-    </header>
+<ng-container *transloco="let t">
+  <div class="messages-shell">
+    @if(options?.phoneView && !options?.isSelectedMatch) {
+    <section class="conversation-list">
+      <header class="messages-heading">
+        <span>{{ t('messages.title') }}</span>
+        <p>{{ t('messages.subtitle') }}</p>
+      </header>
 
-    <div class="conversation-list-items">
-      @for(match of matches; track match.uid) {
-      <button
-        type="button"
-        class="conversation-list-item"
-        (click)="selectMatch(match)"
-      >
-        <img [src]="getProfileImage(match)" alt="Profilkép" />
-        <span>
-          <strong>{{ getDisplayName(match) || match.firstName }}</strong>
-          <small>Nyisd meg a beszélgetést</small>
-        </span>
-        <ion-icon name="chevron-forward-outline"></ion-icon>
-      </button>
-      } @empty {
-      <div class="messages-empty">
-        <ion-icon name="chatbubble-ellipses-outline"></ion-icon>
-        <strong>Még nincs aktív beszélgetésed</strong>
-        <p>Ha létrejön egy pár, itt tudsz neki írni.</p>
-      </div>
-      }
-    </div>
-  </section>
-  }
-
-  @if(!options?.phoneView || options?.isSelectedMatch) {
-  <section class="conversation-card">
-    <header class="conversation-header">
-      @if(options?.phoneView) {
-      <ion-button
-        class="back-button"
-        (click)="backToMsgs()"
-        fill="clear"
-        aria-label="Vissza az üzenetekhez"
-      >
-        <ion-icon name="arrow-back-outline"></ion-icon>
-      </ion-button>
-      }
-
-      <ion-avatar>
-        <img [src]="getProfileImage(matchProfile)" alt="Beszélgetőpartner" />
-      </ion-avatar>
-
-      <div>
-        <small>Párod</small>
-        <h2>
-          {{
-            getDisplayName(matchProfile) ||
-              matchProfile?.firstName ||
-              "Beszélgetés"
-          }}
-        </h2>
-        @if(matchProfile?.firstName) {
-        <p>Te és {{ matchProfile?.firstName }} párba álltatok.</p>
+      <div class="conversation-list-items">
+        @for(match of matches; track match.uid) {
+        <button
+          type="button"
+          class="conversation-list-item"
+          (click)="selectMatch(match)"
+        >
+          <img [src]="getProfileImage(match)" alt="Profile picture" />
+          <span>
+            <strong>{{ getDisplayName(match) || match.firstName }}</strong>
+            <small>{{ t('messages.openConversation') }}</small>
+          </span>
+          <ion-icon name="chevron-forward-outline"></ion-icon>
+        </button>
+        } @empty {
+        <div class="messages-empty">
+          <ion-icon name="chatbubble-ellipses-outline"></ion-icon>
+          <strong>{{ t('messages.emptyTitle') }}</strong>
+          <p>{{ t('messages.emptyText') }}</p>
+        </div>
         }
       </div>
-    </header>
-
-    @if(matchProfile) {
-    <section class="conversation-hero">
-      <div>
-        <span>Olvasási visszaigazolás</span>
-        <p>
-          Tudd meg, hogy {{ matchProfile.firstName }} mikor olvassa el az
-          üzeneted.
-        </p>
-      </div>
-      <ion-button fill="solid">Bekapcsolom</ion-button>
     </section>
     }
 
-    <ion-list class="message-thread">
-      @if(messagesStore.loading()) {
-      <div class="messages-empty compact">
-        <p>Üzenetek betöltése...</p>
-      </div>
-      } @else {
-      @for(mess of messagesStore.messages(); track mess.number) {
-      <ion-item class="message-row" [class.own-message]="isOwnMessage(mess)">
-        <ion-label>
-          <span>{{ mess.message || " " }}</span>
-        </ion-label>
-      </ion-item>
-      } @empty {
-      <div class="messages-empty compact">
-        <ion-icon name="sparkles-outline"></ion-icon>
-        <strong>Kezdj beszélgetést</strong>
-        <p>Egy rövid, személyes nyitás jobban működik.</p>
-      </div>
-      } }
-    </ion-list>
+    @if(!options?.phoneView || options?.isSelectedMatch) {
+    <section class="conversation-card">
+      <header class="conversation-header">
+        @if(options?.phoneView) {
+        <ion-button
+          class="back-button"
+          (click)="backToMsgs()"
+          fill="clear"
+          [attr.aria-label]="t('messages.backAria')"
+        >
+          <ion-icon name="arrow-back-outline"></ion-icon>
+        </ion-button>
+        }
 
-    <form
-      (ngSubmit)="onMessageSend(form)"
-      #form="ngForm"
-      class="message-composer"
-    >
-      <ion-textarea
-        ngModel
-        name="message"
-        id="message"
-        placeholder="Írd ide az üzeneted..."
-        rows="1"
-        autoGrow="true"
-      ></ion-textarea>
-      <ion-button type="submit" fill="solid" aria-label="Üzenet küldése">
-        <ion-icon name="send-outline"></ion-icon>
-      </ion-button>
-    </form>
-  </section>
-  }
-</div>
+        <ion-avatar>
+          <img [src]="getProfileImage(matchProfile)" alt="Conversation partner" />
+        </ion-avatar>
+
+        <div>
+          <small>{{ t('messages.partnerLabel') }}</small>
+          <h2>
+            {{
+              getDisplayName(matchProfile) ||
+                matchProfile?.firstName ||
+                t('messages.fallbackTitle')
+            }}
+          </h2>
+          @if(matchProfile?.firstName) {
+          <p>{{ t('messages.matchedText', { name: matchProfile?.firstName }) }}</p>
+          }
+        </div>
+      </header>
+
+      @if(matchProfile) {
+      <section class="conversation-hero">
+        <div>
+          <span>{{ t('messages.readReceiptTitle') }}</span>
+          <p>
+            {{ t('messages.readReceiptText', { name: matchProfile.firstName }) }}
+          </p>
+        </div>
+        <ion-button fill="solid">{{ t('messages.enableReadReceipt') }}</ion-button>
+      </section>
+      }
+
+      <ion-list class="message-thread">
+        @if(messagesStore.loading()) {
+        <div class="messages-empty compact">
+          <p>{{ t('messages.loading') }}</p>
+        </div>
+        } @else {
+        @for(mess of messagesStore.messages(); track mess.number) {
+        <ion-item class="message-row" [class.own-message]="isOwnMessage(mess)">
+          <ion-label>
+            <span>{{ mess.message || " " }}</span>
+          </ion-label>
+        </ion-item>
+        } @empty {
+        <div class="messages-empty compact">
+          <ion-icon name="sparkles-outline"></ion-icon>
+          <strong>{{ t('messages.startTitle') }}</strong>
+          <p>{{ t('messages.startText') }}</p>
+        </div>
+        } }
+      </ion-list>
+
+      <form
+        (ngSubmit)="onMessageSend(form)"
+        #form="ngForm"
+        class="message-composer"
+      >
+        <ion-textarea
+          ngModel
+          name="message"
+          id="message"
+          [placeholder]="t('messages.placeholder')"
+          rows="1"
+          autoGrow="true"
+        ></ion-textarea>
+        <ion-button type="submit" fill="solid" [attr.aria-label]="t('messages.sendAria')">
+          <ion-icon name="send-outline"></ion-icon>
+        </ion-button>
+      </form>
+    </section>
+    }
+  </div>
+</ng-container>

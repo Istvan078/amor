@@ -17,7 +17,14 @@ import {
   IonText,
   IonTextarea,
 } from '@ionic/angular/standalone';
+import { TranslocoDirective } from '@jsverse/transloco';
 
+import {
+  translatedChoiceLabel,
+  translatedFieldLabel,
+  translatedFieldPlaceholder,
+  translatedProfileValue,
+} from '../../../../shared/i18n/profile-value-labels';
 import { Options } from '../../../../shared/models/options.model';
 import { UserClass } from '../../../../shared/models/user.model';
 
@@ -32,6 +39,7 @@ export type ProfileChoiceSelectedEvent = {
   standalone: true,
   imports: [
     FormsModule,
+    TranslocoDirective,
     IonButton,
     IonCard,
     IonCardContent,
@@ -50,6 +58,11 @@ export type ProfileChoiceSelectedEvent = {
   ],
 })
 export class DiscoverProfilePanelComponent {
+  readonly choiceLabel = translatedChoiceLabel;
+  readonly fieldLabel = translatedFieldLabel;
+  readonly fieldPlaceholder = translatedFieldPlaceholder;
+  readonly profileValueText = translatedProfileValue;
+
   @Input() userProfile!: UserClass;
   @Input() labels: any = {};
   @Input() options = new Options();

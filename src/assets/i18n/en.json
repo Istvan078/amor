@@ -1,21 +1,63 @@
 {
   "app": {
-    "name": "Amor"
+    "name": "Amor",
+    "tagline": "Find your true connection"
+  },
+  "language": {
+    "selector": "Language",
+    "english": "English",
+    "hungarian": "Hungarian"
+  },
+  "common": {
+    "back": "Back",
+    "cancel": "Cancel",
+    "continue": "Continue",
+    "loading": "Loading...",
+    "save": "Save",
+    "signOut": "Sign out",
+    "upload": "Upload"
+  },
+  "tabs": {
+    "amor": "Amor",
+    "messages": "Messages",
+    "profile": "Profile",
+    "register": "Register",
+    "signIn": "Sign in"
   },
   "auth": {
     "headline": "Find your true connection",
     "login": {
       "title": "Sign in",
+      "eyebrow": "Premium dating",
+      "subtitle": "A calmer way to meet people who are looking for something real.",
       "email": "Email",
+      "emailPlaceholder": "name@example.com",
       "password": "Password",
+      "passwordPlaceholder": "Your password",
       "submit": "Sign in",
-      "goToRegister": "Don't have an account yet? Create one"
+      "goToRegister": "Don't have an account yet? Create one",
+      "secureNote": "Secure Firebase sign-in",
+      "heroTitle": "Date with intention",
+      "heroCopy": "Discover curated profiles, meaningful details and real conversations in one elegant space.",
+      "featureOne": "Curated matches",
+      "featureTwo": "Private messages",
+      "featureThree": "Premium profile flow"
     },
     "register": {
       "title": "Create account",
       "continue": "Continue to Amor",
       "createAccount": "Create account",
       "goToLogin": "Already have an account? Sign in"
+    },
+    "modal": {
+      "emailLabel": "Email address",
+      "emailPlaceholder": "Email",
+      "passwordLabel": "Minimum 6 characters",
+      "passwordPlaceholder": "Password",
+      "welcome": "Welcome to Amor",
+      "basicData": "Basic details",
+      "createAccount": "Create account",
+      "next": "Next"
     },
     "signOut": {
       "title": "Sign out",
@@ -26,11 +68,125 @@
   "discover": {
     "title": "Discover",
     "empty": "No profiles found yet.",
-    "loading": "Finding people near you..."
+    "loading": "Finding people near you...",
+    "searching": "Finding matches...",
+    "profileLoading": "Loading profile...",
+    "noMoreMatches": "No more possible matches for now. Check back later.",
+    "interests": "Interests",
+    "sidebar": {
+      "profile": "My profile",
+      "pairs": "Matches",
+      "messages": "Messages",
+      "promotionAlt": "Promotion",
+      "profileImageAlt": "Profile picture",
+      "matchImageAlt": "Match profile picture"
+    },
+    "profile": {
+      "myProfile": "My profile",
+      "edit": "Edit details",
+      "details": "Profile details",
+      "editing": "Edit profile",
+      "gender": "Gender",
+      "lookingFor": "Looking for",
+      "age": "Age",
+      "distance": "Distance",
+      "aboutMe": "About me",
+      "lookingForType": "What I am looking for",
+      "interests": "Interests",
+      "freeTime": "Free time"
+    }
   },
-  "common": {
-    "cancel": "Cancel",
-    "save": "Save",
-    "loading": "Loading..."
+  "profile": {
+    "fields": {
+      "pictures": "My photos",
+      "aboutMe": "About me",
+      "lookingForType": "What kind of partner are you looking for?",
+      "lookingForGender": "Who are you looking for?",
+      "lookingForAge": "Preferred age range:",
+      "gender": "Gender",
+      "firstName": "First name",
+      "lastName": "Last name",
+      "userName": "Username",
+      "birthDate": "Date of birth",
+      "currentPlace": "Current location",
+      "lookingForDistance": "Maximum distance (km)",
+      "age": "Age",
+      "job": "Job",
+      "highestSchool": "Highest education",
+      "zodiacSign": "Zodiac sign",
+      "currStudy": "Current studies",
+      "freeTimeAct": "Free-time activities",
+      "interests": "Interests"
+    },
+    "placeholders": {
+      "pictures": "Upload photos of yourself",
+      "aboutMe": "Tell people about yourself",
+      "lookingForType": "Describe the kind of person you want to meet"
+    },
+    "values": {
+      "man": "Man",
+      "woman": "Woman",
+      "other": "Other",
+      "football": "Football",
+      "handball": "Handball",
+      "meditation": "Meditation",
+      "selfDevelopment": "Self-development",
+      "reading": "Reading",
+      "training": "Training",
+      "astrology": "Astrology",
+      "painting": "Painting",
+      "art": "Art",
+      "oneNightStands": "One-night stands",
+      "makingFriends": "Making new friends",
+      "listeningToMusic": "Listening to music"
+    }
+  },
+  "messages": {
+    "title": "Messages",
+    "subtitle": "Keep the conversation going with your matches.",
+    "openConversation": "Open conversation",
+    "emptyTitle": "No active conversations yet",
+    "emptyText": "When you match with someone, you can write to them here.",
+    "backAria": "Back to messages",
+    "partnerLabel": "Your match",
+    "fallbackTitle": "Conversation",
+    "matchedText": "You and {{name}} matched.",
+    "readReceiptTitle": "Read receipts",
+    "readReceiptText": "Find out when {{name}} reads your message.",
+    "enableReadReceipt": "Enable",
+    "loading": "Loading messages...",
+    "startTitle": "Start the conversation",
+    "startText": "A short, personal opener works best.",
+    "placeholder": "Write your message...",
+    "sendAria": "Send message"
+  },
+  "promotions": {
+    "category": {
+      "subscription": "Subscription"
+    },
+    "fields": {
+      "title": "Title",
+      "description": "Description",
+      "startDate": "Valid from",
+      "endDate": "Valid until",
+      "category": "Category",
+      "price": "Price",
+      "discount": "Discount"
+    },
+    "gold": {
+      "description": "Get Amorino Gold for 50% less for 3 months."
+    },
+    "boost": {
+      "title": "Boost",
+      "description": "Get 70% off every boost for 1 month."
+    }
+  },
+  "update": {
+    "available": "A new version is available.",
+    "reload": "Update",
+    "dismiss": "Later"
+  },
+  "findMatch": {
+    "title": "Find match"
   }
 }
