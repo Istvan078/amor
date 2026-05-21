@@ -55,8 +55,13 @@
     <div class="card-content-cont">
       <div class="pos-abs bottom-130 w-100 poss-match-name-cont">
         <ion-card-content class="d-flex jus-space-b poss-match-name w-100">
-          @if(!isMatchPlaceHolder) {
-          <ion-text>{{ matchProfile?.firstName + " " + matchProfile?.age }}</ion-text>
+          @if(!isMatchPlaceHolder && matchProfile?.firstName) {
+          <ion-text>{{
+            matchProfile?.firstName +
+              (matchProfile?.age ? " " + matchProfile?.age : "")
+          }}</ion-text>
+          } @else if(!isMatchPlaceHolder) {
+          <ion-text>Profil betöltése...</ion-text>
           } @else {
           <p>Elfogytak a lehetséges matchek, nézz vissza később</p>
           }

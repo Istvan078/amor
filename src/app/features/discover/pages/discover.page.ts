@@ -58,7 +58,8 @@ import { UserClass } from '../../../shared/models/user.model';
   ],
 })
 export class DiscoverPage implements OnInit {
-  matchProfiles: any[] = [];
+  possibleMatchIds: string[] = [];
+  matchProfiles: UserClass[] = [];
   progress = 0;
   buffer = 0;
   matches: UserClass[] = [];
@@ -105,10 +106,7 @@ export class DiscoverPage implements OnInit {
     });
 
     effect(() => {
-      this.matchProfiles = this.discoverStore.possibleMatchIds();
-      this.progress = this.discoverStore.progress();
-      this.buffer = this.discoverStore.buffer();
-      this.matches = this.discoverStore.matches();
+      this.syncDiscoverState();
     });
 
     effect(() => {
@@ -138,13 +136,21 @@ export class DiscoverPage implements OnInit {
     if (window.innerWidth < 400) this.isMatchDetailsOpen = true;
 
     await this.discoverStore.loadDiscoverData();
+    this.syncDiscoverState();
     this.initMainView();
   }
 
   private initMainView() {
-    void this.setMatchProfiles();
+    void this.setMatchProfiles(this.possibleMatchIds);
     this.setPromotion();
     this.setUProfLabels();
+  }
+
+  private syncDiscoverState() {
+    this.possibleMatchIds = this.discoverStore.possibleMatchIds();
+    this.progress = this.discoverStore.progress();
+    this.buffer = this.discoverStore.buffer();
+    this.matches = this.discoverStore.matches();
   }
 
   setPromotion() {
@@ -176,20 +182,23 @@ export class DiscoverPage implements OnInit {
     });
   }
 
-  async setMatchProfiles() {
-    const matchIds = Array.isArray(this.matchProfiles) ? this.matchProfiles : [];
+  async setMatchProfiles(matchIds = this.discoverStore.possibleMatchIds()) {
+    const possibleMatchIds = Array.isArray(matchIds)
+      ? matchIds.filter((uid): uid is string => typeof uid === 'string' && !!uid)
+      : [];
 
-    if (this.progress === 100 && !matchIds.length) {
+    if (this.progress === 100 && !possibleMatchIds.length) {
       this.isMatchPlaceHolder = true;
       this.possMatchDetLists = [];
       return;
     }
 
-    if (!matchIds.length) {
+    if (!possibleMatchIds.length) {
       return;
     }
 
-    const matchProfiles = await this.discoverRepository.getMatchProfiles(matchIds);
+    const matchProfiles =
+      await this.discoverRepository.getMatchProfiles(possibleMatchIds);
 
     if (matchProfiles.length) {
       this.matchProfiles = matchProfiles;
@@ -392,6 +401,7 @@ export class DiscoverPage implements OnInit {
     this.matchProf = undefined;
     this.selectedMessProf = undefined;
     this.matches = [];
+    this.possibleMatchIds = [];
     this.matchProfiles = [];
     this.isMatchPlaceHolder = false;
     this.isShowMessages = false;
