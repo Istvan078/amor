@@ -734,12 +734,233 @@ app-discover {
   }
 
   .profile-editor-panel ion-input,
+  .profile-editor-panel ion-select,
   .profile-editor-panel ion-textarea,
   .profile-editor-panel ion-range,
   .profile-editor-panel ion-checkbox {
     --color: var(--amor-text);
     --placeholder-color: rgba(255, 255, 255, 0.46);
     --highlight-color-focused: var(--amor-rose);
+  }
+
+  .profile-editor-panel ion-list {
+    display: grid;
+    gap: 14px;
+    padding: 0;
+  }
+
+  .profile-editor-field {
+    min-height: 76px;
+    overflow: hidden;
+    margin: 0;
+    border-radius: 18px;
+    --background: rgba(255, 255, 255, 0.06);
+    --border-color: transparent;
+    --border-radius: 18px;
+    --inner-padding-end: 16px;
+    --padding-bottom: 6px;
+    --padding-end: 4px;
+    --padding-start: 16px;
+    --padding-top: 6px;
+    backdrop-filter: blur(14px);
+  }
+
+  .profile-editor-field::part(native) {
+    background:
+      linear-gradient(135deg, rgba(255, 255, 255, 0.11), rgba(255, 255, 255, 0.055));
+    border-radius: 18px;
+  }
+
+  .profile-editor-field ion-input,
+  .profile-editor-field ion-select,
+  .profile-editor-field ion-textarea {
+    --color: var(--amor-text);
+    --highlight-color-focused: var(--amor-rose);
+    --placeholder-color: rgba(248, 245, 239, 0.48);
+    font-weight: 760;
+  }
+
+  .profile-editor-field ion-input::part(label),
+  .profile-editor-field ion-select::part(label),
+  .profile-editor-field ion-textarea::part(label) {
+    color: var(--amor-gold);
+    font-size: 0.74rem;
+    font-weight: 900;
+    letter-spacing: 0;
+  }
+
+  .profile-editor-field ion-select::part(icon) {
+    width: 22px;
+    height: 22px;
+    color: #ffd1dc;
+    opacity: 1;
+  }
+
+  .profile-editor-field ion-select::part(text) {
+    color: var(--amor-text);
+  }
+
+  .profile-editor-field ion-select::part(placeholder) {
+    color: rgba(248, 245, 239, 0.48);
+    opacity: 1;
+  }
+
+  .profile-editor-textarea-field {
+    min-height: 150px;
+    align-items: stretch;
+  }
+
+  .profile-editor-textarea {
+    min-height: 126px;
+    --padding-bottom: 10px;
+    --padding-top: 10px;
+  }
+
+  .profile-editor-textarea::part(native) {
+    line-height: 1.45;
+  }
+
+  .profile-editor-date-field {
+    cursor: pointer;
+  }
+
+  .profile-editor-date-field ion-icon {
+    color: #ffd1dc;
+    font-size: 23px;
+  }
+
+  .profile-editor-date-value {
+    display: grid;
+    gap: 7px;
+    min-width: 0;
+    padding: 6px 0;
+  }
+
+  .profile-editor-date-value span,
+  .profile-editor-range-head span,
+  .profile-editor-upload-copy span,
+  .profile-editor-choice-title {
+    color: var(--amor-gold);
+    font-size: 0.76rem;
+    font-weight: 900;
+    letter-spacing: 0;
+  }
+
+  .profile-editor-date-value strong,
+  .profile-editor-range-head strong,
+  .profile-editor-upload-copy strong {
+    min-width: 0;
+    color: var(--amor-text);
+    font-size: 1rem;
+    line-height: 1.25;
+    overflow-wrap: anywhere;
+  }
+
+  .profile-editor-date-value strong.is-placeholder,
+  .profile-editor-upload-copy strong.is-placeholder {
+    color: rgba(248, 245, 239, 0.62);
+  }
+
+  .profile-editor-range-card,
+  .profile-editor-upload-card,
+  .profile-editor-choice-card {
+    border: 1px solid var(--amor-line);
+    border-radius: 20px;
+    background:
+      linear-gradient(135deg, rgba(255, 255, 255, 0.105), rgba(255, 255, 255, 0.052));
+    box-shadow:
+      inset 0 1px 0 rgba(255, 255, 255, 0.08),
+      0 16px 36px rgba(0, 0, 0, 0.18);
+    backdrop-filter: blur(14px);
+  }
+
+  .profile-editor-range-card {
+    display: grid;
+    gap: 16px;
+    min-height: 124px;
+    padding: 18px;
+  }
+
+  .profile-editor-range-head {
+    display: flex;
+    align-items: baseline;
+    justify-content: space-between;
+    gap: 14px;
+  }
+
+  .profile-editor-range {
+    width: 100%;
+    padding-inline: 0;
+  }
+
+  .profile-editor-upload-card {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) auto auto;
+    align-items: center;
+    gap: 12px;
+    min-height: 94px;
+    padding: 16px;
+  }
+
+  .profile-editor-upload-copy {
+    display: grid;
+    gap: 7px;
+    min-width: 0;
+  }
+
+  .profile-file-input {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    opacity: 0;
+    pointer-events: none;
+  }
+
+  .profile-choose-file-button {
+    min-height: 44px;
+    --background: rgba(255, 255, 255, 0.07);
+    --background-hover: rgba(255, 255, 255, 0.12);
+    --border-color: rgba(255, 255, 255, 0.16);
+    --border-radius: 999px;
+    --box-shadow: none;
+    --color: var(--amor-text);
+    font-weight: 900;
+    letter-spacing: 0;
+    text-transform: none;
+  }
+
+  .profile-editor-choice-card {
+    padding: 18px;
+  }
+
+  .profile-editor-choice-title {
+    margin-bottom: 14px;
+  }
+
+  .profile-editor-choice-grid {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 10px;
+  }
+
+  .profile-editor-checkbox {
+    min-height: 48px;
+    padding: 11px 12px;
+    border: 1px solid rgba(255, 255, 255, 0.09);
+    border-radius: 16px;
+    background: rgba(9, 13, 25, 0.28);
+    color: var(--amor-text);
+    font-weight: 800;
+    transition:
+      border-color 160ms ease,
+      background 160ms ease,
+      transform 160ms ease;
+  }
+
+  .profile-editor-checkbox:hover {
+    transform: translateY(-1px);
+    border-color: rgba(255, 93, 143, 0.36);
+    background: rgba(255, 255, 255, 0.075);
   }
 
   .user-pictures {
@@ -874,6 +1095,7 @@ app-discover {
     .profile-shell {
       display: flex;
       flex-direction: column;
+      align-items: stretch;
       gap: 12px;
       max-width: 520px;
       margin: 0 auto;
@@ -897,17 +1119,83 @@ app-discover {
 
     .profile-info-panel,
     .profile-editor-panel {
+      width: 100%;
       padding: 16px;
+      border-radius: 18px;
+      background:
+        radial-gradient(circle at 100% 0%, rgba(255, 93, 143, 0.12), transparent 34%),
+        rgba(25, 30, 49, 0.9);
     }
 
     .profile-stat-grid {
       grid-template-columns: 1fr 1fr;
+      gap: 10px;
+    }
+
+    .profile-stat {
+      min-height: 86px;
+      padding: 14px;
+      border-radius: 16px;
     }
 
     .profile-section-heading {
       align-items: flex-start;
       flex-direction: column;
       gap: 4px;
+    }
+
+    .profile-editor-panel ion-list {
+      gap: 12px;
+    }
+
+    .profile-editor-field {
+      min-height: 78px;
+      --padding-start: 14px;
+      --inner-padding-end: 14px;
+    }
+
+    .profile-editor-textarea-field {
+      min-height: 172px;
+    }
+
+    .profile-editor-textarea {
+      min-height: 144px;
+    }
+
+    .profile-editor-range-card,
+    .profile-editor-upload-card,
+    .profile-editor-choice-card {
+      border-radius: 18px;
+      padding: 16px;
+    }
+
+    .profile-editor-range-head {
+      align-items: flex-start;
+      flex-direction: column;
+      gap: 6px;
+    }
+
+    .profile-editor-range {
+      min-width: 0;
+    }
+
+    .profile-editor-upload-card {
+      grid-template-columns: 1fr;
+      align-items: stretch;
+    }
+
+    .profile-choose-file-button,
+    .profile-upload-button {
+      width: 100%;
+      margin: 0;
+    }
+
+    .profile-editor-choice-grid {
+      grid-template-columns: 1fr;
+    }
+
+    .profile-editor-checkbox {
+      min-height: 50px;
     }
   }
 }
@@ -932,7 +1220,14 @@ app-discover {
       height: 56px;
     }
 
-    .profile-actions,
+    .profile-actions {
+      grid-template-columns: 1fr;
+    }
+  }
+}
+
+@media screen and (max-width: 360px) {
+  app-discover {
     .profile-stat-grid {
       grid-template-columns: 1fr;
     }

@@ -1,42 +1,70 @@
 <ng-container *transloco="let t">
   @if(regFirstPhase) {
-  <ion-content class="ion-padding">
-    <ion-item>
-      <ion-input
-        labelPlacement="stacked"
-        [label]="t('auth.modal.emailLabel')"
-        [(ngModel)]="email"
-        [placeholder]="t('auth.modal.emailPlaceholder')"
-        type="email"
-      ></ion-input>
-    </ion-item>
-    <ion-item>
-      <ion-input
-        labelPlacement="stacked"
-        [label]="t('auth.modal.passwordLabel')"
-        [(ngModel)]="password"
-        [placeholder]="t('auth.modal.passwordPlaceholder')"
-        type="password"
-      ></ion-input>
-    </ion-item>
+  <ion-content class="auth-modal-content">
+    <section class="auth-modal-shell account-step">
+      <div class="auth-modal-heading">
+        <span>{{ t('auth.modal.accountEyebrow') }}</span>
+        <h2>{{ t('auth.modal.welcome') }}</h2>
+        <p>{{ t('auth.modal.accountIntro') }}</p>
+      </div>
+
+      <form class="auth-modal-form" #accountForm="ngForm">
+        <ion-item class="auth-modal-field">
+          <ion-input
+            name="email"
+            required
+            labelPlacement="stacked"
+            [label]="t('auth.modal.emailLabel')"
+            [(ngModel)]="email"
+            [placeholder]="t('auth.modal.emailPlaceholder')"
+            autocomplete="email"
+            inputmode="email"
+            type="email"
+          ></ion-input>
+        </ion-item>
+        <ion-item class="auth-modal-field">
+          <ion-input
+            name="password"
+            required
+            minlength="6"
+            labelPlacement="stacked"
+            [label]="t('auth.modal.passwordLabel')"
+            [(ngModel)]="password"
+            [placeholder]="t('auth.modal.passwordPlaceholder')"
+            autocomplete="new-password"
+            type="password"
+          ></ion-input>
+        </ion-item>
+      </form>
+    </section>
   </ion-content>
-  <ion-toolbar>
+  <ion-toolbar class="auth-modal-toolbar">
     <ion-buttons slot="start">
-      <ion-button color="medium" (click)="cancel()">{{ t('common.cancel') }}</ion-button>
+      <ion-button class="secondary-action" (click)="cancel()">
+        <ion-icon name="close-outline" slot="start"></ion-icon>
+        {{ t('common.cancel') }}
+      </ion-button>
     </ion-buttons>
-    <ion-title>{{ t('auth.modal.welcome') }}</ion-title>
     <ion-buttons slot="end">
-      <ion-button (click)="confirm()" [strong]="true">
+      <ion-button class="primary-action" (click)="confirm()" [disabled]="accountForm.invalid">
         {{ t('auth.modal.createAccount') }}
+        <ion-icon name="arrow-forward-outline" slot="end"></ion-icon>
       </ion-button>
     </ion-buttons>
   </ion-toolbar>
   } @if(regSecondPhase) {
-  <ion-content class="ion-padding">
-    <form #form="ngForm">
+  <ion-content class="auth-modal-content">
+    <section class="auth-modal-shell profile-step">
+      <div class="auth-modal-heading">
+        <span>{{ t('auth.modal.profileEyebrow') }}</span>
+        <h2>{{ t('auth.modal.basicData') }}</h2>
+        <p>{{ t('auth.modal.profileIntro') }}</p>
+      </div>
+
+    <form class="auth-modal-form profile-form" #form="ngForm">
       @for(item of labels.userProfLabels; track $index) { @if(!item.setByApp &&
-      item.type !== "select" && !item.setLaterInProf && item.type !== "range") {
-      <ion-item>
+      item.type !== "select" && !item.setLaterInProf && item.type !== "range" && item.type !== "date") {
+      <ion-item class="auth-modal-field">
         <ion-input
           [name]="item.key"
           required
@@ -47,8 +75,11 @@
         ></ion-input>
       </ion-item>
       } @if(item.type === "select"){
-      <ion-item>
+      <ion-item class="auth-modal-field">
         <ion-select
+          interface="popover"
+          toggleIcon="chevron-down-outline"
+          [interfaceOptions]="selectInterfaceOptions"
           [name]="item.key"
           required
           (ionChange)="userProf[item.key] = $event.detail.value"
@@ -63,17 +94,51 @@
           }
         </ion-select>
       </ion-item>
+      } @if(item.type === "date" && !item.setLaterInProf){
+      <input
+        class="auth-hidden-control"
+        [name]="item.key"
+        required
+        [(ngModel)]="userProf[item.key]"
+      />
+      <ion-item
+        class="auth-modal-field auth-modal-date-field"
+        button
+        [id]="dateTriggerId(item.key)"
+      >
+        <div class="auth-modal-date-value">
+          <span>{{ fieldLabel(t, item) }}</span>
+          <strong [class.is-placeholder]="!userProf[item.key]">
+            {{ formatDateValue(userProf[item.key]) || t('auth.modal.selectDate') }}
+          </strong>
+        </div>
+        <ion-icon name="calendar-clear-outline" slot="end"></ion-icon>
+      </ion-item>
+      <ion-popover
+        cssClass="amor-auth-date-popover"
+        [trigger]="dateTriggerId(item.key)"
+        side="bottom"
+        alignment="center"
+      >
+        <ng-template>
+          <ion-datetime
+            presentation="date"
+            [value]="userProf[item.key]"
+            [showDefaultButtons]="true"
+            [preferWheel]="false"
+            (ionChange)="setDateValue(item.key, $event.detail.value)"
+          ></ion-datetime>
+        </ng-template>
+      </ion-popover>
       } @if(item.type === "range"){
-      <ion-item>
+      <div class="auth-modal-range-card">
+        <div class="auth-modal-range-head">
+          <span>{{ fieldLabel(t, item) }}</span>
+          <strong>{{ userProf[item.key].lower }} - {{ userProf[item.key].upper }}</strong>
+        </div>
         <ion-range
+          class="auth-modal-range"
           [name]="item.key"
-          [label]="
-            fieldLabel(t, item) +
-            ' ' +
-            userProf[item.key].lower +
-            ' - ' +
-            userProf[item.key].upper
-          "
           [attr.aria-label]="fieldLabel(t, item)"
           [min]="14"
           [max]="100"
@@ -83,17 +148,24 @@
           [(ngModel)]="userProf[item.key]"
         >
           <ion-icon slot="start" name="accessibility-outline"></ion-icon>
-          <ion-icon slot="end" name="briefcase-outline"></ion-icon
-        ></ion-range>
-      </ion-item>
+          <ion-icon slot="end" name="briefcase-outline"></ion-icon>
+        </ion-range>
+      </div>
       } }
     </form>
+    </section>
   </ion-content>
-  <ion-toolbar>
-    <ion-title>{{ t('auth.modal.basicData') }}</ion-title>
+  <ion-toolbar class="auth-modal-toolbar">
+    <ion-buttons slot="start">
+      <ion-button class="secondary-action" (click)="cancel()">
+        <ion-icon name="close-outline" slot="start"></ion-icon>
+        {{ t('common.cancel') }}
+      </ion-button>
+    </ion-buttons>
     <ion-buttons slot="end">
-      <ion-button [disabled]="!form.valid" (click)="confirm()" [strong]="true">
+      <ion-button class="primary-action" [disabled]="!form.valid" (click)="confirm()">
         {{ t('auth.modal.next') }}
+        <ion-icon name="arrow-forward-outline" slot="end"></ion-icon>
       </ion-button>
     </ion-buttons>
   </ion-toolbar>

@@ -1,13 +1,334 @@
-ion-range {
- --bar-background: #bc4ee1;
- --bar-background-active: #9b0fc9;
- --bar-height: 8px;
- --bar-border-radius: 8px;
- --knob-background: #845467;
- --knob-size: 30px;
- --pin-background: #852e4e;
- --pin-color: #efeeef;
+:host {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  min-height: 0;
+  color: #ffffff;
+  background:
+    radial-gradient(circle at 14% 0%, rgba(255, 93, 143, 0.18), transparent 38%),
+    radial-gradient(circle at 100% 14%, rgba(255, 122, 89, 0.14), transparent 34%),
+    linear-gradient(135deg, #111729 0%, #171d33 56%, #101526 100%);
+  --modal-bg: #101526;
+  --modal-panel: rgba(255, 255, 255, 0.075);
+  --modal-line: rgba(255, 255, 255, 0.14);
+  --modal-muted: rgba(255, 255, 255, 0.66);
+  --modal-rose: #ff5d8f;
+  --modal-coral: #ff7a59;
+  --modal-gold: #f2c76e;
 }
+
+ion-content.auth-modal-content {
+  flex: 1 1 auto;
+  min-height: 0;
+  height: auto;
+  --background:
+    radial-gradient(circle at 14% 0%, rgba(255, 93, 143, 0.18), transparent 38%),
+    radial-gradient(circle at 100% 14%, rgba(255, 122, 89, 0.14), transparent 34%),
+    linear-gradient(135deg, #111729 0%, #171d33 56%, #101526 100%);
+  --color: #ffffff;
+}
+
+ion-content.auth-modal-content::part(background) {
+  background:
+    radial-gradient(circle at 14% 0%, rgba(255, 93, 143, 0.18), transparent 38%),
+    radial-gradient(circle at 100% 14%, rgba(255, 122, 89, 0.14), transparent 34%),
+    linear-gradient(135deg, #111729 0%, #171d33 56%, #101526 100%);
+}
+
+.auth-modal-shell {
+  min-height: 100%;
+  padding: clamp(22px, 4vw, 38px);
+}
+
+.auth-modal-heading {
+  max-width: 560px;
+  margin-bottom: 24px;
+}
+
+.auth-modal-heading span {
+  display: inline-flex;
+  margin-bottom: 10px;
+  color: #ffd1dc;
+  font-size: 12px;
+  font-weight: 900;
+  letter-spacing: 0;
+  text-transform: uppercase;
+}
+
+.auth-modal-heading h2 {
+  margin: 0 0 8px;
+  color: #ffffff;
+  font-size: clamp(30px, 5vw, 48px);
+  line-height: 1;
+  letter-spacing: 0;
+}
+
+.auth-modal-heading p {
+  margin: 0;
+  color: var(--modal-muted);
+  font-size: 15px;
+  line-height: 1.55;
+}
+
+.auth-modal-form {
+  display: grid;
+  gap: 14px;
+}
+
+.auth-hidden-control {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  opacity: 0;
+  pointer-events: none;
+}
+
+.account-step {
+  display: grid;
+  align-content: center;
+}
+
+.profile-form {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  align-items: stretch;
+}
+
+.auth-modal-field {
+  min-height: 76px;
+  overflow: hidden;
+  border: 1px solid var(--modal-line);
+  border-radius: 18px;
+  --background: var(--modal-panel);
+  --border-color: transparent;
+  --border-radius: 18px;
+  --color: #ffffff;
+  --highlight-color-focused: var(--modal-rose);
+  --inner-padding-end: 16px;
+  --padding-bottom: 6px;
+  --padding-end: 4px;
+  --padding-start: 16px;
+  --padding-top: 6px;
+  backdrop-filter: blur(14px);
+}
+
+.auth-modal-field::part(native) {
+  background:
+    linear-gradient(135deg, rgba(255, 255, 255, 0.11), rgba(255, 255, 255, 0.055));
+  border-radius: 18px;
+}
+
+.auth-modal-field ion-input,
+.auth-modal-field ion-select {
+  --color: #ffffff;
+  --highlight-color-focused: var(--modal-rose);
+  --placeholder-color: rgba(255, 255, 255, 0.38);
+  font-weight: 700;
+}
+
+.auth-modal-field ion-select::part(icon) {
+  width: 20px;
+  height: 20px;
+  color: #ffd1dc;
+  opacity: 1;
+}
+
+.auth-modal-field ion-select::part(text) {
+  color: #ffffff;
+}
+
+.auth-modal-field ion-select::part(placeholder) {
+  color: rgba(255, 255, 255, 0.38);
+  opacity: 1;
+}
+
+.auth-modal-field ion-input::part(label),
+.auth-modal-field ion-select::part(label) {
+  color: rgba(255, 255, 255, 0.7);
+  font-size: 12px;
+  font-weight: 900;
+  letter-spacing: 0;
+}
+
+.auth-modal-date-field {
+  cursor: pointer;
+}
+
+.auth-modal-date-field ion-icon {
+  color: #ffd1dc;
+  font-size: 22px;
+}
+
+.auth-modal-date-value {
+  display: grid;
+  gap: 7px;
+  min-width: 0;
+  padding: 6px 0;
+}
+
+.auth-modal-date-value span,
+.auth-modal-range-head span {
+  color: rgba(255, 255, 255, 0.7);
+  font-size: 12px;
+  font-weight: 900;
+}
+
+.auth-modal-date-value strong,
+.auth-modal-range-head strong {
+  min-width: 0;
+  color: #ffffff;
+  font-size: 17px;
+  line-height: 1.2;
+}
+
+.auth-modal-date-value strong.is-placeholder {
+  color: rgba(255, 255, 255, 0.38);
+}
+
+.auth-modal-range-card {
+  grid-column: 1 / -1;
+  display: grid;
+  gap: 16px;
+  min-height: 124px;
+  padding: 18px;
+  border: 1px solid var(--modal-line);
+  border-radius: 20px;
+  background:
+    linear-gradient(135deg, rgba(255, 255, 255, 0.11), rgba(255, 255, 255, 0.055));
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.08),
+    0 16px 36px rgba(0, 0, 0, 0.18);
+  backdrop-filter: blur(14px);
+}
+
+.auth-modal-range-head {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 14px;
+}
+
+.auth-modal-range {
+  width: 100%;
+  padding-inline: 0;
+}
+
+ion-range {
+  --bar-background: rgba(255, 255, 255, 0.16);
+  --bar-background-active: linear-gradient(90deg, var(--modal-rose), var(--modal-coral));
+  --bar-border-radius: 999px;
+  --bar-height: 8px;
+  --knob-background: #ffffff;
+  --knob-box-shadow: 0 8px 20px rgba(255, 93, 143, 0.34);
+  --knob-size: 28px;
+  --height: 54px;
+  --pin-background: var(--modal-rose);
+  --pin-color: #ffffff;
+  color: #ffffff;
+  font-weight: 800;
+}
+
+ion-range ion-icon {
+  color: rgba(255, 255, 255, 0.74);
+  font-size: 22px;
+}
+
+.auth-modal-toolbar {
+  flex: 0 0 auto;
+  position: relative;
+  z-index: 2;
+  --background: rgba(13, 18, 36, 0.96);
+  --border-color: rgba(255, 255, 255, 0.12);
+  --color: #ffffff;
+  border-top: 1px solid rgba(255, 255, 255, 0.1);
+  padding: 12px clamp(14px, 3vw, 28px);
+}
+
+.auth-modal-toolbar ion-buttons {
+  gap: 10px;
+}
+
+.auth-modal-toolbar ion-button {
+  min-height: 46px;
+  margin: 0;
+  --border-radius: 999px;
+  font-weight: 900;
+  letter-spacing: 0;
+  text-transform: none;
+  white-space: nowrap;
+}
+
+.auth-modal-toolbar .primary-action {
+  --background: linear-gradient(135deg, var(--modal-rose), var(--modal-coral));
+  --background-hover: linear-gradient(135deg, #ff6b98, #ff8768);
+  --box-shadow: 0 14px 30px rgba(255, 93, 143, 0.28);
+  --color: #ffffff;
+  min-width: 140px;
+}
+
+.auth-modal-toolbar .primary-action[disabled] {
+  opacity: 0.42;
+}
+
+.auth-modal-toolbar .secondary-action {
+  --background: rgba(255, 255, 255, 0.07);
+  --background-hover: rgba(255, 255, 255, 0.12);
+  --color: rgba(255, 255, 255, 0.82);
+}
+
 .d-flex {
-    display: flex !important;
+  display: flex !important;
+}
+
+@media screen and (max-width: 680px) {
+  :host {
+    max-height: calc(100dvh - 112px);
+  }
+
+  .auth-modal-shell {
+    padding: 20px;
+  }
+
+  .profile-form {
+    grid-template-columns: 1fr;
+  }
+
+  .auth-modal-range-card {
+    min-height: 118px;
+    padding: 16px;
+  }
+
+  .auth-modal-range-head {
+    align-items: flex-start;
+    flex-direction: column;
+    gap: 6px;
+  }
+
+  .auth-modal-heading {
+    margin-bottom: 18px;
+  }
+
+  .auth-modal-heading h2 {
+    font-size: clamp(28px, 10vw, 40px);
+  }
+
+  .auth-modal-toolbar {
+    padding-inline: 12px;
+  }
+
+  .auth-modal-toolbar ion-buttons[slot="start"] {
+    flex: 0 0 auto;
+  }
+
+  .auth-modal-toolbar ion-buttons[slot="end"] {
+    flex: 1 1 auto;
+    justify-content: flex-end;
+  }
+
+  .auth-modal-toolbar ion-button {
+    width: auto;
+  }
+
+  .auth-modal-toolbar .primary-action {
+    min-width: min(178px, 54vw);
+  }
 }

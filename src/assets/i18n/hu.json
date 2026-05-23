@@ -16,7 +16,8 @@
     "loading": "Betöltés...",
     "save": "Mentés",
     "signOut": "Kilépés",
-    "upload": "Feltöltés"
+    "upload": "Feltöltés",
+    "chooseFiles": "Képek kiválasztása"
   },
   "tabs": {
     "amor": "Amor",
@@ -60,13 +61,18 @@
       "goToLogin": "Már van fiókod? Jelentkezz be"
     },
     "modal": {
+      "accountEyebrow": "Biztons\u00e1gos bel\u00e9p\u00e9s",
+      "accountIntro": "Kezdd az emailed megad\u00e1s\u00e1val, ut\u00e1na fel\u00e9p\u00edtj\u00fck azt a profilt, amit m\u00e1sok l\u00e1tnak.",
       "emailLabel": "Email cím",
       "emailPlaceholder": "Email",
       "passwordLabel": "Minimum 6 karakter",
       "passwordPlaceholder": "Jelszó",
       "welcome": "Üdvözlünk az Amorban",
+      "profileEyebrow": "Profilbe\u00e1ll\u00edt\u00e1s",
+      "profileIntro": "Ezek az adatok seg\u00edtenek, hogy az Amor hozz\u00e1d ill\u0151 embereket aj\u00e1nljon.",
       "basicData": "Alapadatok",
       "createAccount": "Fiók létrehozása",
+      "selectDate": "V\u00e1lassz d\u00e1tumot",
       "next": "Tovább"
     },
     "signOut": {

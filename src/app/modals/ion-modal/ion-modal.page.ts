@@ -12,15 +12,16 @@ import {
   IonButtons,
   IonChip,
   IonContent,
+  IonDatetime,
   IonIcon,
   IonImg,
   IonInput,
   IonItem,
   IonLabel,
+  IonPopover,
   IonRange,
   IonSelect,
   IonSelectOption,
-  IonTitle,
   IonToolbar,
   ModalController,
 } from '@ionic/angular/standalone';
@@ -46,21 +47,25 @@ import { UserClass } from '../../shared/models/user.model';
     IonButtons,
     IonChip,
     IonContent,
+    IonDatetime,
     IonIcon,
     IonImg,
     IonInput,
     IonItem,
     IonLabel,
+    IonPopover,
     IonRange,
     IonSelect,
     IonSelectOption,
-    IonTitle,
     IonToolbar,
   ],
 })
 export class IonModalPage implements AfterViewInit {
   readonly fieldLabel = translatedFieldLabel;
   readonly optionLabel = translatedOptionLabel;
+  readonly selectInterfaceOptions = {
+    cssClass: 'amor-auth-select-popover',
+  };
 
   @ViewChild('swiperRef') swiperRef?: ElementRef<SwiperContainer>;
   email?: string;
@@ -73,6 +78,32 @@ export class IonModalPage implements AfterViewInit {
   chosenIndex: number = 0;
 
   constructor(private modalCtrl: ModalController) { }
+
+  dateTriggerId(key: string) {
+    return `auth-date-${key}`;
+  }
+
+  formatDateValue(value: unknown) {
+    if (!value || typeof value !== 'string') {
+      return '';
+    }
+
+    const date = new Date(value);
+
+    if (Number.isNaN(date.getTime())) {
+      return value;
+    }
+
+    return date.toLocaleDateString(undefined, {
+      day: '2-digit',
+      month: 'short',
+      year: 'numeric',
+    });
+  }
+
+  setDateValue(key: string, value: string | string[] | null | undefined) {
+    this.userProf[key] = Array.isArray(value) ? value[0] : value ?? '';
+  }
 
   ngAfterViewInit() {
     if (this.myPhotos?.length) {

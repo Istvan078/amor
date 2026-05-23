@@ -6,14 +6,18 @@ import {
   IonCardContent,
   IonCheckbox,
   IonCol,
+  IonDatetime,
   IonGrid,
   IonIcon,
   IonImg,
   IonInput,
   IonItem,
   IonList,
+  IonPopover,
   IonRange,
   IonRow,
+  IonSelect,
+  IonSelectOption,
   IonText,
   IonTextarea,
 } from '@ionic/angular/standalone';
@@ -23,6 +27,7 @@ import {
   translatedChoiceLabel,
   translatedFieldLabel,
   translatedFieldPlaceholder,
+  translatedOptionLabel,
   translatedProfileValue,
 } from '../../../../shared/i18n/profile-value-labels';
 import { Options } from '../../../../shared/models/options.model';
@@ -45,14 +50,18 @@ export type ProfileChoiceSelectedEvent = {
     IonCardContent,
     IonCheckbox,
     IonCol,
+    IonDatetime,
     IonGrid,
     IonIcon,
     IonImg,
     IonInput,
     IonItem,
     IonList,
+    IonPopover,
     IonRange,
     IonRow,
+    IonSelect,
+    IonSelectOption,
     IonText,
     IonTextarea,
   ],
@@ -61,7 +70,11 @@ export class DiscoverProfilePanelComponent {
   readonly choiceLabel = translatedChoiceLabel;
   readonly fieldLabel = translatedFieldLabel;
   readonly fieldPlaceholder = translatedFieldPlaceholder;
+  readonly optionLabel = translatedOptionLabel;
   readonly profileValueText = translatedProfileValue;
+  readonly selectInterfaceOptions = {
+    cssClass: 'amor-auth-select-popover',
+  };
 
   @Input() userProfile!: UserClass;
   @Input() labels: any = {};
@@ -75,4 +88,38 @@ export class DiscoverProfilePanelComponent {
   @Output() profileUpdated = new EventEmitter<void>();
   @Output() signOutRequested = new EventEmitter<void>();
   @Output() choicesSelected = new EventEmitter<ProfileChoiceSelectedEvent>();
+
+  dateTriggerId(key: string) {
+    return `profile-date-${key}`;
+  }
+
+  formatDateValue(value: unknown) {
+    if (!value || typeof value !== 'string') {
+      return '';
+    }
+
+    const date = new Date(value);
+
+    if (Number.isNaN(date.getTime())) {
+      return value;
+    }
+
+    return date.toLocaleDateString(undefined, {
+      day: '2-digit',
+      month: 'short',
+      year: 'numeric',
+    });
+  }
+
+  setDateValue(key: string, value: string | string[] | null | undefined) {
+    this.userProfile[key] = Array.isArray(value) ? value[0] : value ?? '';
+
+    if (key === 'birthDate') {
+      this.userProfile.calcAge();
+    }
+  }
+
+  selectedFileNames() {
+    return this.selectedFiles.map((file) => file.name).join(', ');
+  }
 }

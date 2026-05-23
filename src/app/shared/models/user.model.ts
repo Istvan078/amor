@@ -10,6 +10,7 @@ interface RegistrationDataForLogin {
 export enum LookingFor {
   man = 'Ferfi',
   woman = 'No',
+  other = 'Egyeb',
 }
 
 interface Study {

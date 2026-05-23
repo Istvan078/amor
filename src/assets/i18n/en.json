@@ -16,7 +16,8 @@
     "loading": "Loading...",
     "save": "Save",
     "signOut": "Sign out",
-    "upload": "Upload"
+    "upload": "Upload",
+    "chooseFiles": "Choose photos"
   },
   "tabs": {
     "amor": "Amor",
@@ -60,13 +61,18 @@
       "goToLogin": "Already have an account? Sign in"
     },
     "modal": {
+      "accountEyebrow": "Secure access",
+      "accountIntro": "Start with your email, then shape the profile people will discover.",
       "emailLabel": "Email address",
       "emailPlaceholder": "Email",
       "passwordLabel": "Minimum 6 characters",
       "passwordPlaceholder": "Password",
       "welcome": "Welcome to Amor",
+      "profileEyebrow": "Profile setup",
+      "profileIntro": "These details help Amor suggest people who fit your preferences.",
       "basicData": "Basic details",
       "createAccount": "Create account",
+      "selectDate": "Select date",
       "next": "Next"
     },
     "signOut": {

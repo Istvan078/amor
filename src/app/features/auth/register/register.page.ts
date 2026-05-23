@@ -51,6 +51,7 @@ export class RegisterPage implements OnInit {
         const ionModalRef = await this.modalCtrl.create({
             component: IonModalPage,
             animated: true,
+            cssClass: 'amor-auth-modal',
             componentProps,
         });
 

@@ -98,3 +98,101 @@
   letter-spacing: 1px;
   margin-bottom: 15px;
 }
+
+ion-modal.amor-auth-modal {
+  --width: min(760px, calc(100vw - 40px));
+  --height: min(780px, calc(100dvh - 48px));
+  --border-radius: 28px;
+  --box-shadow: 0 34px 90px rgba(0, 0, 0, 0.48);
+  --backdrop-opacity: 0.72;
+}
+
+ion-modal.amor-auth-modal::part(content) {
+  overflow: hidden;
+  border: 1px solid rgba(255, 255, 255, 0.16);
+  background: #101526;
+}
+
+ion-popover.amor-auth-select-popover {
+  --width: min(340px, calc(100vw - 36px));
+  --box-shadow: 0 24px 70px rgba(0, 0, 0, 0.48);
+  --backdrop-opacity: 0.38;
+}
+
+ion-popover.amor-auth-select-popover::part(content),
+ion-popover.amor-auth-date-popover::part(content) {
+  overflow: hidden;
+  border: 1px solid rgba(255, 255, 255, 0.16);
+  border-radius: 22px;
+  background:
+    radial-gradient(circle at 0% 0%, rgba(255, 93, 143, 0.16), transparent 42%),
+    linear-gradient(135deg, #171d31, #101526);
+  color: #ffffff;
+  box-shadow: 0 24px 70px rgba(0, 0, 0, 0.48);
+}
+
+ion-popover.amor-auth-select-popover ion-list {
+  padding: 8px;
+  background: transparent;
+}
+
+ion-popover.amor-auth-select-popover ion-item {
+  --min-height: 52px;
+  --background: transparent;
+  --background-hover: rgba(255, 255, 255, 0.08);
+  --border-color: transparent;
+  --border-radius: 16px;
+  --color: #f8f5ef;
+  --inner-padding-end: 12px;
+  --padding-start: 12px;
+  margin: 3px 0;
+  border-radius: 16px;
+  font-weight: 800;
+}
+
+ion-popover.amor-auth-select-popover ion-radio {
+  --color: rgba(255, 255, 255, 0.44);
+  --color-checked: #ff5d8f;
+}
+
+ion-popover.amor-auth-date-popover {
+  --width: min(390px, calc(100vw - 32px));
+  --box-shadow: 0 24px 70px rgba(0, 0, 0, 0.48);
+  --backdrop-opacity: 0.38;
+}
+
+ion-popover.amor-auth-date-popover ion-datetime {
+  --background: transparent;
+  --background-rgb: 17, 21, 38;
+  --title-color: #ffffff;
+  color: #ffffff;
+}
+
+ion-popover.amor-auth-date-popover ion-datetime::part(calendar-day) {
+  color: rgba(255, 255, 255, 0.82);
+}
+
+ion-popover.amor-auth-date-popover ion-datetime::part(calendar-day active),
+ion-popover.amor-auth-date-popover ion-datetime::part(wheel-item active) {
+  background: linear-gradient(135deg, #ff5d8f, #ff7a59);
+  color: #ffffff;
+}
+
+ion-popover.amor-auth-date-popover ion-datetime::part(calendar-day today) {
+  border-color: #f2c76e;
+  color: #f2c76e;
+}
+
+ion-popover.amor-auth-date-popover ion-button {
+  --color: #ff8aa9;
+  font-weight: 900;
+  text-transform: none;
+}
+
+@media screen and (max-width: 680px) {
+  ion-modal.amor-auth-modal {
+    --width: calc(100vw - 22px);
+    --height: calc(100dvh - 112px);
+    --border-radius: 24px;
+  }
+}
