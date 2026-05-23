@@ -11,7 +11,7 @@ import {
 import { Observable, of } from 'rxjs';
 
 import { environment } from '../../../../environments/environment';
-import type { AuthUser, UserClaims } from '../store/auth.store';
+import { AuthUser, UserClaims } from '../store/auth.slice';
 
 type LoginData = {
     email: string;

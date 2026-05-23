@@ -1,4 +1,6 @@
 import { Routes } from '@angular/router';
+import { publicOnlyGuard } from './features/auth/guards/public-only.guard';
+import { authGuard } from './features/auth/guards/auth.guard';
 
 export const routes: Routes = [
     {
@@ -13,6 +15,7 @@ export const routes: Routes = [
         children: [
             {
                 path: 'register',
+                canMatch: [publicOnlyGuard],
                 loadComponent: () =>
                     import('./features/auth/register/register.page').then(
                         (m) => m.RegisterPage
@@ -20,11 +23,13 @@ export const routes: Routes = [
             },
             {
                 path: 'login',
+                canMatch: [publicOnlyGuard],
                 loadComponent: () =>
                     import('./features/auth/login/login.page').then((m) => m.LoginPage),
             },
             {
                 path: 'discover',
+                canMatch: [authGuard],
                 loadComponent: () =>
                     import('./features/discover/pages/discover.page').then(
                         (m) => m.DiscoverPage

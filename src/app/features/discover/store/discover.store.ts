@@ -6,11 +6,12 @@ import {
     withState,
 } from '@ngrx/signals';
 
-import { AuthStore, AuthUser, UserClaims } from '../../auth/store/auth.store';
+import { AuthStore } from '../../auth/store/auth.store';
 import { ProfileStore } from '../../profile/store/profile.store';
 import { LocationService } from '../../../services/location.service';
 import { MatchParts, UserClass } from '../../../shared/models/user.model';
 import { DiscoverRepository } from '../data-access/discover.repository';
+import { AuthUser, UserClaims } from '../../auth/store/auth.slice';
 
 type DiscoverState = {
     loggedUser: any | null;

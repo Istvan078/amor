@@ -10,52 +10,7 @@ import {
 import { firstValueFrom, Subscription } from 'rxjs';
 
 import { AuthRepository } from '../data-access/auth.repository';
-
-export type AuthUser = {
-    uid: string;
-    email: string | null;
-    displayName?: string | null;
-    photoURL?: string | null;
-    emailVerified?: boolean;
-    idToken?: string;
-    claims?: UserClaims | null;
-    raw?: unknown;
-};
-
-export type UserClaims = {
-    gender?: 'No' | 'Ferfi' | 'Egyeb' | string;
-    lookingForGender?: 'No' | 'Ferfi' | string;
-    lookingForDistance?: number;
-    currentPlace?: string;
-    currentLocCoords?: {
-        lat: number;
-        lon: number;
-    };
-    lookingForAge?: {
-        lower: number;
-        upper: number;
-    };
-};
-
-type AuthState = {
-    user: AuthUser | null;
-    claims: UserClaims | null;
-    users: AuthUser[];
-    autoFillEmail: string | null;
-    initialized: boolean;
-    loading: boolean;
-    error: string | null;
-};
-
-const initialState: AuthState = {
-    user: null,
-    claims: null,
-    users: [],
-    autoFillEmail: null,
-    initialized: false,
-    loading: false,
-    error: null,
-};
+import { AuthUser, initialState, UserClaims } from './auth.slice';
 
 export const AuthStore = signalStore(
     {
@@ -143,25 +98,25 @@ export const AuthStore = signalStore(
         }
 
         function startAuthListener() {
-                if (authListenerStarted) {
-                    return;
-                }
+            if (authListenerStarted) {
+                return;
+            }
 
-                authListenerStarted = true;
-                authSubscription = repository.user$.subscribe({
-                    next: (firebaseUser) => {
-                        void setFirebaseUser(firebaseUser);
-                    },
-                    error: (error) => {
-                        console.error(error);
-                        patchState(store, {
-                            initialized: true,
-                            loading: false,
-                            error: 'Authentication listener failed.',
-                        });
-                        resolveReady();
-                    },
-                });
+            authListenerStarted = true;
+            authSubscription = repository.user$.subscribe({
+                next: (firebaseUser) => {
+                    void setFirebaseUser(firebaseUser);
+                },
+                error: (error) => {
+                    console.error(error);
+                    patchState(store, {
+                        initialized: true,
+                        loading: false,
+                        error: 'Authentication listener failed.',
+                    });
+                    resolveReady();
+                },
+            });
         }
 
         return {

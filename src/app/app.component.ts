@@ -6,6 +6,8 @@ import { TranslocoService } from '@jsverse/transloco';
 import { UpdateService } from './core/update/update.service';
 import { AuthStore } from './features/auth/store/auth.store';
 import { LanguageSwitcherComponent } from './shared/ui/language-switcher/language-switcher.component';
+import { Capacitor } from '@capacitor/core';
+import { StatusBar, Style } from '@capacitor/status-bar';
 
 @Component({
   selector: 'app-root',
@@ -20,12 +22,27 @@ export class AppComponent implements OnInit {
   private swUpdate = inject(SwUpdate);
   private transloco = inject(TranslocoService);
 
-  ngOnInit() {
+  async ngOnInit() {
+    await this.setupNativeStatusBar();
     this.setInitialLanguage();
     this.authStore.startAuthListener();
 
     if (this.swUpdate.isEnabled) {
       this.updateService.checkForUpdate();
+    }
+  }
+
+  private async setupNativeStatusBar() {
+    // if the app is not running on android or ios, we don't need to do anything
+    if (!Capacitor.isNativePlatform()) return;
+    try {
+      await StatusBar.hide();
+      // await StatusBar.setOverlaysWebView({ overlay: true });
+      // await StatusBar.setBackgroundColor({ color: '#0b1023' });
+      // await StatusBar.setStyle({ style: Style.Light });
+    }
+    catch (error) {
+      console.warn('Failed to set up native status bar', error);
     }
   }
 
