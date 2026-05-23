@@ -80,6 +80,9 @@ export class DiscoverPage implements OnInit {
   selectedMessProf?: UserClass;
   options: Options = new Options();
 
+  private loadedDiscoverUid: string | null = null;
+  private loadingDiscoverUid: string | null = null;
+
   private authStore = inject(AuthStore);
   private profileStore = inject(ProfileStore);
   readonly discoverStore = inject(DiscoverStore);
@@ -97,6 +100,20 @@ export class DiscoverPage implements OnInit {
   ) {
     effect(() => {
       this.user = this.authStore.user();
+
+      const uid = this.user?.uid ?? null;
+
+      if (!uid) {
+        this.loadedDiscoverUid = null;
+        this.loadingDiscoverUid = null;
+        return;
+      }
+
+      queueMicrotask(() => {
+        if (this.authStore.user()?.uid === uid) {
+          void this.ensureDiscoverData(uid);
+        }
+      });
     });
 
     effect(() => {
@@ -149,20 +166,60 @@ export class DiscoverPage implements OnInit {
 
   async ngOnInit() {
     this.updatePhoneView();
+    this.setPromotion();
 
-    await this.discoverStore.loadDiscoverData();
-    this.syncDiscoverState();
-    this.initMainView();
+    await this.ensureDiscoverData(this.authStore.user()?.uid);
   }
 
   private updatePhoneView() {
     this.discoverUiStore.setPhoneView(window.innerWidth <= 768);
   }
 
-  private initMainView() {
-    void this.setMatchProfiles(this.possibleMatchIds);
+  private async initMainView() {
+    await this.setMatchProfiles(this.possibleMatchIds);
     this.setPromotion();
     this.setUProfLabels();
+  }
+
+  private async ensureDiscoverData(uid?: string | null) {
+    if (!uid || this.loadedDiscoverUid === uid || this.loadingDiscoverUid === uid) {
+      return;
+    }
+
+    this.loadingDiscoverUid = uid;
+    this.resetActiveDiscoverView();
+
+    try {
+      await this.discoverStore.loadDiscoverData();
+
+      if (this.authStore.user()?.uid !== uid) {
+        return;
+      }
+
+      this.syncDiscoverState();
+      await this.initMainView();
+
+      if (!this.discoverStore.error()) {
+        this.loadedDiscoverUid = uid;
+      }
+    } finally {
+      if (this.loadingDiscoverUid === uid) {
+        this.loadingDiscoverUid = null;
+      }
+    }
+  }
+
+  private resetActiveDiscoverView() {
+    this.matchProf = undefined;
+    this.selectedMessProf = undefined;
+    this.matches = [];
+    this.possibleMatchIds = [];
+    this.matchProfiles = [];
+    this.possMatchDetLists = [];
+    this.isMatchDetailsOpen = false;
+    this.isMatchPlaceHolder = false;
+    this.progress = 0;
+    this.buffer = 0;
   }
 
   private syncDiscoverState() {
@@ -208,6 +265,8 @@ export class DiscoverPage implements OnInit {
 
     if (this.progress === 100 && !possibleMatchIds.length) {
       this.isMatchPlaceHolder = true;
+      this.matchProf = undefined;
+      this.matchProfiles = [];
       this.possMatchDetLists = [];
       return;
     }
@@ -235,18 +294,21 @@ export class DiscoverPage implements OnInit {
   changeMatchProf() {
     if (!this.matchProf) return;
 
-    if (this.matchProf!['index'] !== this.matchProfiles.length - 1) {
-      const index = this.matchProf!['index'];
-      this.matchProf = this.matchProfiles[index + 1];
-      this.matchProf!['index'] = index + 1;
+    const currentIndex = Number(this.matchProf['index'] ?? 0);
+    const nextIndex = currentIndex + 1;
+
+    this.isMatchDetailsOpen = false;
+
+    if (nextIndex < this.matchProfiles.length) {
+      this.matchProf = this.matchProfiles[nextIndex];
+      this.matchProf!['index'] = nextIndex;
       this.setUProfLabels();
+      return;
     }
 
-    if (this.matchProf!['index'] === this.matchProfiles.length - 1) {
-      this.matchProf = undefined;
-      this.possMatchDetLists = [];
-      this.isMatchPlaceHolder = true;
-    }
+    this.matchProf = undefined;
+    this.possMatchDetLists = [];
+    this.isMatchPlaceHolder = true;
   }
 
   async likeOrDontUser(
@@ -301,6 +363,10 @@ export class DiscoverPage implements OnInit {
 
   toggleMatchDetails() {
     this.isMatchDetailsOpen = !this.isMatchDetailsOpen;
+  }
+
+  closeMatchDetails() {
+    this.isMatchDetailsOpen = false;
   }
 
   async likeCurrentMatch() {
@@ -439,6 +505,8 @@ export class DiscoverPage implements OnInit {
     this.isMatchPlaceHolder = false;
     this.isShowMessages = false;
     this.possMatchDetLists = [];
+    this.loadedDiscoverUid = null;
+    this.loadingDiscoverUid = null;
     this.router.navigate(['/amor/login']);
   }
 }

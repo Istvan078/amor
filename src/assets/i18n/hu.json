@@ -11,6 +11,7 @@
   "common": {
     "back": "Vissza",
     "cancel": "Mégsem",
+    "close": "Bez\u00e1r\u00e1s",
     "continue": "Tovább",
     "loading": "Betöltés...",
     "save": "Mentés",
@@ -45,6 +46,15 @@
     },
     "register": {
       "title": "Fiók létrehozása",
+      "eyebrow": "Csatlakozz az Amorhoz",
+      "cardEyebrow": "\u00daj vagy itt?",
+      "subtitle": "\u00c9p\u00edts olyan profilt, ami m\u00e1r az els\u0151 pillanatt\u00f3l ig\u00e9nyesnek hat.",
+      "heroTitle": "Tal\u00e1lj valakit, aki a te temp\u00f3dban kapcsol\u00f3dik",
+      "heroCopy": "Hozz l\u00e9tre letisztult profilt, finomhangold a preferenci\u00e1idat, \u00e9s l\u00e9pj be jobb besz\u00e9lget\u00e9sekbe.",
+      "featureOne": "Priv\u00e1t profilbe\u00e1ll\u00edt\u00e1s",
+      "featureTwo": "V\u00e1logatott felfedez\u00e9s",
+      "featureThree": "Tartalmas besz\u00e9lget\u00e9sek",
+      "secureNote": "A k\u00e9peidet, adataidat \u00e9s preferenci\u00e1idat regisztr\u00e1ci\u00f3 ut\u00e1n is finom\u00edthatod.",
       "continue": "Folytatás az Amorba",
       "createAccount": "Fiók létrehozása",
       "goToLogin": "Már van fiókod? Jelentkezz be"

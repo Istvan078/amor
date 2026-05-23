@@ -1,37 +1,58 @@
 <ng-container *transloco="let t">
-  <ion-header [translucent]="true">
-    <ion-toolbar>
-      <ion-title>{{ t('app.name') }}</ion-title>
-    </ion-toolbar>
-  </ion-header>
+  <ion-content class="register-page" [fullscreen]="true">
+    <section class="register-shell">
+      <article class="register-hero">
+        <div class="register-hero-image">
+          <img
+            src="https://img.freepik.com/free-photo/silhouette-couple-love-being-affectionate_23-2150984243.jpg?t=st=1741881261~exp=1741884861~hmac=f9d3a5a0a33547efaac51151634c9c05c1de7deadfe301a56e56ff9cd2d284a9&w=740"
+            alt="Romantic couple silhouette"
+          />
+        </div>
+        <div class="register-hero-content">
+          <span>{{ t('auth.register.eyebrow') }}</span>
+          <h1>{{ t('auth.register.heroTitle') }}</h1>
+          <p>{{ t('auth.register.heroCopy') }}</p>
+        </div>
+      </article>
 
-  <ion-content [fullscreen]="true">
-    <ion-header collapse="condense">
-      <ion-toolbar>
-        <ion-title size="large">{{ t('auth.register.title') }}</ion-title>
-      </ion-toolbar>
-    </ion-header>
+      <aside class="register-card">
+        <div class="register-brand">
+          <span>{{ t('app.name') }}</span>
+          <strong>{{ t('app.tagline') }}</strong>
+        </div>
 
-    <div class="background-image-cont">
-      <img
-        src="https://img.freepik.com/free-photo/silhouette-couple-love-being-affectionate_23-2150984243.jpg?t=st=1741881261~exp=1741884861~hmac=f9d3a5a0a33547efaac51151634c9c05c1de7deadfe301a56e56ff9cd2d284a9&w=740"
-        alt="Romantic couple silhouette"
-      />
-    </div>
+        <div class="register-card-heading">
+          <span>{{ t('auth.register.cardEyebrow') }}</span>
+          <h2>{{ t('auth.register.title') }}</h2>
+          <p>{{ t('auth.register.subtitle') }}</p>
+        </div>
 
-    <div class="ion-padding reg-container">
-      <ion-button color="success" expand="block" (click)="regUser()">
-        {{ user?.uid ? t('auth.register.continue') : t('auth.register.createAccount') }} @if
-        (user?.uid) {
-        <ion-icon name="arrow-forward-outline"></ion-icon>
-        } @else {
-        <ion-icon name="people-outline"></ion-icon>
-        }
-      </ion-button>
+        <ion-button class="register-submit" expand="block" (click)="regUser()">
+          {{ user?.uid ? t('auth.register.continue') : t('auth.register.createAccount') }} @if
+          (user?.uid) {
+          <ion-icon name="arrow-forward-outline" slot="end"></ion-icon>
+          } @else {
+          <ion-icon name="people-outline" slot="end"></ion-icon>
+          }
+        </ion-button>
 
-      <ion-button expand="block" fill="clear" routerLink="/amor/login">
-        {{ t('auth.register.goToLogin') }}
-      </ion-button>
-    </div>
+        <div class="register-points">
+          <span>{{ t('auth.register.featureOne') }}</span>
+          <span>{{ t('auth.register.featureTwo') }}</span>
+          <span>{{ t('auth.register.featureThree') }}</span>
+        </div>
+
+        <p class="register-note">{{ t('auth.register.secureNote') }}</p>
+
+        <ion-button
+          class="register-login-link"
+          expand="block"
+          fill="clear"
+          routerLink="/amor/login"
+        >
+          {{ t('auth.register.goToLogin') }}
+        </ion-button>
+      </aside>
+    </section>
   </ion-content>
 </ng-container>

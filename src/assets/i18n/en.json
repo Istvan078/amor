@@ -11,6 +11,7 @@
   "common": {
     "back": "Back",
     "cancel": "Cancel",
+    "close": "Close",
     "continue": "Continue",
     "loading": "Loading...",
     "save": "Save",
@@ -45,6 +46,15 @@
     },
     "register": {
       "title": "Create account",
+      "eyebrow": "Join Amor",
+      "cardEyebrow": "New here?",
+      "subtitle": "Build a profile that feels intentional from the first hello.",
+      "heroTitle": "Meet someone who matches your pace",
+      "heroCopy": "Create a polished profile, tune your preferences and step into better conversations.",
+      "featureOne": "Private profile setup",
+      "featureTwo": "Curated discovery",
+      "featureThree": "Meaningful conversations",
+      "secureNote": "You can refine your photos, details and preferences after registration.",
       "continue": "Continue to Amor",
       "createAccount": "Create account",
       "goToLogin": "Already have an account? Sign in"

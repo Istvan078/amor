@@ -170,11 +170,13 @@ app-discover {
   }
 
   .poss-match-name {
+    position: relative;
     display: flex;
     align-items: center;
     gap: 18px;
     width: 100%;
-    padding: 0;
+    min-height: 70px;
+    padding: 0 86px 0 0;
     color: var(--amor-text);
     background: transparent;
     font-size: clamp(2rem, 4vw, 3.6rem);
@@ -196,12 +198,25 @@ app-discover {
   }
 
   .show-match-details-button {
-    width: 44px;
-    height: 44px;
-    margin-left: auto;
+    position: absolute;
+    top: 50%;
+    right: 0;
+    width: 58px;
+    height: 58px;
+    margin: 0;
+    transform: translateY(-50%);
     border-radius: 999px;
-    --background-hover: rgba(255, 255, 255, 0.12);
+    --background: rgba(10, 14, 26, 0.46);
+    --background-hover: rgba(255, 255, 255, 0.16);
+    --border-radius: 999px;
     --color: var(--amor-text);
+    --padding-end: 0;
+    --padding-start: 0;
+    backdrop-filter: blur(14px);
+  }
+
+  .show-match-details-button ion-icon {
+    font-size: 31px;
   }
 
   .interests-title {
@@ -496,12 +511,33 @@ app-discover {
     width: 360px;
     max-height: calc(100dvh - 110px);
     overflow-y: auto;
-    padding: 18px;
+    padding: 58px 18px 18px;
     border: 1px solid var(--amor-line);
     border-radius: 8px;
     background: rgba(19, 24, 40, 0.94);
     box-shadow: var(--amor-shadow);
     backdrop-filter: blur(18px);
+  }
+
+  .details-close-button {
+    position: absolute;
+    top: 14px;
+    right: 14px;
+    z-index: 3;
+    width: 48px;
+    height: 48px;
+    margin: 0;
+    --background: rgba(255, 255, 255, 0.07);
+    --background-hover: rgba(255, 255, 255, 0.14);
+    --border-radius: 999px;
+    --color: #4c8dff;
+    --padding-end: 0;
+    --padding-start: 0;
+    pointer-events: auto;
+  }
+
+  .details-close-button ion-icon {
+    font-size: 32px;
   }
 
   .poss-match-details-container ion-list {
@@ -796,6 +832,7 @@ app-discover {
 
     .poss-match-name {
       font-size: clamp(1.9rem, 8vw, 2.55rem);
+      padding-right: 0;
     }
 
     .show-match-details-button {
