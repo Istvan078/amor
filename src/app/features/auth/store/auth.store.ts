@@ -254,5 +254,5 @@ export const AuthStore = signalStore(
                 authListenerStarted = false;
             },
         };
-    })
+    }),
 );

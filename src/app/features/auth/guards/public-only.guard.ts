@@ -9,7 +9,6 @@ export const publicOnlyGuard: CanMatchFn = async () => {
   const profileStore = inject(ProfileStore);
   const router = inject(Router);
 
-
   await authStore.waitForAuthReady();
   await profileStore.loadProfile(authStore.uid() ?? '');
 

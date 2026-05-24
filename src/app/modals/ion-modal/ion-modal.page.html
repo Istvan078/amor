@@ -61,98 +61,101 @@
         <p>{{ t('auth.modal.profileIntro') }}</p>
       </div>
 
-    <form class="auth-modal-form profile-form" #form="ngForm">
-      @for(item of labels.userProfLabels; track $index) { @if(!item.setByApp &&
-      item.type !== "select" && !item.setLaterInProf && item.type !== "range" && item.type !== "date") {
-      <ion-item class="auth-modal-field">
-        <ion-input
-          [name]="item.key"
-          required
-          labelPlacement="stacked"
-          [label]="fieldLabel(t, item)"
-          [(ngModel)]="userProf[item.key]"
-          [type]="item.type"
-        ></ion-input>
-      </ion-item>
-      } @if(item.type === "select"){
-      <ion-item class="auth-modal-field">
-        <ion-select
-          interface="popover"
-          toggleIcon="chevron-down-outline"
-          [interfaceOptions]="selectInterfaceOptions"
-          [name]="item.key"
-          required
-          (ionChange)="userProf[item.key] = $event.detail.value"
-          labelPlacement="stacked"
-          [label]="fieldLabel(t, item)"
-        >
-          @for(opt of item.options; track $index; let i = $index) {
-          <ion-select-option [value]="item.values[i]">
-            {{ optionLabel(t, item, i) }}
-          </ion-select-option>
+      <form class="auth-modal-form profile-form" #form="ngForm">
+        @for(item of labels.userProfLabels; track $index) { @if(!item.setByApp && item.type !==
+        "select" && !item.setLaterInProf && item.type !== "range" && item.type !== "date") {
+        <ion-item class="auth-modal-field">
+          <ion-input
+            [name]="item.key"
+            required
+            labelPlacement="stacked"
+            [label]="fieldLabel(t, item)"
+            [(ngModel)]="userProf[item.key]"
+            [type]="item.type"
+          ></ion-input>
+        </ion-item>
+        } @if(item.type === "select"){
+        <ion-item class="auth-modal-field">
+          <ion-select
+            interface="popover"
+            toggleIcon="chevron-down-outline"
+            [interfaceOptions]="selectInterfaceOptions"
+            [name]="item.key"
+            required
+            (ionChange)="userProf[item.key] = $event.detail.value"
+            labelPlacement="stacked"
+            [label]="fieldLabel(t, item)"
+          >
+            @for(opt of item.options; track $index; let i = $index) {
+            <ion-select-option [value]="item.values[i]">
+              {{ optionLabel(t, item, i) }}
+            </ion-select-option>
 
-          }
-        </ion-select>
-      </ion-item>
-      } @if(item.type === "date" && !item.setLaterInProf){
-      <input
-        class="auth-hidden-control"
-        [name]="item.key"
-        required
-        [(ngModel)]="userProf[item.key]"
-      />
-      <ion-item
-        class="auth-modal-field auth-modal-date-field"
-        button
-        [id]="dateTriggerId(item.key)"
-      >
-        <div class="auth-modal-date-value">
-          <span>{{ fieldLabel(t, item) }}</span>
-          <strong [class.is-placeholder]="!userProf[item.key]">
-            {{ formatDateValue(userProf[item.key]) || t('auth.modal.selectDate') }}
-          </strong>
-        </div>
-        <ion-icon name="calendar-clear-outline" slot="end"></ion-icon>
-      </ion-item>
-      <ion-popover
-        cssClass="amor-auth-date-popover"
-        [trigger]="dateTriggerId(item.key)"
-        side="bottom"
-        alignment="center"
-      >
-        <ng-template>
-          <ion-datetime
-            presentation="date"
-            [value]="userProf[item.key]"
-            [showDefaultButtons]="true"
-            [preferWheel]="false"
-            (ionChange)="setDateValue(item.key, $event.detail.value)"
-          ></ion-datetime>
-        </ng-template>
-      </ion-popover>
-      } @if(item.type === "range"){
-      <div class="auth-modal-range-card">
-        <div class="auth-modal-range-head">
-          <span>{{ fieldLabel(t, item) }}</span>
-          <strong>{{ userProf[item.key].lower }} - {{ userProf[item.key].upper }}</strong>
-        </div>
-        <ion-range
-          class="auth-modal-range"
+            }
+          </ion-select>
+        </ion-item>
+        } @if(item.type === "date" && !item.setLaterInProf){
+        <input
+          class="auth-hidden-control"
           [name]="item.key"
-          [attr.aria-label]="fieldLabel(t, item)"
-          [min]="14"
-          [max]="100"
-          [pin]="true"
-          [snaps]="true"
-          [dualKnobs]="true"
+          required
           [(ngModel)]="userProf[item.key]"
+        />
+        <ion-item
+          class="auth-modal-field auth-modal-date-field"
+          button
+          [id]="dateTriggerId(item.key)"
         >
-          <ion-icon slot="start" name="accessibility-outline"></ion-icon>
-          <ion-icon slot="end" name="briefcase-outline"></ion-icon>
-        </ion-range>
-      </div>
-      } }
-    </form>
+          <div class="auth-modal-date-value">
+            <span>{{ fieldLabel(t, item) }}</span>
+            <strong [class.is-placeholder]="!userProf[item.key]">
+              {{ formatDateValue(userProf[item.key]) || t('auth.modal.selectDate') }}
+            </strong>
+          </div>
+          <ion-icon name="calendar-clear-outline" slot="end"></ion-icon>
+        </ion-item>
+        <ion-popover
+          #datePopover
+          cssClass="amor-auth-date-popover"
+          [trigger]="dateTriggerId(item.key)"
+          side="bottom"
+          alignment="center"
+        >
+          <ng-template>
+            <ion-datetime
+              presentation="date"
+              [max]="maxBirthDate"
+              [value]="userProf[item.key]"
+              [preferWheel]="true"
+              [showDefaultButtons]="true"
+              doneText="Confirm"
+              (ionChange)="setDateValue(item.key, $event.detail.value)"
+            ></ion-datetime>
+          </ng-template>
+        </ion-popover>
+        } @if(item.type === "range"){
+        <div class="auth-modal-range-card">
+          <div class="auth-modal-range-head">
+            <span>{{ fieldLabel(t, item) }}</span>
+            <strong>{{ userProf[item.key].lower }} - {{ userProf[item.key].upper }}</strong>
+          </div>
+          <ion-range
+            class="auth-modal-range"
+            [name]="item.key"
+            [attr.aria-label]="fieldLabel(t, item)"
+            [min]="14"
+            [max]="100"
+            [pin]="true"
+            [snaps]="true"
+            [dualKnobs]="true"
+            [(ngModel)]="userProf[item.key]"
+          >
+            <ion-icon slot="start" name="accessibility-outline"></ion-icon>
+            <ion-icon slot="end" name="briefcase-outline"></ion-icon>
+          </ion-range>
+        </div>
+        } }
+      </form>
     </section>
   </ion-content>
   <ion-toolbar class="auth-modal-toolbar">
@@ -169,9 +172,7 @@
       </ion-button>
     </ion-buttons>
   </ion-toolbar>
-  }
-
-  @if(myPhotos.length) {
+  } @if(myPhotos.length) {
   <ion-content [fullscreen]="true">
     <swiper-wrapper>
       <swiper-container
@@ -180,11 +181,11 @@
         [navigation]="true"
         [zoom]="true"
         #swiperRef
-        style="height: 100%; width: 100%;"
+        style="height: 100%; width: 100%"
       >
         @for(photo of myPhotos; track $index; let i = $index) {
         <swiper-slide class="d-flex ion-justify-content-center ion-align-items-center">
-          <ion-img style="height: 100%; width: 100%;" [src]="photo?.url"></ion-img>
+          <ion-img style="height: 100%; width: 100%" [src]="photo?.url"></ion-img>
         </swiper-slide>
         }
       </swiper-container>

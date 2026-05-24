@@ -5,18 +5,14 @@
         <section class="profile-shell">
           <ion-card class="user-card profile-hero">
             <div class="user-settings-card-img-cont">
-              @if(userProfile.pictures?.length) {
-              <img
-                class="w-100 h-100"
-                [src]="userProfile.pictures![0].url"
-                alt="User photo"
-              />
+              @if (userProfile.pictures?.length) {
+                <img class="w-100 h-100" [src]="userProfile.pictures![0].url" alt="User photo" />
               } @else {
-              <img
-                class="w-100 h-100"
-                src="https://img.freepik.com/free-photo/front-view-smiley-man-posing-cv_23-2149927614.jpg?t=st=1742682395~exp=1742685995~hmac=0c894e9ca76b334b0ed1f69f37ab56764bd4db0ab471e43578c54a97734e0f79&w=740"
-                alt="User photo"
-              />
+                <img
+                  class="w-100 h-100"
+                  src="https://img.freepik.com/free-photo/front-view-smiley-man-posing-cv_23-2149927614.jpg?t=st=1742682395~exp=1742685995~hmac=0c894e9ca76b334b0ed1f69f37ab56764bd4db0ab471e43578c54a97734e0f79&w=740"
+                  alt="User photo"
+                />
               }
             </div>
 
@@ -26,9 +22,9 @@
                 <ion-text>
                   {{
                     userProfile.lastName +
-                      " " +
+                      ' ' +
                       userProfile.firstName +
-                      (userProfile.age ? " " + userProfile.age : "")
+                      (userProfile.age ? ' ' + userProfile.age : '')
                   }}
                 </ion-text>
               </ion-card-content>
@@ -57,276 +53,281 @@
           <section class="profile-info-panel">
             <div class="profile-section-heading">
               <span>{{ t('discover.profile.details') }}</span>
-              @if(userProfile.currentPlace) {
-              <small>{{ userProfile.currentPlace }}</small>
+              @if (userProfile.currentPlace) {
+                <small>{{ userProfile.currentPlace }}</small>
               }
             </div>
 
             <div class="profile-stat-grid">
-              @if(userProfile.gender) {
-              <div class="profile-stat">
-                <small>{{ t('discover.profile.gender') }}</small>
-                <strong>{{ profileValueText(t, userProfile.gender) }}</strong>
-              </div>
-              }
-              @if(userProfile.lookingForGender) {
-              <div class="profile-stat">
-                <small>{{ t('discover.profile.lookingFor') }}</small>
-                <strong>{{ profileValueText(t, userProfile.lookingForGender) }}</strong>
-              </div>
-              }
-              @if(userProfile.lookingForAge) {
-              <div class="profile-stat">
-                <small>{{ t('discover.profile.age') }}</small>
-                <strong>
-                  {{ userProfile.lookingForAge.lower }} -
-                  {{ userProfile.lookingForAge.upper }}
-                </strong>
-              </div>
-              }
-              @if(userProfile.lookingForDistance) {
-              <div class="profile-stat">
-                <small>{{ t('discover.profile.distance') }}</small>
-                <strong>{{ userProfile.lookingForDistance }} km</strong>
-              </div>
-              }
-            </div>
-
-            @if(userProfile.aboutMe) {
-            <article class="profile-copy-block">
-              <small>{{ t('discover.profile.aboutMe') }}</small>
-              <p>{{ userProfile.aboutMe }}</p>
-            </article>
-            }
-
-            @if(userProfile.lookingForType) {
-            <article class="profile-copy-block">
-              <small>{{ t('discover.profile.lookingForType') }}</small>
-              <p>{{ userProfile.lookingForType }}</p>
-            </article>
-            }
-
-            @if(userProfile.interests?.length) {
-            <div class="profile-chip-group">
-              <small>{{ t('discover.profile.interests') }}</small>
-              <div>
-                @for(interest of userProfile.interests; track $index) {
-                <span class="user-choices-style">
-                  {{ profileValueText(t, interest) }}
-                </span>
-                }
-              </div>
-            </div>
-            }
-
-            @if(userProfile.freeTimeAct?.length) {
-            <div class="profile-chip-group">
-              <small>{{ t('discover.profile.freeTime') }}</small>
-              <div>
-                @for(activity of userProfile.freeTimeAct; track $index) {
-                <span class="user-choices-style">
-                  {{ profileValueText(t, activity) }}
-                </span>
-                }
-              </div>
-            </div>
-            }
-          </section>
-
-          @if(startUpdate) {
-          <section class="profile-editor-panel">
-            <div class="profile-section-heading">
-              <span>{{ t('discover.profile.editing') }}</span>
-            </div>
-
-            <ion-list>
-              @for(lab of labels.userProfLabels; track $index) {
-              @if(lab.type === "text-area"){
-              <ion-item class="profile-editor-field profile-editor-textarea-field">
-                <ion-textarea
-                  class="profile-editor-textarea"
-                  [(ngModel)]="userProfile[lab.key]"
-                  [placeholder]="fieldPlaceholder(t, lab)"
-                  [label]="fieldLabel(t, lab)"
-                  labelPlacement="stacked"
-                  maxlength="1000"
-                  [counter]="true"
-                  [autoGrow]="true"
-                  [rows]="lab.key === 'lookingForType' ? 5 : 4"
-                ></ion-textarea>
-              </ion-item>
-              }
-
-              @if(!lab.setByApp && lab.type !== "text-area" && lab.type !== "file" &&
-              lab.type !== "range" && lab.type !== "select" && lab.type !== "date" &&
-              lab.type !== "checkbox") {
-              <ion-item class="profile-editor-field">
-                <ion-input
-                  [label]="fieldLabel(t, lab)"
-                  labelPlacement="stacked"
-                  [(ngModel)]="userProfile[lab.key]"
-                  [type]="lab.type"
-                ></ion-input>
-              </ion-item>
-              }
-
-              @if(lab.type === "select") {
-              <ion-item class="profile-editor-field">
-                <ion-select
-                  interface="popover"
-                  toggleIcon="chevron-down-outline"
-                  [interfaceOptions]="selectInterfaceOptions"
-                  [label]="fieldLabel(t, lab)"
-                  labelPlacement="stacked"
-                  [(ngModel)]="userProfile[lab.key]"
-                >
-                  @for(opt of lab.options; track $index; let i = $index) {
-                  <ion-select-option [value]="lab.values[i]">
-                    {{ optionLabel(t, lab, i) }}
-                  </ion-select-option>
-                  }
-                </ion-select>
-              </ion-item>
-              }
-
-              @if(lab.type === "date") {
-              <ion-item
-                class="profile-editor-field profile-editor-date-field"
-                button
-                [id]="dateTriggerId(lab.key)"
-              >
-                <div class="profile-editor-date-value">
-                  <span>{{ fieldLabel(t, lab) }}</span>
-                  <strong [class.is-placeholder]="!userProfile[lab.key]">
-                    {{ formatDateValue(userProfile[lab.key]) || t('auth.modal.selectDate') }}
-                  </strong>
+              @if (userProfile.gender) {
+                <div class="profile-stat">
+                  <small>{{ t('discover.profile.gender') }}</small>
+                  <strong>{{ profileValueText(t, userProfile.gender) }}</strong>
                 </div>
-                <ion-icon name="calendar-clear-outline" slot="end"></ion-icon>
-              </ion-item>
-              <ion-popover
-                cssClass="amor-auth-date-popover"
-                [trigger]="dateTriggerId(lab.key)"
-                side="bottom"
-                alignment="center"
-              >
-                <ng-template>
-                  <ion-datetime
-                    presentation="date"
-                    [value]="userProfile[lab.key]"
-                    [showDefaultButtons]="true"
-                    [preferWheel]="false"
-                    (ionChange)="setDateValue(lab.key, $event.detail.value)"
-                  ></ion-datetime>
-                </ng-template>
-              </ion-popover>
               }
-
-              @if(lab.type === "range"){
-              <div class="profile-editor-range-card">
-                <div class="profile-editor-range-head">
-                  <span>{{ fieldLabel(t, lab) }}</span>
-                  <strong [class.is-placeholder]="!selectedFiles.length">
-                    {{ userProfile[lab.key]?.lower }} - {{ userProfile[lab.key]?.upper }}
-                  </strong>
+              @if (userProfile.lookingForGender) {
+                <div class="profile-stat">
+                  <small>{{ t('discover.profile.lookingFor') }}</small>
+                  <strong>{{ profileValueText(t, userProfile.lookingForGender) }}</strong>
                 </div>
-                <ion-range
-                  class="profile-editor-range"
-                  [name]="lab.key"
-                  [attr.aria-label]="fieldLabel(t, lab)"
-                  [min]="14"
-                  [max]="100"
-                  [pin]="true"
-                  [snaps]="true"
-                  [dualKnobs]="true"
-                  [(ngModel)]="userProfile[lab.key]"
-                >
-                  <ion-icon slot="start" name="accessibility-outline"></ion-icon>
-                  <ion-icon slot="end" name="briefcase-outline"></ion-icon>
-                </ion-range>
-              </div>
               }
-
-              @if(lab.type === "file") {
-              <div class="profile-editor-upload-card">
-                <div class="profile-editor-upload-copy">
-                  <span>{{ fieldLabel(t, lab) }}</span>
+              @if (userProfile.lookingForAge) {
+                <div class="profile-stat">
+                  <small>{{ t('discover.profile.age') }}</small>
                   <strong>
-                    {{
-                      selectedFiles.length
-                        ? selectedFileNames()
-                        : fieldPlaceholder(t, lab)
-                    }}
+                    {{ userProfile.lookingForAge.lower }} -
+                    {{ userProfile.lookingForAge.upper }}
                   </strong>
                 </div>
-                <input
-                  #fileInput
-                  class="profile-file-input"
-                  [type]="lab.type"
-                  [multiple]="lab.multiple"
-                  (change)="lab.change($event)"
-                />
-                <ion-button
-                  class="profile-choose-file-button"
-                  type="button"
-                  (click)="fileInput.click()"
-                >
-                  <ion-icon name="images-outline" slot="start"></ion-icon>
-                  {{ t('common.chooseFiles') }}
-                </ion-button>
-                <ion-button
-                  class="profile-upload-button"
-                  [disabled]="!selectedFiles.length"
-                  (click)="picturesSaved.emit()"
-                >
-                  {{ t('common.upload') }}
-                </ion-button>
-              </div>
-              <ion-grid>
-                <ion-row>
-                  @for(pic of userProfile.pictures ?? []; track pic.url; let i = $index){
-                  <ion-col
-                    (click)="profilePictureOpened.emit(i)"
-                    sizeXs="4"
-                    sizeSm="4"
-                    sizeMd="3"
-                    sizeLg="2"
-                  >
-                    <ion-img class="user-pictures" [src]="pic.url"></ion-img>
-                  </ion-col>
-                  }
-                </ion-row>
-              </ion-grid>
               }
+              @if (userProfile.lookingForDistance) {
+                <div class="profile-stat">
+                  <small>{{ t('discover.profile.distance') }}</small>
+                  <strong>{{ userProfile.lookingForDistance }} km</strong>
+                </div>
+              }
+            </div>
 
-              @if(lab.type === "checkbox") {
-              <section class="profile-editor-choice-card">
-                <div class="profile-editor-choice-title">{{ fieldLabel(t, lab) }}</div>
-                <div class="profile-editor-choice-grid">
-                  @for(ch of lab.choices; track $index;) {
-                  <ion-checkbox
-                    class="profile-editor-checkbox"
-                    justify="start"
-                    labelPlacement="end"
-                    [checked]="userProfile[lab.key]?.includes(ch.value)"
-                    [value]="ch"
-                    (ionChange)="choicesSelected.emit({ event: $event, labelKey: lab.key })"
-                  >
-                    {{ choiceLabel(t, ch) }}
-                  </ion-checkbox>
+            @if (userProfile.aboutMe) {
+              <article class="profile-copy-block">
+                <small>{{ t('discover.profile.aboutMe') }}</small>
+                <p>{{ userProfile.aboutMe }}</p>
+              </article>
+            }
+
+            @if (userProfile.lookingForType) {
+              <article class="profile-copy-block">
+                <small>{{ t('discover.profile.lookingForType') }}</small>
+                <p>{{ userProfile.lookingForType }}</p>
+              </article>
+            }
+
+            @if (userProfile.interests?.length) {
+              <div class="profile-chip-group">
+                <small>{{ t('discover.profile.interests') }}</small>
+                <div>
+                  @for (interest of userProfile.interests; track $index) {
+                    <span class="user-choices-style">
+                      {{ profileValueText(t, interest) }}
+                    </span>
                   }
                 </div>
-              </section>
-              }
-              }
-            </ion-list>
+              </div>
+            }
 
-            <div class="profile-actions profile-save-actions">
-              <ion-button class="profile-save-button" (click)="profileUpdated.emit()">
-                <ion-icon name="save-outline" slot="start"></ion-icon>
-                {{ t('common.save') }}
-              </ion-button>
-            </div>
+            @if (userProfile.freeTimeAct?.length) {
+              <div class="profile-chip-group">
+                <small>{{ t('discover.profile.freeTime') }}</small>
+                <div>
+                  @for (activity of userProfile.freeTimeAct; track $index) {
+                    <span class="user-choices-style">
+                      {{ profileValueText(t, activity) }}
+                    </span>
+                  }
+                </div>
+              </div>
+            }
           </section>
+
+          @if (startUpdate) {
+            <section class="profile-editor-panel">
+              <div class="profile-section-heading">
+                <span>{{ t('discover.profile.editing') }}</span>
+              </div>
+
+              <ion-list>
+                @for (lab of labels.userProfLabels; track $index) {
+                  @if (lab.type === 'text-area') {
+                    <ion-item class="profile-editor-field profile-editor-textarea-field">
+                      <ion-textarea
+                        class="profile-editor-textarea"
+                        [(ngModel)]="userProfile[lab.key]"
+                        [placeholder]="fieldPlaceholder(t, lab)"
+                        [label]="fieldLabel(t, lab)"
+                        labelPlacement="stacked"
+                        maxlength="1000"
+                        [counter]="true"
+                        [autoGrow]="true"
+                        [rows]="lab.key === 'lookingForType' ? 5 : 4"
+                      ></ion-textarea>
+                    </ion-item>
+                  }
+
+                  @if (
+                    !lab.setByApp &&
+                    lab.type !== 'text-area' &&
+                    lab.type !== 'file' &&
+                    lab.type !== 'range' &&
+                    lab.type !== 'select' &&
+                    lab.type !== 'date' &&
+                    lab.type !== 'checkbox'
+                  ) {
+                    <ion-item class="profile-editor-field">
+                      <ion-input
+                        [label]="fieldLabel(t, lab)"
+                        labelPlacement="stacked"
+                        [(ngModel)]="userProfile[lab.key]"
+                        [type]="lab.type"
+                      ></ion-input>
+                    </ion-item>
+                  }
+
+                  @if (lab.type === 'select') {
+                    <ion-item class="profile-editor-field">
+                      <ion-select
+                        interface="popover"
+                        toggleIcon="chevron-down-outline"
+                        [interfaceOptions]="selectInterfaceOptions"
+                        [label]="fieldLabel(t, lab)"
+                        labelPlacement="stacked"
+                        [(ngModel)]="userProfile[lab.key]"
+                      >
+                        @for (opt of lab.options; track $index; let i = $index) {
+                          <ion-select-option [value]="lab.values[i]">
+                            {{ optionLabel(t, lab, i) }}
+                          </ion-select-option>
+                        }
+                      </ion-select>
+                    </ion-item>
+                  }
+
+                  @if (lab.type === 'date') {
+                    <ion-item
+                      class="profile-editor-field profile-editor-date-field"
+                      button
+                      [id]="dateTriggerId(lab.key)"
+                    >
+                      <div class="profile-editor-date-value">
+                        <span>{{ fieldLabel(t, lab) }}</span>
+                        <strong [class.is-placeholder]="!userProfile[lab.key]">
+                          {{ formatDateValue(userProfile[lab.key]) || t('auth.modal.selectDate') }}
+                        </strong>
+                      </div>
+                      <ion-icon name="calendar-clear-outline" slot="end"></ion-icon>
+                    </ion-item>
+                    <ion-popover
+                      cssClass="amor-auth-date-popover"
+                      [trigger]="dateTriggerId(lab.key)"
+                      side="bottom"
+                      alignment="center"
+                    >
+                      <ng-template>
+                        <ion-datetime
+                          presentation="date"
+                          [value]="userProfile[lab.key]"
+                          [preferWheel]="true"
+                          [showDefaultButtons]="true"
+                          doneText="Confirm"
+                          (ionChange)="setDateValue(lab.key, $event.detail.value)"
+                        ></ion-datetime>
+                      </ng-template>
+                    </ion-popover>
+                  }
+
+                  @if (lab.type === 'range') {
+                    <div class="profile-editor-range-card">
+                      <div class="profile-editor-range-head">
+                        <span>{{ fieldLabel(t, lab) }}</span>
+                        <strong [class.is-placeholder]="!selectedFiles.length">
+                          {{ userProfile[lab.key]?.lower }} - {{ userProfile[lab.key]?.upper }}
+                        </strong>
+                      </div>
+                      <ion-range
+                        class="profile-editor-range"
+                        [name]="lab.key"
+                        [attr.aria-label]="fieldLabel(t, lab)"
+                        [min]="14"
+                        [max]="100"
+                        [pin]="true"
+                        [snaps]="true"
+                        [dualKnobs]="true"
+                        [(ngModel)]="userProfile[lab.key]"
+                      >
+                        <ion-icon slot="start" name="accessibility-outline"></ion-icon>
+                        <ion-icon slot="end" name="briefcase-outline"></ion-icon>
+                      </ion-range>
+                    </div>
+                  }
+
+                  @if (lab.type === 'file') {
+                    <div class="profile-editor-upload-card">
+                      <div class="profile-editor-upload-copy">
+                        <span>{{ fieldLabel(t, lab) }}</span>
+                        <strong>
+                          {{
+                            selectedFiles.length ? selectedFileNames() : fieldPlaceholder(t, lab)
+                          }}
+                        </strong>
+                      </div>
+                      <input
+                        #fileInput
+                        class="profile-file-input"
+                        [type]="lab.type"
+                        [multiple]="lab.multiple"
+                        (change)="lab.change($event)"
+                      />
+                      <ion-button
+                        class="profile-choose-file-button"
+                        type="button"
+                        (click)="fileInput.click()"
+                      >
+                        <ion-icon name="images-outline" slot="start"></ion-icon>
+                        {{ t('common.chooseFiles') }}
+                      </ion-button>
+                      <ion-button
+                        class="profile-upload-button"
+                        [disabled]="!selectedFiles.length"
+                        (click)="picturesSaved.emit()"
+                      >
+                        {{ t('common.upload') }}
+                      </ion-button>
+                    </div>
+                    <ion-grid>
+                      <ion-row>
+                        @for (pic of userProfile.pictures ?? []; track pic.url; let i = $index) {
+                          <ion-col
+                            (click)="profilePictureOpened.emit(i)"
+                            sizeXs="4"
+                            sizeSm="4"
+                            sizeMd="3"
+                            sizeLg="2"
+                          >
+                            <ion-img class="user-pictures" [src]="pic.url"></ion-img>
+                          </ion-col>
+                        }
+                      </ion-row>
+                    </ion-grid>
+                  }
+
+                  @if (lab.type === 'checkbox') {
+                    <section class="profile-editor-choice-card">
+                      <div class="profile-editor-choice-title">{{ fieldLabel(t, lab) }}</div>
+                      <div class="profile-editor-choice-grid">
+                        @for (ch of lab.choices; track $index) {
+                          <ion-checkbox
+                            class="profile-editor-checkbox"
+                            justify="start"
+                            labelPlacement="end"
+                            [checked]="userProfile[lab.key]?.includes(ch.value)"
+                            [value]="ch"
+                            (ionChange)="choicesSelected.emit({ event: $event, labelKey: lab.key })"
+                          >
+                            {{ choiceLabel(t, ch) }}
+                          </ion-checkbox>
+                        }
+                      </div>
+                    </section>
+                  }
+                }
+              </ion-list>
+
+              <div class="profile-actions profile-save-actions">
+                <ion-button class="profile-save-button" (click)="profileUpdated.emit()">
+                  <ion-icon name="save-outline" slot="start"></ion-icon>
+                  {{ t('common.save') }}
+                </ion-button>
+              </div>
+            </section>
           }
         </section>
       </ion-col>

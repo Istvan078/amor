@@ -66,6 +66,7 @@ export class IonModalPage implements AfterViewInit {
   readonly selectInterfaceOptions = {
     cssClass: 'amor-auth-select-popover',
   };
+  readonly maxBirthDate = new Date(new Date().setFullYear(new Date().getFullYear() - 18)).toISOString();
 
   @ViewChild('swiperRef') swiperRef?: ElementRef<SwiperContainer>;
   email?: string;
