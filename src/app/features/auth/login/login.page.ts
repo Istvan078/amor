@@ -54,6 +54,7 @@ export class LoginPage {
     async loginUser() {
         this.profileStore.setProfileCreated(false);
         await this.authStore.signInWithEmail(this.loginData.data);
+        await this.profileStore.loadProfile(this.authStore.uid() ?? '');
         this.router.navigate(['/amor/discover']);
     }
 }
