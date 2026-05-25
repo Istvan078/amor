@@ -175,6 +175,9 @@
       "oneNightStands": "Egyéjszakás kalandok",
       "makingFriends": "Új ismeretségek kötése",
       "listeningToMusic": "Zenehallgatás"
+    },
+    "edit": {
+      "delete": "Profil törlése"
     }
   },
   "messages": {

@@ -32,6 +32,8 @@ import {
 } from '../../../../shared/i18n/profile-value-labels';
 import { Options } from '../../../../shared/models/options.model';
 import { UserClass } from '../../../../shared/models/user.model';
+import { addIcons } from 'ionicons';
+import { trashOutline } from 'ionicons/icons';
 
 export type ProfileChoiceSelectedEvent = {
   event: any;
@@ -86,8 +88,13 @@ export class DiscoverProfilePanelComponent {
   @Output() profilePictureOpened = new EventEmitter<number>();
   @Output() picturesSaved = new EventEmitter<void>();
   @Output() profileUpdated = new EventEmitter<void>();
+  @Output() profileDeleted = new EventEmitter<void>();
   @Output() signOutRequested = new EventEmitter<void>();
   @Output() choicesSelected = new EventEmitter<ProfileChoiceSelectedEvent>();
+
+  constructor() {
+    addIcons({ trashOutline })
+  }
 
   dateTriggerId(key: string) {
     return `profile-date-${key}`;

@@ -35,7 +35,7 @@ export class PrivacyConsentRepository {
         return data?.['privacyConsent'] as PrivacyConsent | undefined;
     }
 
-    async saveConsent(uid: string, consent: PrivacyConsent) {
+    async saveConsent(uid: string, consent: PrivacyConsent): Promise<void> {
         await this.runInFirebaseContext(() => {
             const userRef = doc(this.firestore, `users/${uid}`);
 
@@ -43,6 +43,7 @@ export class PrivacyConsentRepository {
         });
     }
 
+    // Ensures AngularFire operations run inside Angular's injection context.
     private runInFirebaseContext<T>(callback: () => T): T {
         return runInInjectionContext(this.injector, callback);
     }

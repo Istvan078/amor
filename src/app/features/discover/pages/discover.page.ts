@@ -419,6 +419,19 @@ export class DiscoverPage implements OnInit {
     }
   }
 
+  async deleteUserProf() {
+    if (this.userProf?.uid) {
+      await this.profileStore.deleteProfile(this.userProf.uid);
+      this.profileStore.clearProfile();
+      await this.authStore.deleteUser();
+      this.authStore.setAutoFillEmail(undefined);
+      this.authStore.clearUsers();
+      this.discoverStore.clearDiscoverData();
+      this.discoverUiStore.reset();
+      this.router.navigate(['/amor/register']);
+    }
+  }
+
   onSelectChoices(eventObj: any, labelKey: any) {
     const { value } = eventObj.detail;
     const { checked: isChecked } = eventObj.detail;

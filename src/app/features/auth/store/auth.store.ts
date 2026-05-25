@@ -243,6 +243,10 @@ export const AuthStore = signalStore(
                 });
             },
 
+            deleteUser() {
+                return repository.deleteUser();
+            },
+
             clearUsers() {
                 patchState(store, {
                     users: [],

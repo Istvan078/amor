@@ -1,6 +1,7 @@
 import { Injectable, Injector, inject, runInInjectionContext } from '@angular/core';
 import {
     Firestore,
+    deleteDoc,
     doc,
     getDoc,
     setDoc,
@@ -47,6 +48,13 @@ export class ProfileRepository {
 
             return updateDoc(profileRef, profile);
         });
+    }
+
+    async deleteProfile(uid: string): Promise<void> {
+        await this.runInFirebaseContext(() => {
+            const profileRef = doc(this.firestore, `users/${uid}`)
+            return deleteDoc(profileRef)
+        })
     }
 
     private runInFirebaseContext<T>(callback: () => T): T {

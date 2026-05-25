@@ -13,6 +13,7 @@ import { ProfileRepository } from '../data-access/profile.repository';
 type ProfileState = {
     profile: UserClass | null;
     profileCreated: boolean;
+    profileDeleted: boolean;
     loading: boolean;
     error: string | null;
 };
@@ -20,6 +21,7 @@ type ProfileState = {
 const initialState: ProfileState = {
     profile: null,
     profileCreated: false,
+    profileDeleted: false,
     loading: false,
     error: null,
 };
@@ -102,9 +104,9 @@ export const ProfileStore = signalStore(
                 await repository.createProfile(uid, profile);
 
                 const createdProfile = toUserClass({
-                        uid,
-                        ...profile,
-                    } as UserClass);
+                    uid,
+                    ...profile,
+                } as UserClass);
 
                 patchState(store, {
                     profile: createdProfile,
@@ -131,9 +133,9 @@ export const ProfileStore = signalStore(
                 await repository.updateProfile(uid, profile);
 
                 const updatedProfile = toUserClass({
-                        ...(store.profile() ?? {}),
-                        ...profile,
-                    } as UserClass);
+                    ...(store.profile() ?? {}),
+                    ...profile,
+                } as UserClass);
 
                 patchState(store, {
                     profile: updatedProfile,
@@ -147,6 +149,23 @@ export const ProfileStore = signalStore(
                     loading: false,
                     error: 'Failed to update profile',
                 });
+            }
+        },
+
+        async deleteProfile(uid: string) {
+            patchState(store, {
+                loading: true,
+                error: null,
+            });
+
+            try {
+                await repository.deleteProfile(uid);
+            } catch (error) {
+                console.error(error)
+                patchState(store, {
+                    loading: false,
+                    error: "Failed to delete profile"
+                })
             }
         },
 

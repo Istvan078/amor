@@ -24,9 +24,7 @@
                 [matchProfile]="selectedMessProf"
               ></app-message>
             </ion-card>
-            }
-
-            @if(!isShowMessages) {
+            } @if(!isShowMessages) {
             <app-discover-match-card
               [progress]="progress"
               [buffer]="buffer"
@@ -36,10 +34,8 @@
               (liked)="likeCurrentMatch()"
               (disliked)="dislikeCurrentMatch()"
             ></app-discover-match-card>
-            }
-
-            @if(isMatchDetailsOpen || (options.phoneView && !isShowMessages &&
-            !isMatchPlaceHolder && matchProf)) {
+            } @if(isMatchDetailsOpen || (options.phoneView && !isShowMessages && !isMatchPlaceHolder
+            && matchProf)) {
             <app-discover-match-details
               [labels]="labels"
               [matchProfile]="matchProf"
@@ -50,9 +46,7 @@
           </ion-col>
         </ion-row>
       </ion-grid>
-      }
-
-      @if(isUserCardOpen && userProf) {
+      } @if(isUserCardOpen && userProf) {
       <app-discover-profile-panel
         [userProfile]="userProf"
         [labels]="labels"
@@ -63,6 +57,7 @@
         (profilePictureOpened)="showProfPics($event)"
         (picturesSaved)="savePictures()"
         (profileUpdated)="updateUserProf()"
+        (profileDeleted)="deleteUserProf()"
         (signOutRequested)="signOutAlert()"
         (choicesSelected)="handleChoiceSelected($event)"
       ></app-discover-profile-panel>

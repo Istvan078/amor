@@ -107,6 +107,10 @@ export class AuthRepository {
         );
     }
 
+    async deleteUser() {
+        await this.auth.currentUser?.delete();
+    }
+
     private createAuthHeaders(idToken: string) {
         return new HttpHeaders().set('Authorization', idToken);
     }

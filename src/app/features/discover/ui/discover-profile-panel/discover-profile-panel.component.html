@@ -326,6 +326,10 @@
                   <ion-icon name="save-outline" slot="start"></ion-icon>
                   {{ t('common.save') }}
                 </ion-button>
+                <ion-button class="profile-delete-button" (click)="profileDeleted.emit()">
+                  <ion-icon name="trash-outline" slot="start"></ion-icon>
+                  {{ t('profile.edit.delete') }}
+                </ion-button>
               </div>
             </section>
           }

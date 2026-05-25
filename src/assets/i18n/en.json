@@ -175,6 +175,9 @@
       "oneNightStands": "One-night stands",
       "makingFriends": "Making new friends",
       "listeningToMusic": "Listening to music"
+    },
+    "edit": {
+      "delete": "Delete profile"
     }
   },
   "messages": {
