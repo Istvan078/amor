@@ -431,6 +431,12 @@ export const DiscoverStore = signalStore(
             clearDiscoverData() {
                 patchState(store, initialState);
             },
+
+            removeMatch(matchUid: string) {
+                patchState(store, {
+                    matches: store.matches().filter((match) => match.uid !== matchUid),
+                });
+            },
         };
     })
 );

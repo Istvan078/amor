@@ -733,6 +733,13 @@ app-discover {
       0 18px 42px rgba(255, 93, 143, 0.14);
   }
 
+  .match-container.is-blocked {
+    border-color: rgba(255, 93, 143, 0.28);
+    background:
+      linear-gradient(135deg, rgba(255, 93, 143, 0.12), rgba(255, 255, 255, 0.04)),
+      #171d2e;
+  }
+
   .match-avatar {
     width: 64px;
     height: 64px;
@@ -828,6 +835,27 @@ app-discover {
     font-size: 0.72rem;
     font-weight: 900;
     text-transform: uppercase;
+  }
+
+  .match-preview.is-blocked-match {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    width: fit-content;
+    max-width: 100%;
+    padding: 5px 9px;
+    border: 1px solid rgba(255, 93, 143, 0.24);
+    border-radius: 999px;
+    background: rgba(255, 93, 143, 0.12);
+    color: #ffd1dc;
+    font-size: 0.72rem;
+    font-weight: 900;
+    text-transform: uppercase;
+  }
+
+  .match-preview.is-blocked-match ion-icon {
+    flex: 0 0 auto;
+    font-size: 14px;
   }
 
   .match-unread-badge {

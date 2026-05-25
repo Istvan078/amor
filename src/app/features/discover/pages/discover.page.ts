@@ -1027,6 +1027,44 @@ export class DiscoverPage implements OnInit {
     };
   }
 
+  handleMatchRemoved(matchProfile: UserClass) {
+    const matchUid = matchProfile.uid;
+
+    if (!matchUid) {
+      return;
+    }
+
+    const remainingMatches = this.matches.filter(
+      (match) => match.uid !== matchUid
+    );
+
+    this.matches = remainingMatches;
+    this.discoverStore.removeMatch(matchUid);
+
+    const { [matchUid]: _removedPreview, ...remainingPreviews } =
+      this.matchConversationPreviews;
+    this.matchConversationPreviews = remainingPreviews;
+    this.matchPreviewSignature = '';
+    this.matchPreviewRequestId++;
+
+    if (this.selectedMessProf?.uid !== matchUid) {
+      return;
+    }
+
+    const nextSelectedMatch = remainingMatches[0];
+
+    if (nextSelectedMatch) {
+      this.selectedMessProf = nextSelectedMatch;
+      this.discoverUiStore.showMessages(nextSelectedMatch);
+      this.options.isSelectedMatch = !this.options.phoneView;
+      return;
+    }
+
+    this.selectedMessProf = undefined;
+    this.options.isSelectedMatch = false;
+    this.discoverUiStore.showMessages(null);
+  }
+
   startUpdateUserProf() {
     this.startUpdUserProf = true;
   }

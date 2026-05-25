@@ -25,6 +25,7 @@ import { TranslocoDirective } from '@jsverse/transloco';
 import { addIcons } from 'ionicons';
 import {
   arrowForwardOutline,
+  banOutline,
   chatbubblesOutline,
   diamondOutline,
   eyeOutline,
@@ -104,6 +105,7 @@ export class DiscoverSidebarComponent implements AfterViewInit, OnChanges {
   constructor() {
     addIcons({
       arrowForwardOutline,
+      banOutline,
       chatbubblesOutline,
       diamondOutline,
       eyeOutline,
@@ -136,6 +138,14 @@ export class DiscoverSidebarComponent implements AfterViewInit, OnChanges {
 
   isSelectedMatch(match: UserClass) {
     return !!match.uid && match.uid === this.selectedMatchUid;
+  }
+
+  isBlockedMatch(match: UserClass) {
+    return !!(
+      this.userProfile?.blockedUsers?.length &&
+      match.uid &&
+      this.userProfile.blockedUsers.includes(match.uid)
+    );
   }
 
   getConversationPreview(match: UserClass): MatchConversationPreview {

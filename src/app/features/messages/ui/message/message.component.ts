@@ -24,12 +24,15 @@ import {
   banOutline,
   ellipsisHorizontal,
   flagOutline,
+  lockOpenOutline,
+  removeCircleOutline,
   shieldCheckmarkOutline,
+  trashOutline,
 } from 'ionicons/icons';
 
 import { Message } from '../../../../shared/models/message.model';
 import { Options } from '../../../../shared/models/options.model';
-import { UserClass } from '../../../../shared/models/user.model';
+import { MatchParts, UserClass } from '../../../../shared/models/user.model';
 import { ProfileStore } from '../../../profile/store/profile.store';
 import { MessagesStore } from '../../store/messages.store';
 
@@ -58,6 +61,7 @@ export class MessageComponent implements AfterViewChecked, OnChanges {
     matchProfile: UserClass;
     message: Message;
   }>();
+  @Output() matchRemoved = new EventEmitter<UserClass>();
 
   readonly messagesStore = inject(MessagesStore);
 
@@ -75,7 +79,10 @@ export class MessageComponent implements AfterViewChecked, OnChanges {
       banOutline,
       ellipsisHorizontal,
       flagOutline,
+      lockOpenOutline,
+      removeCircleOutline,
       shieldCheckmarkOutline,
+      trashOutline,
     });
 
     effect(() => {
@@ -131,6 +138,22 @@ export class MessageComponent implements AfterViewChecked, OnChanges {
     return !!this.userProfile?.uid && message.senderUid === this.userProfile.uid;
   }
 
+  get isCurrentMatchBlocked() {
+    return !!(
+      this.userProfile?.blockedUsers?.length &&
+      this.matchProfile?.uid &&
+      this.userProfile.blockedUsers.includes(this.matchProfile.uid)
+    );
+  }
+
+  isMatchBlocked(match?: UserClass) {
+    return !!(
+      this.userProfile?.blockedUsers?.length &&
+      match?.uid &&
+      this.userProfile.blockedUsers.includes(match.uid)
+    );
+  }
+
   selectMatch(match: UserClass) {
     this.matchProfile = match;
     this.isConversationMenuOpen = false;
@@ -165,6 +188,53 @@ export class MessageComponent implements AfterViewChecked, OnChanges {
     this.closeConversationMenu();
   }
 
+  async unblockUser() {
+    if (!this.userProfile?.uid || !this.matchProfile?.uid) {
+      return;
+    }
+
+    const nextBlockedUsers = (this.userProfile.blockedUsers ?? []).filter(
+      (uid) => uid !== this.matchProfile?.uid
+    );
+
+    await this.profileStore.updateProfile(this.userProfile.uid, {
+      blockedUsers: nextBlockedUsers,
+    });
+
+    this.userProfile.blockedUsers = nextBlockedUsers;
+    this.moderationNoticeKey = 'messages.unblockedNotice';
+    this.closeConversationMenu();
+  }
+
+  async removeMatch() {
+    if (!this.userProfile?.uid || !this.matchProfile?.uid) {
+      return;
+    }
+
+    const removedMatch = this.matchProfile;
+    const matchUid = removedMatch.uid;
+    const matchParts = this.ensureMatchParts(this.userProfile);
+
+    matchParts.matches = matchParts.matches.filter((uid) => uid !== matchUid);
+    matchParts.liked = matchParts.liked.filter((uid) => uid !== matchUid);
+    matchParts.superLiked = matchParts.superLiked.filter((uid) => uid !== matchUid);
+
+    if (matchUid)
+      if (!matchParts.notLiked.includes(matchUid)) {
+        matchParts.notLiked.push(matchUid);
+      }
+
+    await this.profileStore.updateProfile(this.userProfile.uid, {
+      matchParts,
+    });
+
+    this.userProfile.matchParts = matchParts;
+    this.moderationNoticeKey = 'messages.matchRemovedNotice';
+    this.messagesStore.clearMessages();
+    this.closeConversationMenu();
+    this.matchRemoved.emit(removedMatch);
+  }
+
   async reportUser() {
     await this.updateModerationList('reportedUsers');
     this.moderationNoticeKey = 'messages.reportedNotice';
@@ -192,6 +262,11 @@ export class MessageComponent implements AfterViewChecked, OnChanges {
 
   async onMessageSend(form: NgForm) {
     const messageText = form.value.message?.trim();
+
+    if (this.isCurrentMatchBlocked) {
+      this.moderationNoticeKey = 'messages.blockedComposerNotice';
+      return;
+    }
 
     if (!messageText || !this.userProfile || !this.matchProfile) {
       return;
@@ -231,5 +306,16 @@ export class MessageComponent implements AfterViewChecked, OnChanges {
 
       element.scrollTop = element.scrollHeight;
     });
+  }
+
+  private ensureMatchParts(profile: UserClass) {
+    profile.matchParts ??= new MatchParts();
+    profile.matchParts.matches ??= [];
+    profile.matchParts.possMatches ??= [];
+    profile.matchParts.liked ??= [];
+    profile.matchParts.notLiked ??= [];
+    profile.matchParts.superLiked ??= [];
+
+    return profile.matchParts;
   }
 }

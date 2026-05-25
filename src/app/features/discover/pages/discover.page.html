@@ -29,6 +29,7 @@
                 [options]="options"
                 [matchProfile]="selectedMessProf"
                 (messageSent)="handleMessageSent($event)"
+                (matchRemoved)="handleMatchRemoved($event)"
               ></app-message>
             </ion-card>
             } @if(!isShowMessages) {

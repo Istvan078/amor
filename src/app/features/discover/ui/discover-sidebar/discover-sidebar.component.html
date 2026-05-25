@@ -86,6 +86,7 @@
         (click)="messageOpened.emit(match)"
         class="match-container"
         [class.is-active]="isSelectedMatch(match)"
+        [class.is-blocked]="isBlockedMatch(match)"
       >
         <img
           class="match-avatar"
@@ -103,7 +104,12 @@
             <span></span>
             {{ match.isOnline ? t('discover.sidebar.online') : t('discover.sidebar.offline') }}
           </div>
-          @if(getConversationPreview(match).hasMessages) {
+          @if(isBlockedMatch(match)) {
+            <p class="match-preview is-blocked-match">
+              <ion-icon name="ban-outline"></ion-icon>
+              {{ t('discover.sidebar.blockedPreview') }}
+            </p>
+          } @else if(getConversationPreview(match).hasMessages) {
             <p class="match-preview">
               @if(getConversationPreview(match).isLastMessageMine) {
                 <span>{{ t('discover.sidebar.you') }}:</span>

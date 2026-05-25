@@ -9,11 +9,22 @@
 
         <div class="conversation-list-items">
           @for (match of matches; track match.uid) {
-            <button type="button" class="conversation-list-item" (click)="selectMatch(match)">
+            <button
+              type="button"
+              class="conversation-list-item"
+              [class.is-blocked]="isMatchBlocked(match)"
+              (click)="selectMatch(match)"
+            >
               <img [src]="getProfileImage(match)" alt="Profile picture" />
               <span>
                 <strong>{{ getDisplayName(match) || match.firstName }}</strong>
-                <small>{{ t('messages.openConversation') }}</small>
+                <small>
+                  {{
+                    isMatchBlocked(match)
+                      ? t('messages.blockedListHint')
+                      : t('messages.openConversation')
+                  }}
+                </small>
               </span>
               <ion-icon name="chevron-forward-outline"></ion-icon>
             </button>
@@ -58,6 +69,12 @@
             @if (matchProfile?.firstName) {
               <p>{{ t('messages.matchedText', { name: matchProfile?.firstName }) }}</p>
             }
+            @if (isCurrentMatchBlocked) {
+              <span class="conversation-status is-blocked">
+                <ion-icon name="ban-outline"></ion-icon>
+                {{ t('messages.blockedStatus') }}
+              </span>
+            }
           </div>
 
           <div class="conversation-menu-wrap">
@@ -72,11 +89,28 @@
 
             @if (isConversationMenuOpen) {
               <div class="conversation-menu" role="menu">
-                <button type="button" role="menuitem" (click)="blockUser()">
-                  <ion-icon name="ban-outline"></ion-icon>
+                @if (isCurrentMatchBlocked) {
+                  <button type="button" role="menuitem" class="is-positive" (click)="unblockUser()">
+                    <ion-icon name="lock-open-outline"></ion-icon>
+                    <span>
+                      <strong>{{ t('messages.unblockUser') }}</strong>
+                      <small>{{ t('messages.unblockUserHint') }}</small>
+                    </span>
+                  </button>
+                } @else {
+                  <button type="button" role="menuitem" (click)="blockUser()">
+                    <ion-icon name="ban-outline"></ion-icon>
+                    <span>
+                      <strong>{{ t('messages.blockUser') }}</strong>
+                      <small>{{ t('messages.blockUserHint') }}</small>
+                    </span>
+                  </button>
+                }
+                <button type="button" role="menuitem" class="is-danger" (click)="removeMatch()">
+                  <ion-icon name="trash-outline"></ion-icon>
                   <span>
-                    <strong>{{ t('messages.blockUser') }}</strong>
-                    <small>{{ t('messages.blockUserHint') }}</small>
+                    <strong>{{ t('messages.removeMatch') }}</strong>
+                    <small>{{ t('messages.removeMatchHint') }}</small>
                   </span>
                 </button>
                 <button type="button" role="menuitem" (click)="reportUser()">
@@ -100,6 +134,19 @@
               </p>
             </div>
             <ion-button fill="solid">{{ t('messages.enableReadReceipt') }}</ion-button>
+          </section>
+        }
+
+        @if (isCurrentMatchBlocked) {
+          <section class="conversation-blocked-panel">
+            <ion-icon name="remove-circle-outline"></ion-icon>
+            <div>
+              <strong>{{ t('messages.blockedBannerTitle') }}</strong>
+              <p>{{ t('messages.blockedBannerText') }}</p>
+            </div>
+            <ion-button fill="solid" (click)="unblockUser()">
+              {{ t('messages.unblockUser') }}
+            </ion-button>
           </section>
         }
 
@@ -130,16 +177,27 @@
           }
         </div>
 
-        <form (ngSubmit)="onMessageSend(form)" #form="ngForm" class="message-composer">
+        <form
+          (ngSubmit)="onMessageSend(form)"
+          #form="ngForm"
+          class="message-composer"
+          [class.is-disabled]="isCurrentMatchBlocked"
+        >
           <ion-textarea
             ngModel
             name="message"
             id="message"
-            [placeholder]="t('messages.placeholder')"
+            [placeholder]="isCurrentMatchBlocked ? t('messages.blockedPlaceholder') : t('messages.placeholder')"
+            [disabled]="isCurrentMatchBlocked"
             rows="1"
             autoGrow="true"
           ></ion-textarea>
-          <ion-button type="submit" fill="solid" [attr.aria-label]="t('messages.sendAria')">
+          <ion-button
+            type="submit"
+            fill="solid"
+            [disabled]="isCurrentMatchBlocked"
+            [attr.aria-label]="t('messages.sendAria')"
+          >
             <ion-icon name="send-outline"></ion-icon>
           </ion-button>
         </form>

@@ -86,12 +86,33 @@
 
 .conversation-header p,
 .conversation-hero p,
+.conversation-blocked-panel p,
 .messages-heading p,
 .messages-empty p,
 .conversation-list-item small {
   margin: 0;
   color: rgba(248, 245, 239, 0.68);
   line-height: 1.45;
+}
+
+.conversation-status {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  width: fit-content;
+  margin-top: 8px;
+  padding: 5px 9px;
+  border-radius: 999px;
+  color: #ffd1dc;
+  font-size: 0.72rem;
+  font-weight: 900;
+  text-transform: uppercase;
+  background: rgba(255, 93, 143, 0.14);
+  border: 1px solid rgba(255, 93, 143, 0.25);
+}
+
+.conversation-status ion-icon {
+  font-size: 14px;
 }
 
 .back-button {
@@ -137,6 +158,46 @@
   flex: 0 0 auto;
   color: #ff9cbd;
   font-size: 19px;
+}
+
+.conversation-blocked-panel {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 14px;
+  flex: 0 0 auto;
+  margin: 12px 18px 0;
+  padding: 14px 16px;
+  border: 1px solid rgba(255, 93, 143, 0.22);
+  border-radius: 8px;
+  background:
+    radial-gradient(circle at 0% 0%, rgba(255, 93, 143, 0.22), transparent 42%),
+    linear-gradient(135deg, rgba(255, 93, 143, 0.12), rgba(242, 199, 110, 0.06)),
+    rgba(255, 255, 255, 0.045);
+  box-shadow: 0 18px 42px rgba(255, 93, 143, 0.1);
+}
+
+.conversation-blocked-panel > ion-icon {
+  color: #ff8fb1;
+  font-size: 24px;
+}
+
+.conversation-blocked-panel strong {
+  display: block;
+  color: #ffffff;
+  font-size: 0.94rem;
+  font-weight: 900;
+}
+
+.conversation-blocked-panel ion-button {
+  min-height: 38px;
+  margin: 0;
+  --background: linear-gradient(135deg, #ff5d8f, #ff7a59);
+  --border-radius: 999px;
+  --box-shadow: 0 12px 28px rgba(255, 93, 143, 0.2);
+  --color: #ffffff;
+  font-weight: 900;
+  text-transform: none;
 }
 
 .conversation-menu-wrap {
@@ -202,6 +263,14 @@
 .conversation-menu button ion-icon {
   color: #ff8fb1;
   font-size: 22px;
+}
+
+.conversation-menu button.is-positive ion-icon {
+  color: #8bf3c0;
+}
+
+.conversation-menu button.is-danger ion-icon {
+  color: #ff6f86;
 }
 
 .conversation-menu button strong,
@@ -335,6 +404,20 @@
   --color: #ffffff;
 }
 
+.message-composer.is-disabled {
+  opacity: 0.72;
+}
+
+.message-composer.is-disabled ion-textarea {
+  --background: rgba(10, 14, 25, 0.38);
+  --placeholder-color: rgba(248, 245, 239, 0.7);
+}
+
+.message-composer.is-disabled ion-button {
+  --background: rgba(255, 255, 255, 0.11);
+  --box-shadow: none;
+}
+
 .messages-heading {
   padding: 22px 20px 14px;
 }
@@ -372,6 +455,13 @@
   background: rgba(255, 255, 255, 0.06);
   color: #ffffff;
   text-align: left;
+}
+
+.conversation-list-item.is-blocked {
+  border-color: rgba(255, 93, 143, 0.24);
+  background:
+    linear-gradient(135deg, rgba(255, 93, 143, 0.1), rgba(255, 255, 255, 0.04)),
+    rgba(255, 255, 255, 0.055);
 }
 
 .conversation-list-item img {
