@@ -112,6 +112,26 @@
       "freeTime": "Free time"
     }
   },
+  "privacy": {
+    "dataConsent": {
+      "heroEyebrow": "Privacy first",
+      "heroTitle": "Real people. Safer connections.",
+      "heroCopy": "Amor uses only the data needed to create your profile, improve matching and protect the community.",
+      "eyebrow": "Data consent",
+      "title": "Your data safety comes first",
+      "subtitle": "Before continuing, please review and accept the required terms. You stay in control of your data.",
+      "termsPrefix": "I accept the",
+      "termsLink": "Terms of Use",
+      "policyPrefix": "I accept the",
+      "policyLink": "Privacy Policy",
+      "ageConfirm": "I am at least 18 and above the legal age of consent",
+      "marketing": "Send me exclusive offers and product news (optional)",
+      "secureStorage": "Consent is stored with your profile",
+      "personalisedMatches": "Used for safer, more relevant discovery",
+      "accept": "Accept and continue",
+      "later": "Back to Login"
+    }
+  },
   "profile": {
     "fields": {
       "pictures": "My photos",

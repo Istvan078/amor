@@ -10,7 +10,14 @@ export const publicOnlyGuard: CanMatchFn = async () => {
   const router = inject(Router);
 
   await authStore.waitForAuthReady();
-  await profileStore.loadProfile(authStore.uid() ?? '');
+
+  const uid = authStore.uid();
+
+  if (uid) {
+    await profileStore.loadProfile(uid);
+  } else {
+    profileStore.clearProfile();
+  }
 
   if (profileStore.hasProfile()) {
     return router.createUrlTree(['/amor/discover']);

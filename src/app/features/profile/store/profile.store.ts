@@ -59,6 +59,16 @@ export const ProfileStore = signalStore(
         },
 
         async loadProfile(uid: string) {
+            if (!uid) {
+                patchState(store, {
+                    profile: null,
+                    profileCreated: false,
+                    loading: false,
+                    error: null,
+                });
+                return;
+            }
+
             patchState(store, {
                 loading: true,
                 error: null,

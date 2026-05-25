@@ -1,0 +1,119 @@
+<ng-container *transloco="let t">
+  <ion-content class="privacy-page" [fullscreen]="true">
+    <section class="privacy-shell">
+      <article class="privacy-hero">
+        <div class="privacy-hero-image">
+          <img
+            src="https://img.freepik.com/free-photo/silhouette-couple-love-being-affectionate_23-2150984243.jpg?t=st=1741881261~exp=1741884861~hmac=f9d3a5a0a33547efaac51151634c9c05c1de7deadfe301a56e56ff9cd2d284a9&w=740"
+            alt="Romantic couple"
+          />
+        </div>
+        <div class="privacy-hero-shade"></div>
+        <div class="privacy-brand">
+          <strong>{{ t('app.name') }}</strong>
+          <span>{{ t('app.tagline') }}</span>
+        </div>
+        <div class="privacy-hero-copy">
+          <span>{{ t('privacy.dataConsent.heroEyebrow') }}</span>
+          <h1>{{ t('privacy.dataConsent.heroTitle') }}</h1>
+          <p>{{ t('privacy.dataConsent.heroCopy') }}</p>
+        </div>
+      </article>
+
+      <section class="privacy-card" aria-labelledby="privacy-title">
+        <div class="privacy-grip"></div>
+
+        <div class="privacy-card-icon">
+          <ion-icon name="shield-checkmark-outline"></ion-icon>
+        </div>
+
+        <div class="privacy-heading">
+          <span>{{ t('privacy.dataConsent.eyebrow') }}</span>
+          <h2 id="privacy-title">{{ t('privacy.dataConsent.title') }}</h2>
+          <p>{{ t('privacy.dataConsent.subtitle') }}</p>
+        </div>
+
+        <div class="privacy-consent-list">
+          <button
+            class="privacy-consent-row"
+            type="button"
+            [class.is-accepted]="termsAccepted"
+            (click)="toggleRequired('termsAccepted')"
+          >
+            <ion-checkbox [checked]="termsAccepted"></ion-checkbox>
+            <span>
+              {{ t('privacy.dataConsent.termsPrefix') }}
+              <strong>{{ t('privacy.dataConsent.termsLink') }}</strong>
+            </span>
+            <ion-icon name="chevron-forward-outline"></ion-icon>
+          </button>
+
+          <button
+            class="privacy-consent-row"
+            type="button"
+            [class.is-accepted]="privacyPolicyAccepted"
+            (click)="toggleRequired('privacyPolicyAccepted')"
+          >
+            <ion-checkbox [checked]="privacyPolicyAccepted"></ion-checkbox>
+            <span>
+              {{ t('privacy.dataConsent.policyPrefix') }}
+              <strong>{{ t('privacy.dataConsent.policyLink') }}</strong>
+            </span>
+            <ion-icon name="chevron-forward-outline"></ion-icon>
+          </button>
+
+          <button
+            class="privacy-consent-row"
+            type="button"
+            [class.is-accepted]="ageConfirmed"
+            (click)="toggleRequired('ageConfirmed')"
+          >
+            <ion-checkbox [checked]="ageConfirmed"></ion-checkbox>
+            <span>{{ t('privacy.dataConsent.ageConfirm') }}</span>
+            <ion-icon name="chevron-forward-outline"></ion-icon>
+          </button>
+
+          <button
+            class="privacy-consent-row is-optional"
+            type="button"
+            [class.is-accepted]="marketingNotifications"
+            (click)="toggleMarketing()"
+          >
+            <ion-checkbox [checked]="marketingNotifications"></ion-checkbox>
+            <span>{{ t('privacy.dataConsent.marketing') }}</span>
+            <ion-icon name="chevron-forward-outline"></ion-icon>
+          </button>
+        </div>
+
+        <div class="privacy-summary">
+          <div>
+            <ion-icon name="lock-closed-outline"></ion-icon>
+            <span>{{ t('privacy.dataConsent.secureStorage') }}</span>
+          </div>
+          <div>
+            <ion-icon name="sparkles-outline"></ion-icon>
+            <span>{{ t('privacy.dataConsent.personalisedMatches') }}</span>
+          </div>
+        </div>
+
+        @if(privacyStore.error()) {
+        <p class="privacy-error">{{ privacyStore.error() }}</p>
+        }
+
+        <ion-button
+          class="privacy-continue-button"
+          expand="block"
+          [disabled]="!canContinue()"
+          (click)="acceptAndContinue()"
+        >
+          {{ t('privacy.dataConsent.accept') }}
+          <ion-icon name="arrow-forward-outline" slot="end"></ion-icon>
+        </ion-button>
+
+        <button class="privacy-later-button" type="button" (click)="decideLater()">
+          {{ t('privacy.dataConsent.later') }}
+        </button>
+      </section>
+    </section>
+  </ion-content>
+</ng-container>

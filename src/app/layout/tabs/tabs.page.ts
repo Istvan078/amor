@@ -58,4 +58,8 @@ export class TabsPage {
   isMessagesActive() {
     return this.discoverUiStore.isShowMessages();
   }
+
+  isPrivacyActive() {
+    return this.router.url.startsWith('/amor/privacy');
+  }
 }

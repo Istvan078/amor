@@ -1,6 +1,7 @@
 import { Routes } from '@angular/router';
 import { publicOnlyGuard } from './features/auth/guards/public-only.guard';
 import { authGuard } from './features/auth/guards/auth.guard';
+import { privacyConsentGuard } from './features/privacy/guards/privacy-consent.guard';
 
 export const routes: Routes = [
     {
@@ -29,10 +30,18 @@ export const routes: Routes = [
             },
             {
                 path: 'discover',
-                canMatch: [authGuard],
+                canMatch: [privacyConsentGuard],
                 loadComponent: () =>
                     import('./features/discover/pages/discover.page').then(
                         (m) => m.DiscoverPage
+                    ),
+            },
+            {
+                path: 'privacy',
+                canMatch: [authGuard],
+                loadComponent: () =>
+                    import('./features/privacy/privacy-preferences/privacy-preferences.page').then(
+                        (m) => m.PrivacyPreferencesPage
                     ),
             },
             {

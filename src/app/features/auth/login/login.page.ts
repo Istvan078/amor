@@ -11,6 +11,7 @@ import {
 import { TranslocoDirective } from '@jsverse/transloco';
 
 import { ProfileStore } from '../../profile/store/profile.store';
+import { PrivacyConsentStore } from '../../privacy/store/privacy-consent.store';
 import { AuthStore } from '../store/auth.store';
 
 @Component({
@@ -33,6 +34,7 @@ export class LoginPage {
     private authStore = inject(AuthStore);
     private router = inject(Router);
     private profileStore = inject(ProfileStore);
+    private privacyStore = inject(PrivacyConsentStore);
 
     loginData = {
         data: {
@@ -55,6 +57,12 @@ export class LoginPage {
         this.profileStore.setProfileCreated(false);
         await this.authStore.signInWithEmail(this.loginData.data);
         await this.profileStore.loadProfile(this.authStore.uid() ?? '');
-        this.router.navigate(['/amor/discover']);
+        await this.privacyStore.loadConsent(this.authStore.uid() ?? '');
+
+        this.router.navigate([
+            this.privacyStore.hasRequiredConsent()
+                ? '/amor/discover'
+                : '/amor/privacy',
+        ]);
     }
 }

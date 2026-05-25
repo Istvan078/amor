@@ -89,7 +89,7 @@ export class RegisterPage implements OnInit {
                     profileCreatedSuccessfully = true;
                     this.profileStore.setProfileCreated(true);
 
-                    this.router.navigate(['/amor/discover']);
+                    this.router.navigate(['/amor/privacy']);
                 }
             }
         }
@@ -108,7 +108,7 @@ export class RegisterPage implements OnInit {
                 await this.createUserProfile(data);
 
                 this.profileStore.setProfileCreated(true);
-                this.router.navigate(['/amor/discover']);
+                this.router.navigate(['/amor/privacy']);
             }
         }
     }

@@ -11,6 +11,12 @@ export const authGuard: CanMatchFn = async () => {
 
     await authStore.waitForAuthReady();
 
+    const uid = authStore.uid();
+
+    if (uid) {
+        await profileStore.loadProfile(uid);
+    }
+
     if (profileStore.hasProfile()) {
         return true;
     }

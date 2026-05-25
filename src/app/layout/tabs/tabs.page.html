@@ -1,5 +1,6 @@
 <ng-container *transloco="let t">
   <ion-tabs>
+    @if (!isPrivacyActive()) {
     <ion-tab-bar slot="bottom" class="mobile-tab-bar">
       @if (!authStore.user()?.uid) {
       <ion-tab-button tab="register" href="/amor/register">
@@ -37,5 +38,6 @@
       </ion-tab-button>
       }
     </ion-tab-bar>
+    }
   </ion-tabs>
 </ng-container>

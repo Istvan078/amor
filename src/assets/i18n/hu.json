@@ -112,6 +112,26 @@
       "freeTime": "Szabadidő"
     }
   },
+  "privacy": {
+    "dataConsent": {
+      "heroEyebrow": "Adatvédelem először",
+      "heroTitle": "Valódi emberek. Biztonságosabb kapcsolódások.",
+      "heroCopy": "Az Amor csak azokat az adatokat használja, amelyek a profilodhoz, a jobb ajánlásokhoz és a közösség védelméhez szükségesek.",
+      "eyebrow": "Adatkezelési hozzájárulás",
+      "title": "Az adataid biztonsága a legfontosabb",
+      "subtitle": "A folytatáshoz kérjük, fogadd el a szükséges feltételeket. Az adataidat bizalmasan kezeljük, és te döntesz róluk.",
+      "termsPrefix": "Elfogadom a",
+      "termsLink": "Felhasználási feltételeket",
+      "policyPrefix": "Elfogadom az",
+      "policyLink": "Adatkezelési tájékoztatót",
+      "ageConfirm": "Elmúltam 18 éves, és elmúltam a törvényes beleegyezési korhatárt",
+      "marketing": "Szeretnék exkluzív ajánlatokat és újdonságokat kapni (nem kötelező)",
+      "secureStorage": "A hozzájárulás a profiloddal együtt mentődik",
+      "personalisedMatches": "Biztonságosabb és relevánsabb felfedezéshez használjuk",
+      "accept": "Elfogadom és folytatom",
+      "later": "Vissza a belépéshez"
+    }
+  },
   "profile": {
     "fields": {
       "pictures": "Képeim",

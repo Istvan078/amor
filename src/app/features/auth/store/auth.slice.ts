@@ -11,7 +11,7 @@ export type AuthUser = {
 
 export type UserClaims = {
     gender?: 'No' | 'Ferfi' | 'Egyeb' | string;
-    lookingForGender?: 'No' | 'Ferfi' | string;
+    lookingForGender?: 'No' | 'Ferfi' | 'Egyeb' | string;
     lookingForDistance?: number;
     currentPlace?: string;
     currentLocCoords?: {
