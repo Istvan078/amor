@@ -1,7 +1,9 @@
 import {
   Component,
+  EventEmitter,
   Input,
   OnChanges,
+  Output,
   SimpleChanges,
   effect,
   inject,
@@ -45,6 +47,10 @@ export class MessageComponent implements OnChanges {
   @Input() matches: UserClass[] = [];
   @Input() matchProfile?: UserClass;
   @Input() options?: Options;
+  @Output() messageSent = new EventEmitter<{
+    matchProfile: UserClass;
+    message: Message;
+  }>();
 
   readonly messagesStore = inject(MessagesStore);
 
@@ -124,6 +130,11 @@ export class MessageComponent implements OnChanges {
       this.matchProfile,
       message
     );
+
+    this.messageSent.emit({
+      matchProfile: this.matchProfile,
+      message,
+    });
 
     form.resetForm();
   }

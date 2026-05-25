@@ -315,29 +315,107 @@ export class ConfigService {
   }
 
   getPromotions() {
-    this.promotions = [new Promotions(), new Promotions()];
+    this.promotions = [
+      new Promotions(),
+      new Promotions(),
+      new Promotions(),
+      new Promotions(),
+      new Promotions(),
+    ];
 
     this.promotions[0] = {
+      id: 'amorinoGold',
       title: 'Amorino Gold',
+      titleKey: 'promotions.gold.title',
       price: 4000,
       discount: 50,
+      offerLine: '50% off for 3 months',
+      offerKey: 'promotions.gold.offer',
       category: 'Subscription',
       categoryKey: 'promotions.category.subscription',
+      eyebrowKey: 'promotions.gold.eyebrow',
+      iconName: 'diamond-outline',
+      accent: '#ff5d8f',
+      accentSoft: '#f2c76e',
       isFeatured: true,
-      description: '3 honapig 50%-os aron megveheted az Amorino Gold csomagot',
+      description:
+        'See who likes you, boost your profile and get more matches.',
       descriptionKey: 'promotions.gold.description',
+      ctaKey: 'promotions.gold.cta',
     };
 
     this.promotions[1] = {
-      title: 'Boost',
-      titleKey: 'promotions.boost.title',
+      id: 'profileBoost',
+      title: 'Profile Boost',
+      titleKey: 'promotions.profileBoost.title',
       price: 1000,
-      discount: 70,
-      category: 'Subscription',
-      categoryKey: 'promotions.category.subscription',
-      isFeatured: false,
-      description: '1 honapig 70% kedvezmeny minden kiemelesre',
-      descriptionKey: 'promotions.boost.description',
+      category: 'Boost',
+      categoryKey: 'promotions.category.boost',
+      eyebrowKey: 'promotions.profileBoost.eyebrow',
+      offerLine: 'Get more views today',
+      offerKey: 'promotions.profileBoost.offer',
+      iconName: 'rocket-outline',
+      accent: '#35c6bd',
+      accentSoft: '#4c8dff',
+      description:
+        'Be shown to more people near you and increase your chances of matching.',
+      descriptionKey: 'promotions.profileBoost.description',
+      ctaKey: 'promotions.profileBoost.cta',
+    };
+
+    this.promotions[2] = {
+      id: 'seeLikes',
+      title: 'See Who Likes You',
+      titleKey: 'promotions.seeLikes.title',
+      price: 1500,
+      category: 'Premium',
+      categoryKey: 'promotions.category.premium',
+      eyebrowKey: 'promotions.seeLikes.eyebrow',
+      offerLine: 'Reveal your hidden likes',
+      offerKey: 'promotions.seeLikes.offer',
+      iconName: 'eye-outline',
+      accent: '#ff7a59',
+      accentSoft: '#ff5d8f',
+      description: 'Find out who already liked your profile and match faster.',
+      descriptionKey: 'promotions.seeLikes.description',
+      ctaKey: 'promotions.seeLikes.cta',
+    };
+
+    this.promotions[3] = {
+      id: 'superLike',
+      title: 'Super Like Pack',
+      titleKey: 'promotions.superLike.title',
+      price: 1200,
+      category: 'Super Like',
+      categoryKey: 'promotions.category.superLike',
+      eyebrowKey: 'promotions.superLike.eyebrow',
+      offerLine: '5 Super Likes included',
+      offerKey: 'promotions.superLike.offer',
+      iconName: 'heart-circle-outline',
+      accent: '#a855f7',
+      accentSoft: '#ff5d8f',
+      description: 'Send stronger signals to people you really like.',
+      descriptionKey: 'promotions.superLike.description',
+      ctaKey: 'promotions.superLike.cta',
+    };
+
+    this.promotions[4] = {
+      id: 'firstMonth',
+      title: 'First Month Premium',
+      titleKey: 'promotions.firstMonth.title',
+      price: 99,
+      category: 'Premium',
+      categoryKey: 'promotions.category.premium',
+      eyebrowKey: 'promotions.firstMonth.eyebrow',
+      offerLine: 'First month for £0.99',
+      offerKey: 'promotions.firstMonth.offer',
+      iconName: 'gift-outline',
+      accent: '#f2c76e',
+      accentSoft: '#ff7a59',
+      description:
+        'Try premium discovery with more visibility and better matching tools.',
+      descriptionKey: 'promotions.firstMonth.description',
+      ctaKey: 'promotions.firstMonth.cta',
     };
 
     return this.promotions;

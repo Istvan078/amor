@@ -5,6 +5,8 @@
       [userProfile]="userProf"
       [promotions]="promotions"
       [matches]="matches"
+      [conversationPreviews]="matchConversationPreviews"
+      [selectedMatchUid]="selectedMessProf?.uid"
       (profileOpened)="openUserCard()"
       (matchesOpened)="showMatchesCard()"
       (messagesOpened)="showMessages()"
@@ -22,6 +24,7 @@
                 [matches]="matches"
                 [options]="options"
                 [matchProfile]="selectedMessProf"
+                (messageSent)="handleMessageSent($event)"
               ></app-message>
             </ion-card>
             } @if(!isShowMessages) {
@@ -63,6 +66,15 @@
       ></app-discover-profile-panel>
       }
     </div>
+
+    @if(options.phoneView) {
+    <app-promo-bottom-sheet
+      [isOpen]="promoBottomSheetOpen"
+      [promotions]="promoBottomSheetPromotions"
+      [activeIndex]="promoBottomSheetActiveIndex"
+      (dismissed)="handlePromoBottomSheetDismiss($event)"
+    ></app-promo-bottom-sheet>
+    }
   </div>
   }
 </ion-content>

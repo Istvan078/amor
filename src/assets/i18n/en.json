@@ -95,7 +95,11 @@
       "messages": "Messages",
       "promotionAlt": "Promotion",
       "profileImageAlt": "Profile picture",
-      "matchImageAlt": "Match profile picture"
+      "matchImageAlt": "Match profile picture",
+      "online": "Online now",
+      "offline": "Offline",
+      "newMatch": "New Match",
+      "you": "You"
     },
     "profile": {
       "myProfile": "My profile",
@@ -200,8 +204,18 @@
     "sendAria": "Send message"
   },
   "promotions": {
+    "sheet": {
+      "close": "Close offer",
+      "maybeLater": "Maybe later",
+      "seeOtherOffers": "See other offers",
+      "previousOffer": "Previous offer",
+      "nextOffer": "Next offer"
+    },
     "category": {
-      "subscription": "Subscription"
+      "subscription": "Subscription",
+      "boost": "Boost",
+      "premium": "Premium",
+      "superLike": "Super Like"
     },
     "fields": {
       "title": "Title",
@@ -213,7 +227,39 @@
       "discount": "Discount"
     },
     "gold": {
-      "description": "Get Amorino Gold for 50% less for 3 months."
+      "eyebrow": "Limited offer",
+      "title": "Amorino Gold",
+      "offer": "50% off for 3 months",
+      "description": "See who likes you, boost your profile and get more matches.",
+      "cta": "Upgrade now"
+    },
+    "profileBoost": {
+      "eyebrow": "Popular",
+      "title": "Profile Boost",
+      "offer": "Get more views today",
+      "description": "Be shown to more people near you and increase your chances of matching.",
+      "cta": "Boost me"
+    },
+    "seeLikes": {
+      "eyebrow": "Unlock",
+      "title": "See Who Likes You",
+      "offer": "Reveal your hidden likes",
+      "description": "Find out who already liked your profile and match faster.",
+      "cta": "Reveal likes"
+    },
+    "superLike": {
+      "eyebrow": "Stand out",
+      "title": "Super Like Pack",
+      "offer": "5 Super Likes included",
+      "description": "Send stronger signals to people you really like.",
+      "cta": "Get Super Likes"
+    },
+    "firstMonth": {
+      "eyebrow": "New members",
+      "title": "First Month Premium",
+      "offer": "First month for £0.99",
+      "description": "Try premium discovery with more visibility and better matching tools.",
+      "cta": "Start Premium"
     },
     "boost": {
       "title": "Boost",

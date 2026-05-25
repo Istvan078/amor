@@ -374,54 +374,156 @@ app-discover {
   }
 
   .promotions-container {
-    min-height: 260px;
+    min-height: 310px;
   }
 
   .promotions-container .swiper-cont {
+    --swiper-pagination-bottom: 1px;
+    --swiper-pagination-bullet-horizontal-gap: 4px;
+    --swiper-pagination-bullet-inactive-color: rgba(255, 255, 255, 0.18);
+    --swiper-pagination-bullet-inactive-opacity: 1;
+    --swiper-pagination-bullet-size: 7px;
+    --swiper-pagination-color: var(--amor-rose);
+    --swiper-theme-color: var(--amor-rose);
     width: 100%;
     height: 100%;
+    padding-bottom: 22px;
+  }
+
+  .promotions-container .swiper-cont::part(button-prev),
+  .promotions-container .swiper-cont::part(button-next),
+  .promotions-container .swiper-cont::part(scrollbar) {
+    display: none;
+  }
+
+  .promotions-container .swiper-cont::part(bullet) {
+    transition:
+      width 160ms ease,
+      opacity 160ms ease,
+      background 160ms ease;
+  }
+
+  .promotions-container .swiper-cont::part(bullet-active) {
+    width: 22px;
+    border-radius: 999px;
+    background: linear-gradient(135deg, var(--amor-rose), var(--amor-gold));
+    box-shadow: 0 0 18px rgba(255, 93, 143, 0.42);
   }
 
   .prom-card {
-    height: 240px;
+    --promo-accent: var(--amor-rose);
+    --promo-accent-soft: var(--amor-coral);
+    position: relative;
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between;
+    height: 272px;
     margin: 0;
-    padding: 14px;
+    padding: 18px;
     overflow: hidden;
-    border: 1px solid var(--amor-line);
+    border: 1px solid rgba(255, 255, 255, 0.14);
     border-radius: 8px;
-    background: var(--amor-card);
-    box-shadow: none;
-    display: grid;
-    justify-items: center;
+    background:
+      linear-gradient(135deg, color-mix(in srgb, var(--promo-accent) 20%, transparent), color-mix(in srgb, var(--promo-accent-soft) 14%, transparent) 42%, rgba(53, 198, 189, 0.09)),
+      rgba(255, 255, 255, 0.055);
+    box-shadow:
+      inset 0 1px 0 rgba(255, 255, 255, 0.13),
+      0 20px 48px color-mix(in srgb, var(--promo-accent) 15%, transparent);
   }
 
-  .prom-img-cont img {
-    width: 72px;
-    height: 72px;
-    border-radius: 8px;
+  .prom-glow {
+    position: absolute;
+    right: -54px;
+    bottom: -64px;
+    width: 180px;
+    height: 180px;
+    border-radius: 999px;
+    background: radial-gradient(circle, color-mix(in srgb, var(--promo-accent) 48%, transparent), transparent 68%);
+    pointer-events: none;
+  }
+
+  .prom-card-head {
+    position: relative;
+    z-index: 1;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+  }
+
+  .prom-card-head span {
+    display: inline-flex;
+    align-items: center;
+    min-height: 28px;
+    padding: 0 10px;
+    border: 1px solid rgba(255, 255, 255, 0.16);
+    border-radius: 999px;
+    background: rgba(255, 255, 255, 0.08);
+    color: #ffe3a4;
+    font-size: 0.7rem;
+    font-weight: 900;
+    text-transform: uppercase;
+  }
+
+  .prom-badge {
+    display: grid;
+    place-items: center;
+    width: 42px;
+    height: 42px;
+    border-radius: 999px;
+    background: linear-gradient(135deg, var(--promo-accent), var(--promo-accent-soft));
+    color: #ffffff;
+    box-shadow: 0 14px 30px color-mix(in srgb, var(--promo-accent) 32%, transparent);
+  }
+
+  .prom-badge ion-icon {
+    font-size: 22px;
   }
 
   .prom-card ion-card-header,
   .prom-card ion-card-content {
     padding-inline: 0;
-    text-align: center;
+    position: relative;
+    z-index: 1;
+    text-align: left;
   }
 
   .prom-card ion-card-title {
     color: var(--amor-text);
-    font-size: 1rem;
+    font-size: 1.45rem;
     font-weight: 800;
+    letter-spacing: 0;
   }
 
   .prom-card ion-card-subtitle {
     color: var(--amor-gold);
+    font-size: 1.02rem;
     font-weight: 900;
+    text-transform: none;
   }
 
   .prom-card ion-card-content {
     color: var(--amor-muted);
-    font-size: 0.88rem;
+    font-size: 0.9rem;
     line-height: 1.45;
+  }
+
+  .prom-card ion-card-content p {
+    margin: 0 0 16px;
+  }
+
+  .prom-cta-button {
+    width: 100%;
+    min-height: 42px;
+    margin: 0;
+    --background: linear-gradient(135deg, var(--promo-accent), var(--promo-accent-soft));
+    --background-hover: linear-gradient(135deg, color-mix(in srgb, var(--promo-accent) 84%, white), color-mix(in srgb, var(--promo-accent-soft) 84%, white));
+    --border-radius: 999px;
+    --box-shadow: 0 14px 34px color-mix(in srgb, var(--promo-accent) 26%, transparent);
+    --color: #ffffff;
+    font-weight: 900;
+    letter-spacing: 0;
+    text-transform: none;
   }
 
   .matches-and-messages-cont {
@@ -474,33 +576,157 @@ app-discover {
 
   .match-container {
     position: relative;
-    min-height: 92px;
+    display: grid;
+    grid-template-columns: 64px minmax(0, 1fr);
+    align-items: center;
+    gap: 12px;
+    min-height: 96px;
+    padding: 14px;
     overflow: hidden;
-    border: 1px solid rgba(255, 255, 255, 0.1);
+    border: 1px solid rgba(255, 255, 255, 0.11);
     border-radius: 8px;
-    background: #20263a;
+    background:
+      linear-gradient(135deg, rgba(255, 255, 255, 0.085), rgba(255, 255, 255, 0.035)),
+      #151b2c;
+    box-shadow: 0 14px 30px rgba(0, 0, 0, 0.14);
     cursor: pointer;
     transition:
       transform 160ms ease,
-      border-color 160ms ease;
+      border-color 160ms ease,
+      background 160ms ease;
   }
 
   .match-container:hover {
     transform: translateY(-2px);
-    border-color: rgba(255, 255, 255, 0.22);
+    border-color: rgba(255, 93, 143, 0.34);
+    background:
+      linear-gradient(135deg, rgba(255, 93, 143, 0.14), rgba(255, 255, 255, 0.055)),
+      #171d30;
   }
 
-  .match-container p {
-    position: absolute;
-    right: 0;
-    bottom: 0;
-    left: 0;
-    z-index: 2;
-    margin: 0;
-    padding: 18px 14px 12px;
-    color: #ffffff;
-    background: linear-gradient(0deg, rgba(7, 9, 16, 0.84), transparent);
+  .match-container.is-active {
+    border-color: rgba(255, 93, 143, 0.55);
+    background:
+      linear-gradient(135deg, rgba(255, 93, 143, 0.16), rgba(242, 199, 110, 0.07)),
+      #211b31;
+    box-shadow:
+      inset 0 1px 0 rgba(255, 255, 255, 0.08),
+      0 18px 42px rgba(255, 93, 143, 0.14);
+  }
+
+  .match-avatar {
+    width: 64px;
+    height: 64px;
+    overflow: hidden;
+    border: 2px solid rgba(255, 255, 255, 0.42);
+    border-radius: 999px;
+    object-fit: cover;
+    box-shadow: 0 12px 24px rgba(0, 0, 0, 0.24);
+  }
+
+  .match-copy {
+    min-width: 0;
+    padding-right: 34px;
+  }
+
+  .match-title-row {
+    display: flex;
+    align-items: baseline;
+    gap: 7px;
+    min-width: 0;
+  }
+
+  .match-title-row strong {
+    min-width: 0;
+    overflow: hidden;
+    color: var(--amor-text);
+    font-size: 0.98rem;
     font-weight: 900;
+    line-height: 1.15;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  .match-title-row span {
+    flex: 0 0 auto;
+    color: var(--amor-gold);
+    font-size: 0.92rem;
+    font-weight: 900;
+  }
+
+  .match-presence {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    margin-top: 5px;
+    color: rgba(248, 245, 239, 0.58);
+    font-size: 0.72rem;
+    font-weight: 800;
+  }
+
+  .match-presence span {
+    width: 8px;
+    height: 8px;
+    border-radius: 999px;
+    background: rgba(255, 255, 255, 0.28);
+  }
+
+  .match-presence.is-online {
+    color: #9ff7cb;
+  }
+
+  .match-presence.is-online span {
+    background: #3ff08a;
+    box-shadow: 0 0 0 4px rgba(63, 240, 138, 0.12);
+  }
+
+  .match-preview {
+    margin: 0;
+    margin-top: 8px;
+    overflow: hidden;
+    color: rgba(248, 245, 239, 0.67);
+    font-size: 0.8rem;
+    font-weight: 700;
+    line-height: 1.25;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  .match-preview span {
+    color: rgba(248, 245, 239, 0.9);
+    font-weight: 900;
+  }
+
+  .match-preview.is-new-match {
+    display: inline-flex;
+    width: fit-content;
+    max-width: 100%;
+    padding: 5px 9px;
+    border: 1px solid rgba(255, 93, 143, 0.24);
+    border-radius: 999px;
+    background: rgba(255, 93, 143, 0.12);
+    color: #ffd1dc;
+    font-size: 0.72rem;
+    font-weight: 900;
+    text-transform: uppercase;
+  }
+
+  .match-unread-badge {
+    position: absolute;
+    top: 12px;
+    right: 12px;
+    display: inline-grid;
+    place-items: center;
+    min-width: 24px;
+    height: 24px;
+    padding: 0 7px;
+    border: 2px solid #151b2c;
+    border-radius: 999px;
+    background: linear-gradient(135deg, var(--amor-rose), var(--amor-coral));
+    color: #ffffff;
+    font-size: 0.72rem;
+    font-weight: 900;
+    box-shadow: 0 12px 26px rgba(255, 93, 143, 0.35);
   }
 
   .poss-match-details-container {

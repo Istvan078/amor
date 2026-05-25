@@ -95,7 +95,11 @@
       "messages": "Üzenetek",
       "promotionAlt": "Promóció",
       "profileImageAlt": "Profilkép",
-      "matchImageAlt": "Match profilkép"
+      "matchImageAlt": "Match profilkép",
+      "online": "Online",
+      "offline": "Offline",
+      "newMatch": "Új match",
+      "you": "Te"
     },
     "profile": {
       "myProfile": "Profilom",
@@ -200,8 +204,18 @@
     "sendAria": "Üzenet küldése"
   },
   "promotions": {
+    "sheet": {
+      "close": "Aj\u00e1nlat bez\u00e1r\u00e1sa",
+      "maybeLater": "K\u00e9s\u0151bb d\u00f6nt\u00f6k",
+      "seeOtherOffers": "M\u00e1s aj\u00e1nlatok",
+      "previousOffer": "El\u0151z\u0151 aj\u00e1nlat",
+      "nextOffer": "K\u00f6vetkez\u0151 aj\u00e1nlat"
+    },
     "category": {
-      "subscription": "Előfizetés"
+      "subscription": "Előfizetés",
+      "boost": "Kiemelés",
+      "premium": "Prémium",
+      "superLike": "Super Like"
     },
     "fields": {
       "title": "Cím",
@@ -213,7 +227,39 @@
       "discount": "Leárazás"
     },
     "gold": {
-      "description": "3 hónapig 50%-os áron veheted meg az Amorino Gold csomagot."
+      "eyebrow": "Korlátozott ajánlat",
+      "title": "Amorino Gold",
+      "offer": "50% kedvezmény 3 hónapig",
+      "description": "Nézd meg, kik kedvelnek, emeld ki a profilod, és szerezz több matchet.",
+      "cta": "Upgrade most"
+    },
+    "profileBoost": {
+      "eyebrow": "Népszerű",
+      "title": "Profile Boost",
+      "offer": "Több megjelenés még ma",
+      "description": "Jelenj meg több közeli embernek, és növeld az esélyed a matchekre.",
+      "cta": "Boostolj"
+    },
+    "seeLikes": {
+      "eyebrow": "Feloldás",
+      "title": "See Who Likes You",
+      "offer": "Fedd fel a rejtett kedveléseid",
+      "description": "Tudd meg, kik kedveltek már, és matchelj gyorsabban.",
+      "cta": "Kedvelések megnyitása"
+    },
+    "superLike": {
+      "eyebrow": "Tűnj ki",
+      "title": "Super Like Pack",
+      "offer": "5 Super Like csomagban",
+      "description": "Küldj erősebb jelzést azoknak, akik igazán tetszenek.",
+      "cta": "Super Like csomag"
+    },
+    "firstMonth": {
+      "eyebrow": "Új tagoknak",
+      "title": "First Month Premium",
+      "offer": "Első hónap £0.99-ért",
+      "description": "Próbáld ki a prémium felfedezést nagyobb láthatósággal és jobb match eszközökkel.",
+      "cta": "Premium indítása"
     },
     "boost": {
       "title": "Kiemelés",

@@ -1,0 +1,148 @@
+@if (isOpen && currentPromotion; as promo) {
+  <ng-container *transloco="let t">
+    <div
+      class="promo-sheet-backdrop"
+      (click)="dismiss('close')"
+      aria-hidden="true"
+    ></div>
+
+    <section
+      class="promo-sheet"
+      [class.promo-sheet--expanded]="showOtherOffers"
+      [style.--promo-accent]="promo['accent'] || '#ff5d8f'"
+      [style.--promo-accent-soft]="promo['accentSoft'] || '#f2c76e'"
+      role="dialog"
+      aria-modal="true"
+      [attr.aria-label]="promo['titleKey'] ? t(promo['titleKey']) : promo['title']"
+    >
+      <div class="promo-sheet__handle" aria-hidden="true"></div>
+
+      <button
+        class="promo-sheet__close"
+        type="button"
+        (click)="dismiss('close')"
+        [attr.aria-label]="t('promotions.sheet.close')"
+      >
+        <ion-icon name="close-outline" aria-hidden="true"></ion-icon>
+      </button>
+
+      <div class="promo-sheet__icon">
+        <ion-icon [name]="getIconName(promo)" aria-hidden="true"></ion-icon>
+      </div>
+
+      <p class="promo-sheet__eyebrow">
+        @if (promo['eyebrowKey']) {
+          {{ t(promo['eyebrowKey']) }}
+        } @else {
+          {{ promo['category'] }}
+        }
+      </p>
+
+      <h2 class="promo-sheet__title">
+        @if (promo['titleKey']) {
+          {{ t(promo['titleKey']) }}
+        } @else {
+          {{ promo['title'] }}
+        }
+      </h2>
+
+      <p class="promo-sheet__offer">
+        @if (promo['offerKey']) {
+          {{ t(promo['offerKey']) }}
+        } @else {
+          {{ promo['offerLine'] }}
+        }
+      </p>
+
+      <p class="promo-sheet__description">
+        @if (promo['descriptionKey']) {
+          {{ t(promo['descriptionKey']) }}
+        } @else {
+          {{ promo['description'] }}
+        }
+      </p>
+
+      <button class="promo-sheet__cta" type="button" (click)="dismiss('cta')">
+        <span>
+          @if (promo['ctaKey']) {
+            {{ t(promo['ctaKey']) }}
+          } @else {
+            {{ t('common.continue') }}
+          }
+        </span>
+        <ion-icon name="arrow-forward-outline" aria-hidden="true"></ion-icon>
+      </button>
+
+      <div class="promo-sheet__secondary-actions">
+        <button
+          class="promo-sheet__text-button"
+          type="button"
+          (click)="dismiss('maybeLater')"
+        >
+          {{ t('promotions.sheet.maybeLater') }}
+        </button>
+
+        @if (hasOtherOffers && !showOtherOffers) {
+          <button
+            class="promo-sheet__text-button promo-sheet__text-button--muted"
+            type="button"
+            (click)="openOtherOffers()"
+          >
+            {{ t('promotions.sheet.seeOtherOffers') }}
+          </button>
+        }
+      </div>
+
+      @if (showOtherOffers && hasOtherOffers) {
+        <div class="promo-sheet__offers">
+          <button
+            class="promo-sheet__nav"
+            type="button"
+            (click)="previousOffer()"
+            [disabled]="selectedIndex === 0"
+            [attr.aria-label]="t('promotions.sheet.previousOffer')"
+          >
+            <ion-icon name="chevron-back-outline" aria-hidden="true"></ion-icon>
+          </button>
+
+          <article class="promo-sheet__mini-card">
+            <p>
+              @if (promo['eyebrowKey']) {
+                {{ t(promo['eyebrowKey']) }}
+              } @else {
+                {{ promo['category'] }}
+              }
+            </p>
+            <strong>
+              @if (promo['titleKey']) {
+                {{ t(promo['titleKey']) }}
+              } @else {
+                {{ promo['title'] }}
+              }
+            </strong>
+          </article>
+
+          <button
+            class="promo-sheet__nav"
+            type="button"
+            (click)="nextOffer()"
+            [disabled]="selectedIndex >= visiblePromotions.length - 1"
+            [attr.aria-label]="t('promotions.sheet.nextOffer')"
+          >
+            <ion-icon name="chevron-forward-outline" aria-hidden="true"></ion-icon>
+          </button>
+        </div>
+
+        <div class="promo-sheet__dots">
+          @for (offer of visiblePromotions; track offer['id'] || $index; let i = $index) {
+            <button
+              type="button"
+              [class.is-active]="i === selectedIndex"
+              (click)="selectOffer(i)"
+            ></button>
+          }
+        </div>
+      }
+    </section>
+  </ng-container>
+}

@@ -1,0 +1,267 @@
+:host {
+  display: block;
+}
+
+.promo-sheet-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 70;
+  background:
+    radial-gradient(circle at 50% 82%, rgba(255, 93, 143, 0.2), transparent 34%),
+    rgba(3, 6, 18, 0.66);
+  backdrop-filter: blur(8px);
+  animation: promo-backdrop-in 180ms ease-out both;
+}
+
+.promo-sheet {
+  --promo-accent: #ff5d8f;
+  --promo-accent-soft: #f2c76e;
+
+  position: fixed;
+  right: 0;
+  bottom: 0;
+  left: 0;
+  z-index: 71;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  width: min(100%, 430px);
+  max-height: calc(100dvh - 38px);
+  margin: 0 auto;
+  padding: 16px 20px 20px;
+  overflow: hidden;
+  color: #fff;
+  background:
+    linear-gradient(145deg, color-mix(in srgb, var(--promo-accent) 18%, transparent), transparent 36%),
+    linear-gradient(180deg, rgba(24, 29, 49, 0.98), #0b1020 72%);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  border-radius: 26px 26px 0 0;
+  box-shadow:
+    0 -24px 70px rgba(0, 0, 0, 0.5),
+    0 -1px 0 rgba(255, 255, 255, 0.08);
+  animation: promo-sheet-in 280ms cubic-bezier(0.2, 0.9, 0.2, 1) both;
+}
+
+.promo-sheet--expanded {
+  gap: 12px;
+}
+
+.promo-sheet__handle {
+  width: 52px;
+  height: 5px;
+  margin: 0 auto 6px;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.25);
+}
+
+.promo-sheet__close {
+  position: absolute;
+  top: 14px;
+  right: 14px;
+  display: grid;
+  width: 40px;
+  height: 40px;
+  place-items: center;
+  padding: 0;
+  color: rgba(255, 255, 255, 0.86);
+  background: rgba(255, 255, 255, 0.08);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  border-radius: 999px;
+}
+
+.promo-sheet__close ion-icon {
+  width: 22px;
+  height: 22px;
+}
+
+.promo-sheet__icon {
+  display: grid;
+  width: 58px;
+  height: 58px;
+  place-items: center;
+  margin: 0 auto;
+  color: #fff;
+  background:
+    radial-gradient(circle at 34% 24%, rgba(255, 255, 255, 0.52), transparent 24%),
+    linear-gradient(135deg, var(--promo-accent), var(--promo-accent-soft));
+  border: 1px solid rgba(255, 255, 255, 0.28);
+  border-radius: 20px;
+  box-shadow: 0 18px 42px color-mix(in srgb, var(--promo-accent) 34%, transparent);
+}
+
+.promo-sheet__icon ion-icon {
+  width: 28px;
+  height: 28px;
+}
+
+.promo-sheet__eyebrow {
+  margin: 8px 0 0;
+  color: color-mix(in srgb, var(--promo-accent-soft) 82%, #fff);
+  font-size: 0.76rem;
+  font-weight: 900;
+  letter-spacing: 0;
+  text-align: center;
+  text-transform: uppercase;
+}
+
+.promo-sheet__title {
+  margin: 0;
+  font-size: clamp(1.55rem, 7vw, 2.15rem);
+  font-weight: 900;
+  line-height: 1.04;
+  text-align: center;
+}
+
+.promo-sheet__offer {
+  margin: 0;
+  color: #fff;
+  font-size: 1.02rem;
+  font-weight: 850;
+  text-align: center;
+}
+
+.promo-sheet__description {
+  max-width: 32ch;
+  margin: 0 auto 4px;
+  color: rgba(255, 255, 255, 0.72);
+  font-size: 0.95rem;
+  line-height: 1.45;
+  text-align: center;
+}
+
+.promo-sheet__cta,
+.promo-sheet__text-button,
+.promo-sheet__nav,
+.promo-sheet__dots button {
+  font: inherit;
+  cursor: pointer;
+}
+
+.promo-sheet__cta {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 54px;
+  gap: 10px;
+  width: 100%;
+  margin-top: 4px;
+  padding: 0 18px;
+  color: #fff;
+  font-size: 0.98rem;
+  font-weight: 900;
+  background: linear-gradient(135deg, var(--promo-accent), var(--promo-accent-soft));
+  border: 0;
+  border-radius: 999px;
+  box-shadow: 0 18px 44px color-mix(in srgb, var(--promo-accent) 28%, transparent);
+}
+
+.promo-sheet__cta ion-icon {
+  width: 21px;
+  height: 21px;
+}
+
+.promo-sheet__secondary-actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: center;
+  gap: 8px 14px;
+}
+
+.promo-sheet__text-button {
+  padding: 8px 2px;
+  color: color-mix(in srgb, var(--promo-accent) 82%, #fff);
+  font-size: 0.9rem;
+  font-weight: 800;
+  background: transparent;
+  border: 0;
+}
+
+.promo-sheet__text-button--muted {
+  color: rgba(255, 255, 255, 0.62);
+}
+
+.promo-sheet__offers {
+  display: grid;
+  grid-template-columns: 42px 1fr 42px;
+  gap: 10px;
+  align-items: stretch;
+  margin-top: 2px;
+}
+
+.promo-sheet__nav {
+  display: grid;
+  width: 42px;
+  min-height: 76px;
+  place-items: center;
+  color: #fff;
+  background: rgba(255, 255, 255, 0.08);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  border-radius: 18px;
+}
+
+.promo-sheet__nav:disabled {
+  cursor: default;
+  opacity: 0.32;
+}
+
+.promo-sheet__mini-card {
+  display: grid;
+  align-content: center;
+  min-height: 76px;
+  padding: 14px;
+  background: rgba(255, 255, 255, 0.07);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  border-radius: 18px;
+}
+
+.promo-sheet__mini-card p {
+  margin: 0 0 4px;
+  color: color-mix(in srgb, var(--promo-accent-soft) 80%, #fff);
+  font-size: 0.72rem;
+  font-weight: 900;
+  text-transform: uppercase;
+}
+
+.promo-sheet__mini-card strong {
+  font-size: 0.98rem;
+  line-height: 1.2;
+}
+
+.promo-sheet__dots {
+  display: flex;
+  justify-content: center;
+  gap: 8px;
+}
+
+.promo-sheet__dots button {
+  width: 7px;
+  height: 7px;
+  padding: 0;
+  background: rgba(255, 255, 255, 0.24);
+  border: 0;
+  border-radius: 999px;
+}
+
+.promo-sheet__dots button.is-active {
+  width: 22px;
+  background: linear-gradient(135deg, var(--promo-accent), var(--promo-accent-soft));
+}
+
+@keyframes promo-backdrop-in {
+  from {
+    opacity: 0;
+  }
+}
+
+@keyframes promo-sheet-in {
+  from {
+    transform: translateY(105%);
+  }
+}
+
+@media (min-width: 769px) {
+  :host {
+    display: none;
+  }
+}
