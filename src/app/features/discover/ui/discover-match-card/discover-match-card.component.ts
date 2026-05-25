@@ -15,6 +15,14 @@ import {
   IonText,
 } from '@ionic/angular/standalone';
 import { TranslocoDirective } from '@jsverse/transloco';
+import { addIcons } from 'ionicons';
+import {
+  closeOutline,
+  heartOutline,
+  lockClosedOutline,
+  returnUpBackOutline,
+  star,
+} from 'ionicons/icons';
 
 import { translatedProfileValue } from '../../../../shared/i18n/profile-value-labels';
 import { UserClass } from '../../../../shared/models/user.model';
@@ -42,8 +50,24 @@ export class DiscoverMatchCardComponent {
   @Input() buffer = 0;
   @Input() matchProfile?: UserClass;
   @Input() isMatchPlaceHolder = false;
+  @Input() hasRewindCandidate = false;
+  @Input() isRewindLocked = true;
+  @Input() freeRewindsRemaining = 0;
+  @Input() canSuperLike = false;
 
   @Output() detailsToggled = new EventEmitter<void>();
+  @Output() rewindRequested = new EventEmitter<void>();
   @Output() liked = new EventEmitter<void>();
   @Output() disliked = new EventEmitter<void>();
+  @Output() superLiked = new EventEmitter<void>();
+
+  constructor() {
+    addIcons({
+      closeOutline,
+      heartOutline,
+      lockClosedOutline,
+      returnUpBackOutline,
+      star,
+    });
+  }
 }

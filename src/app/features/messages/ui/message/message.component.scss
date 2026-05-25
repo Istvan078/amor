@@ -2,13 +2,15 @@
   display: block;
   width: 100%;
   height: 100%;
+  min-height: 0;
   color: #f8f5ef;
 }
 
 .messages-shell {
+  display: grid;
   width: 100%;
-  min-height: 72dvh;
   height: 100%;
+  min-height: 0;
   padding: 18px;
   background:
     radial-gradient(circle at 18% 0%, rgba(255, 93, 143, 0.16), transparent 34%),
@@ -17,9 +19,7 @@
 
 .conversation-card,
 .conversation-list {
-  display: flex;
-  flex-direction: column;
-  min-height: calc(72dvh - 36px);
+  min-height: 0;
   overflow: hidden;
   border: 1px solid rgba(255, 255, 255, 0.11);
   border-radius: 8px;
@@ -27,13 +27,35 @@
   box-shadow: 0 22px 58px rgba(4, 8, 18, 0.34);
 }
 
-.conversation-header {
+.conversation-card {
   display: grid;
-  grid-template-columns: auto auto minmax(0, 1fr);
+  grid-template-rows: auto auto auto minmax(0, 1fr) auto;
+  width: 100%;
+  height: 100%;
+  min-height: 0;
+}
+
+.conversation-list {
+  display: flex;
+  flex-direction: column;
+  width: 100%;
+  height: 100%;
+  min-height: 0;
+}
+
+.conversation-header {
+  grid-row: 1;
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr) auto;
   gap: 14px;
   align-items: center;
+  min-height: 0;
   padding: 18px;
   border-bottom: 1px solid rgba(255, 255, 255, 0.09);
+}
+
+.conversation-header.has-back-button {
+  grid-template-columns: auto auto minmax(0, 1fr) auto;
 }
 
 .conversation-header ion-avatar {
@@ -81,6 +103,7 @@
 }
 
 .conversation-hero {
+  grid-row: 2;
   display: flex;
   align-items: center;
   justify-content: space-between;
@@ -92,6 +115,110 @@
   background:
     linear-gradient(135deg, rgba(255, 93, 143, 0.18), rgba(53, 198, 189, 0.1)),
     rgba(255, 255, 255, 0.04);
+}
+
+.conversation-notice {
+  grid-row: 3;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin: 10px 18px 0;
+  padding: 12px 14px;
+  border: 1px solid rgba(255, 93, 143, 0.18);
+  border-radius: 8px;
+  background: rgba(255, 93, 143, 0.08);
+  color: rgba(248, 245, 239, 0.82);
+  font-size: 0.88rem;
+  font-weight: 800;
+}
+
+.conversation-notice ion-icon {
+  flex: 0 0 auto;
+  color: #ff9cbd;
+  font-size: 19px;
+}
+
+.conversation-menu-wrap {
+  position: relative;
+  display: flex;
+  justify-content: flex-end;
+}
+
+.conversation-menu-button {
+  width: 42px;
+  height: 42px;
+  margin: 0;
+  --background: rgba(255, 255, 255, 0.06);
+  --background-hover: rgba(255, 255, 255, 0.12);
+  --border-radius: 999px;
+  --color: #ffffff;
+  --padding-end: 0;
+  --padding-start: 0;
+}
+
+.conversation-menu-button ion-icon {
+  font-size: 22px;
+}
+
+.conversation-menu {
+  position: absolute;
+  top: calc(100% + 10px);
+  right: 0;
+  z-index: 10;
+  display: grid;
+  gap: 8px;
+  width: min(310px, calc(100vw - 34px));
+  padding: 10px;
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  border-radius: 16px;
+  background:
+    radial-gradient(circle at 100% 0%, rgba(255, 93, 143, 0.14), transparent 34%),
+    rgba(18, 23, 40, 0.98);
+  box-shadow: 0 24px 56px rgba(0, 0, 0, 0.38);
+  backdrop-filter: blur(18px);
+}
+
+.conversation-menu button {
+  display: grid;
+  grid-template-columns: 36px minmax(0, 1fr);
+  gap: 10px;
+  align-items: center;
+  min-height: 66px;
+  padding: 10px;
+  color: #ffffff;
+  background: rgba(255, 255, 255, 0.055);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 12px;
+  text-align: left;
+  cursor: pointer;
+}
+
+.conversation-menu button:hover {
+  border-color: rgba(255, 93, 143, 0.32);
+  background: rgba(255, 255, 255, 0.08);
+}
+
+.conversation-menu button ion-icon {
+  color: #ff8fb1;
+  font-size: 22px;
+}
+
+.conversation-menu button strong,
+.conversation-menu button small {
+  display: block;
+  min-width: 0;
+}
+
+.conversation-menu button strong {
+  font-size: 0.92rem;
+  font-weight: 900;
+}
+
+.conversation-menu button small {
+  margin-top: 3px;
+  color: rgba(248, 245, 239, 0.58);
+  font-size: 0.76rem;
+  line-height: 1.25;
 }
 
 .conversation-hero ion-button {
@@ -108,22 +235,33 @@
 }
 
 .message-thread {
+  grid-row: 4;
   display: flex;
-  flex: 1;
   flex-direction: column;
+  align-items: stretch;
   gap: 10px;
   min-height: 0;
+  height: auto;
   margin: 0;
   padding: 22px 18px;
+  overflow-x: hidden;
   overflow-y: auto;
+  overscroll-behavior-y: contain;
+  scrollbar-gutter: stable;
+  touch-action: pan-y;
   background: transparent;
+  -webkit-overflow-scrolling: touch;
 }
 
 .message-row {
+  display: flex;
   align-self: flex-start;
-  max-width: min(560px, 74%);
+  width: 100%;
+  max-width: 100%;
+  min-width: 0;
   --background: transparent;
   --border-color: transparent;
+  --inner-border-width: 0;
   --inner-padding-end: 0;
   --min-height: auto;
   --padding-bottom: 0;
@@ -133,11 +271,18 @@
 }
 
 .message-row ion-label {
+  display: flex;
+  justify-content: flex-start;
+  width: 100%;
   margin: 0;
+  white-space: normal;
 }
 
 .message-row span {
-  display: inline-block;
+  display: block;
+  width: auto;
+  min-width: clamp(92px, 15vw, 160px);
+  max-width: min(620px, 74%);
   padding: 12px 14px;
   border: 1px solid rgba(255, 255, 255, 0.09);
   border-radius: 8px 8px 8px 2px;
@@ -145,10 +290,17 @@
   color: #f8f5ef;
   font-size: 0.96rem;
   line-height: 1.42;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+  word-break: break-word;
 }
 
 .message-row.own-message {
-  align-self: flex-end;
+  align-self: stretch;
+}
+
+.message-row.own-message ion-label {
+  justify-content: flex-end;
 }
 
 .message-row.own-message span {
@@ -160,9 +312,11 @@
 }
 
 .message-composer {
+  grid-row: 5;
   display: flex;
   align-items: flex-end;
   gap: 12px;
+  flex: 0 0 auto;
   margin: 0 18px 18px;
   padding: 12px;
   border: 1px solid rgba(255, 255, 255, 0.1);
@@ -171,6 +325,10 @@
 }
 
 .message-composer ion-textarea {
+  flex: 1 1 auto;
+  min-width: 0;
+  min-height: 48px;
+  max-height: 150px;
   --background: rgba(10, 14, 25, 0.56);
   --border-radius: 8px;
   --color: #ffffff;
@@ -180,8 +338,6 @@
   --padding-start: 14px;
   --padding-top: 12px;
   --placeholder-color: rgba(248, 245, 239, 0.52);
-  min-height: 48px;
-  max-height: 150px;
 }
 
 .message-composer ion-button {
@@ -210,11 +366,14 @@
 
 .conversation-list-items {
   display: flex;
+  flex: 1 1 auto;
   flex-direction: column;
   gap: 10px;
   min-height: 0;
   padding: 0 14px 18px;
   overflow-y: auto;
+  overflow-x: hidden;
+  -webkit-overflow-scrolling: touch;
 }
 
 .conversation-list-item {
@@ -290,29 +449,50 @@
 .message-thread::-webkit-scrollbar-thumb,
 .conversation-list-items::-webkit-scrollbar-thumb {
   border-radius: 999px;
-  background: rgba(255, 255, 255, 0.2);
+  background: rgba(255, 93, 143, 0.35);
 }
 
 @media screen and (max-width: 768px) {
   .messages-shell {
-    min-height: calc(100dvh - 96px);
+    width: 100%;
+    height: 100%;
+    min-height: 0;
+    overflow: hidden;
     padding: 0;
     background: transparent;
   }
 
   .conversation-card,
   .conversation-list {
-    min-height: calc(100dvh - 96px);
+    width: 100%;
+    height: 100%;
+    min-height: 0;
+    overflow: hidden;
     border: 0;
     border-radius: 0;
     background: transparent;
     box-shadow: none;
   }
 
+  .conversation-card {
+    display: grid;
+    grid-template-rows: auto auto auto minmax(0, 1fr) auto;
+  }
+
   .conversation-header {
-    grid-template-columns: auto auto minmax(0, 1fr);
-    padding: 14px 12px;
+    grid-template-columns: auto minmax(0, 1fr) auto;
+    gap: 10px;
+    padding: 12px;
     background: rgba(255, 255, 255, 0.045);
+  }
+
+  .conversation-header.has-back-button {
+    grid-template-columns: auto auto minmax(0, 1fr) auto;
+  }
+
+  .back-button {
+    width: 36px;
+    height: 36px;
   }
 
   .conversation-header ion-avatar {
@@ -321,35 +501,72 @@
   }
 
   .conversation-header h2 {
+    margin: 3px 0 1px;
     font-size: 1.14rem;
+    line-height: 1.1;
   }
 
   .conversation-header p {
-    font-size: 0.86rem;
+    font-size: 0.84rem;
+    line-height: 1.25;
+  }
+
+  .conversation-header small,
+  .conversation-hero span {
+    font-size: 0.68rem;
   }
 
   .conversation-hero {
-    align-items: flex-start;
+    align-items: stretch;
     flex-direction: column;
+    gap: 10px;
     margin: 12px;
-    padding: 14px;
+    padding: 12px;
+  }
+
+  .conversation-hero p {
+    font-size: 0.86rem;
+    line-height: 1.3;
   }
 
   .conversation-hero ion-button {
     width: 100%;
+    min-height: 40px;
+  }
+
+  .conversation-notice {
+    margin: 8px 12px 0;
+    padding: 10px 12px;
+    font-size: 0.8rem;
+  }
+
+  .conversation-menu {
+    right: -4px;
   }
 
   .message-thread {
+    min-height: 0;
+    height: auto;
     padding: 16px 12px;
+    touch-action: pan-y;
   }
 
   .message-row {
-    max-width: 84%;
+    max-width: 100%;
+  }
+
+  .message-row span {
+    min-width: 86px;
+    max-width: 78%;
+    padding: 10px 12px;
+    font-size: 0.92rem;
+    line-height: 1.35;
   }
 
   .message-composer {
-    position: sticky;
-    bottom: 0;
+    display: flex;
+    align-items: flex-end;
+    gap: 10px;
     margin: 0;
     padding: 10px 12px calc(10px + env(safe-area-inset-bottom));
     border-right: 0;
@@ -358,6 +575,16 @@
     border-radius: 0;
     background: rgba(15, 19, 33, 0.96);
     backdrop-filter: blur(18px);
+  }
+
+  .message-composer ion-textarea {
+    min-height: 46px;
+    max-height: 118px;
+  }
+
+  .message-composer ion-button {
+    width: 48px;
+    height: 48px;
   }
 
   .messages-heading {

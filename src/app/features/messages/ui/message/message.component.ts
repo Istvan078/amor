@@ -1,10 +1,13 @@
 import {
+  AfterViewChecked,
   Component,
+  ElementRef,
   EventEmitter,
   Input,
   OnChanges,
   Output,
   SimpleChanges,
+  ViewChild,
   effect,
   inject,
 } from '@angular/core';
@@ -15,10 +18,16 @@ import {
   IonIcon,
   IonItem,
   IonLabel,
-  IonList,
   IonTextarea,
 } from '@ionic/angular/standalone';
 import { TranslocoDirective } from '@jsverse/transloco';
+import { addIcons } from 'ionicons';
+import {
+  banOutline,
+  ellipsisHorizontal,
+  flagOutline,
+  shieldCheckmarkOutline,
+} from 'ionicons/icons';
 
 import { Message } from '../../../../shared/models/message.model';
 import { Options } from '../../../../shared/models/options.model';
@@ -33,7 +42,6 @@ import { MessagesStore } from '../../store/messages.store';
   standalone: true,
   imports: [
     FormsModule,
-    IonList,
     IonItem,
     IonLabel,
     IonTextarea,
@@ -43,7 +51,10 @@ import { MessagesStore } from '../../store/messages.store';
     TranslocoDirective,
   ],
 })
-export class MessageComponent implements OnChanges {
+export class MessageComponent implements AfterViewChecked, OnChanges {
+  @ViewChild('messageThread', { read: ElementRef })
+  private messageThread?: ElementRef<HTMLElement>;
+
   @Input() matches: UserClass[] = [];
   @Input() matchProfile?: UserClass;
   @Input() options?: Options;
@@ -56,18 +67,48 @@ export class MessageComponent implements OnChanges {
 
   private profileStore = inject(ProfileStore);
   private userProfile?: UserClass;
+  private pendingScrollToBottom = false;
+  private lastRenderedMessageSignature = '';
+  isConversationMenuOpen = false;
+  moderationNoticeKey?: string;
   readonly fallbackAvatar =
     'https://img.freepik.com/free-vector/user-circles-set_78370-4704.jpg?t=st=1741696833~exp=1741700433~hmac=5c4d9770452bab7cb12b3a38cead02ffcd3f50b45d75a0da6324820dc1bd3df2&w=740';
 
   constructor() {
+    addIcons({
+      banOutline,
+      ellipsisHorizontal,
+      flagOutline,
+      shieldCheckmarkOutline,
+    });
+
     effect(() => {
       this.userProfile = this.profileStore.profile() ?? undefined;
       void this.loadMessages();
     });
   }
 
+  ngAfterViewChecked() {
+    const messageSignature = this.messagesStore
+      .messages()
+      .map((message) => `${message.number}:${message.message}`)
+      .join('|');
+
+    if (messageSignature !== this.lastRenderedMessageSignature) {
+      this.lastRenderedMessageSignature = messageSignature;
+      this.pendingScrollToBottom = true;
+    }
+
+    if (this.pendingScrollToBottom) {
+      this.pendingScrollToBottom = false;
+      this.scrollThreadToBottom();
+    }
+  }
+
   ngOnChanges(changes: SimpleChanges) {
     if (changes['matchProfile']) {
+      this.isConversationMenuOpen = false;
+      this.moderationNoticeKey = undefined;
       void this.loadMessages();
     }
   }
@@ -79,6 +120,7 @@ export class MessageComponent implements OnChanges {
     }
 
     await this.messagesStore.loadMessages(this.userProfile, this.matchProfile);
+    this.pendingScrollToBottom = true;
   }
 
   getProfileImage(profile?: UserClass) {
@@ -95,6 +137,8 @@ export class MessageComponent implements OnChanges {
 
   selectMatch(match: UserClass) {
     this.matchProfile = match;
+    this.isConversationMenuOpen = false;
+    this.moderationNoticeKey = undefined;
 
     if (this.options) {
       this.options.isSelectedMatch = true;
@@ -104,9 +148,50 @@ export class MessageComponent implements OnChanges {
   }
 
   backToMsgs() {
+    this.isConversationMenuOpen = false;
+
     if (this.options) {
       this.options.isSelectedMatch = false;
     }
+  }
+
+  toggleConversationMenu() {
+    this.isConversationMenuOpen = !this.isConversationMenuOpen;
+  }
+
+  closeConversationMenu() {
+    this.isConversationMenuOpen = false;
+  }
+
+  async blockUser() {
+    await this.updateModerationList('blockedUsers');
+    this.moderationNoticeKey = 'messages.blockedNotice';
+    this.closeConversationMenu();
+  }
+
+  async reportUser() {
+    await this.updateModerationList('reportedUsers');
+    this.moderationNoticeKey = 'messages.reportedNotice';
+    this.closeConversationMenu();
+  }
+
+  private async updateModerationList(key: 'blockedUsers' | 'reportedUsers') {
+    if (!this.userProfile?.uid || !this.matchProfile?.uid) {
+      return;
+    }
+
+    const currentValues = Array.isArray(this.userProfile[key])
+      ? this.userProfile[key]
+      : [];
+    const nextValues = currentValues.includes(this.matchProfile.uid)
+      ? currentValues
+      : [...currentValues, this.matchProfile.uid];
+
+    await this.profileStore.updateProfile(this.userProfile.uid, {
+      [key]: nextValues,
+    });
+
+    this.userProfile[key] = nextValues;
   }
 
   async onMessageSend(form: NgForm) {
@@ -137,5 +222,18 @@ export class MessageComponent implements OnChanges {
     });
 
     form.resetForm();
+    this.pendingScrollToBottom = true;
+  }
+
+  private scrollThreadToBottom() {
+    queueMicrotask(() => {
+      const element = this.messageThread?.nativeElement;
+
+      if (!element) {
+        return;
+      }
+
+      element.scrollTop = element.scrollHeight;
+    });
   }
 }

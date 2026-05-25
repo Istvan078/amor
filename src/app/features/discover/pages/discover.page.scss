@@ -94,14 +94,23 @@ app-discover {
   }
 
   .app-message-card {
+    display: block;
     width: min(1040px, 100%);
-    min-height: 72dvh;
+    height: clamp(560px, calc(100dvh - 68px), 860px);
+    min-height: 0;
     margin: 0;
     overflow: hidden;
     border: 1px solid var(--amor-line);
     border-radius: 8px;
     background: var(--amor-panel);
     box-shadow: var(--amor-shadow);
+  }
+
+  .app-message-card app-message {
+    display: block;
+    width: 100%;
+    height: 100%;
+    min-height: 0;
   }
 
   .user-card {
@@ -255,6 +264,7 @@ app-discover {
   }
 
   .action-button {
+    position: relative;
     width: 62px;
     height: 62px;
     margin: 0;
@@ -267,8 +277,35 @@ app-discover {
     transition: transform 160ms ease;
   }
 
+  .action-button::part(native) {
+    overflow: visible;
+  }
+
   .action-button:hover {
     transform: translateY(-3px);
+  }
+
+  .action-button[disabled] {
+    opacity: 0.42;
+  }
+
+  .action-button.rewind {
+    --background: rgba(255, 255, 255, 0.1);
+    --background-hover: rgba(255, 255, 255, 0.16);
+    --color: #f8f5ef;
+  }
+
+  .action-button.rewind.locked {
+    --background: rgba(255, 255, 255, 0.075);
+    --background-hover: rgba(242, 199, 110, 0.16);
+    --color: rgba(248, 245, 239, 0.72);
+  }
+
+  .action-button.rewind.free-trial {
+    --background: rgba(242, 199, 110, 0.18);
+    --background-hover: rgba(242, 199, 110, 0.28);
+    --color: #ffffff;
+    --box-shadow: 0 12px 30px rgba(242, 199, 110, 0.16);
   }
 
   .action-button.dislike {
@@ -276,9 +313,58 @@ app-discover {
     --background-hover: rgba(255, 93, 112, 0.46);
   }
 
+  .action-button.super-like {
+    --background: rgba(17, 19, 28, 0.72);
+    --background-hover: rgba(242, 199, 110, 0.18);
+    --border-color: rgba(242, 199, 110, 0.58);
+    --box-shadow: 0 0 0 1px rgba(242, 199, 110, 0.36), 0 12px 34px rgba(242, 199, 110, 0.22);
+    --color: var(--amor-gold);
+  }
+
+  .action-button.super-like.locked {
+    --background: rgba(17, 19, 28, 0.58);
+    --color: rgba(242, 199, 110, 0.82);
+  }
+
+  .action-button.super-like ion-icon[slot='icon-only'] {
+    filter: drop-shadow(0 0 10px rgba(242, 199, 110, 0.62));
+  }
+
   .action-button.like {
     --background: linear-gradient(135deg, var(--amor-rose), var(--amor-coral));
     --background-hover: linear-gradient(135deg, #ff76a3, #ff8c6f);
+  }
+
+  .action-lock-badge,
+  .action-count-badge {
+    position: absolute;
+    top: -4px;
+    right: -3px;
+    z-index: 3;
+    display: grid;
+    min-width: 22px;
+    height: 22px;
+    place-items: center;
+    color: #101423;
+    background: linear-gradient(135deg, #f2c76e, #ff7a59);
+    border: 1px solid rgba(255, 255, 255, 0.48);
+    border-radius: 999px;
+    box-shadow: 0 8px 18px rgba(242, 199, 110, 0.26);
+    font-size: 0.72rem;
+    font-weight: 900;
+    line-height: 1;
+  }
+
+  .action-lock-badge ion-icon {
+    width: 13px;
+    height: 13px;
+  }
+
+  .action-count-badge {
+    min-width: 24px;
+    padding: 0 7px;
+    color: #ffffff;
+    background: linear-gradient(135deg, var(--amor-rose), var(--amor-coral));
   }
 
   .match-progress-bar-container {
@@ -424,7 +510,12 @@ app-discover {
     border: 1px solid rgba(255, 255, 255, 0.14);
     border-radius: 8px;
     background:
-      linear-gradient(135deg, color-mix(in srgb, var(--promo-accent) 20%, transparent), color-mix(in srgb, var(--promo-accent-soft) 14%, transparent) 42%, rgba(53, 198, 189, 0.09)),
+      linear-gradient(
+        135deg,
+        color-mix(in srgb, var(--promo-accent) 20%, transparent),
+        color-mix(in srgb, var(--promo-accent-soft) 14%, transparent) 42%,
+        rgba(53, 198, 189, 0.09)
+      ),
       rgba(255, 255, 255, 0.055);
     box-shadow:
       inset 0 1px 0 rgba(255, 255, 255, 0.13),
@@ -438,7 +529,11 @@ app-discover {
     width: 180px;
     height: 180px;
     border-radius: 999px;
-    background: radial-gradient(circle, color-mix(in srgb, var(--promo-accent) 48%, transparent), transparent 68%);
+    background: radial-gradient(
+      circle,
+      color-mix(in srgb, var(--promo-accent) 48%, transparent),
+      transparent 68%
+    );
     pointer-events: none;
   }
 
@@ -517,7 +612,11 @@ app-discover {
     min-height: 42px;
     margin: 0;
     --background: linear-gradient(135deg, var(--promo-accent), var(--promo-accent-soft));
-    --background-hover: linear-gradient(135deg, color-mix(in srgb, var(--promo-accent) 84%, white), color-mix(in srgb, var(--promo-accent-soft) 84%, white));
+    --background-hover: linear-gradient(
+      135deg,
+      color-mix(in srgb, var(--promo-accent) 84%, white),
+      color-mix(in srgb, var(--promo-accent-soft) 84%, white)
+    );
     --border-radius: 999px;
     --box-shadow: 0 14px 34px color-mix(in srgb, var(--promo-accent) 26%, transparent);
     --color: #ffffff;
@@ -586,8 +685,7 @@ app-discover {
     border: 1px solid rgba(255, 255, 255, 0.11);
     border-radius: 8px;
     background:
-      linear-gradient(135deg, rgba(255, 255, 255, 0.085), rgba(255, 255, 255, 0.035)),
-      #151b2c;
+      linear-gradient(135deg, rgba(255, 255, 255, 0.085), rgba(255, 255, 255, 0.035)), #151b2c;
     box-shadow: 0 14px 30px rgba(0, 0, 0, 0.14);
     cursor: pointer;
     transition:
@@ -600,15 +698,13 @@ app-discover {
     transform: translateY(-2px);
     border-color: rgba(255, 93, 143, 0.34);
     background:
-      linear-gradient(135deg, rgba(255, 93, 143, 0.14), rgba(255, 255, 255, 0.055)),
-      #171d30;
+      linear-gradient(135deg, rgba(255, 93, 143, 0.14), rgba(255, 255, 255, 0.055)), #171d30;
   }
 
   .match-container.is-active {
     border-color: rgba(255, 93, 143, 0.55);
     background:
-      linear-gradient(135deg, rgba(255, 93, 143, 0.16), rgba(242, 199, 110, 0.07)),
-      #211b31;
+      linear-gradient(135deg, rgba(255, 93, 143, 0.16), rgba(242, 199, 110, 0.07)), #211b31;
     box-shadow:
       inset 0 1px 0 rgba(255, 255, 255, 0.08),
       0 18px 42px rgba(255, 93, 143, 0.14);
@@ -1266,7 +1362,8 @@ app-discover {
 
     .app-message-card {
       width: 100%;
-      min-height: calc(100dvh - 96px);
+      height: calc(100dvh - 96px);
+      min-height: 0;
     }
 
     .user-card {

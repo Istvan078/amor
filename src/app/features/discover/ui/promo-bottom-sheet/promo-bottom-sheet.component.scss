@@ -260,8 +260,63 @@
   }
 }
 
-@media (min-width: 769px) {
-  :host {
+@media screen and (min-width: 769px) {
+  .promo-sheet-backdrop {
+    background:
+      radial-gradient(circle at 50% 50%, rgba(255, 93, 143, 0.2), transparent 30%),
+      rgba(3, 6, 18, 0.76);
+    backdrop-filter: blur(12px);
+  }
+
+  .promo-sheet {
+    top: 50%;
+    right: auto;
+    bottom: auto;
+    left: 50%;
+    width: min(480px, calc(100vw - 48px));
+    max-height: min(720px, calc(100dvh - 48px));
+    margin: 0;
+    padding: 26px;
+    border-radius: 28px;
+    box-shadow:
+      0 34px 90px rgba(0, 0, 0, 0.58),
+      inset 0 1px 0 rgba(255, 255, 255, 0.12);
+    transform: translate(-50%, -50%);
+    animation: promo-modal-in 220ms cubic-bezier(0.2, 0.9, 0.2, 1) both;
+  }
+
+  .promo-sheet__handle {
     display: none;
+  }
+
+  .promo-sheet__icon {
+    width: 68px;
+    height: 68px;
+    border-radius: 22px;
+  }
+
+  .promo-sheet__icon ion-icon {
+    width: 32px;
+    height: 32px;
+  }
+
+  .promo-sheet__title {
+    font-size: clamp(2rem, 3vw, 2.45rem);
+  }
+
+  .promo-sheet__description {
+    max-width: 38ch;
+  }
+}
+
+@keyframes promo-modal-in {
+  from {
+    opacity: 0;
+    transform: translate(-50%, -45%) scale(0.96);
+  }
+
+  to {
+    opacity: 1;
+    transform: translate(-50%, -50%) scale(1);
   }
 }

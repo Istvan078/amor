@@ -33,9 +33,15 @@
               [buffer]="buffer"
               [matchProfile]="matchProf"
               [isMatchPlaceHolder]="isMatchPlaceHolder"
+              [hasRewindCandidate]="hasRewindCandidate"
+              [isRewindLocked]="isRewindLocked"
+              [freeRewindsRemaining]="freeRewindsRemaining"
+              [canSuperLike]="canSuperLike"
               (detailsToggled)="toggleMatchDetails()"
+              (rewindRequested)="rewindCurrentMatch()"
               (liked)="likeCurrentMatch()"
               (disliked)="dislikeCurrentMatch()"
+              (superLiked)="superLikeCurrentMatch()"
             ></app-discover-match-card>
             } @if(isMatchDetailsOpen || (options.phoneView && !isShowMessages && !isMatchPlaceHolder
             && matchProf)) {
@@ -67,7 +73,7 @@
       }
     </div>
 
-    @if(options.phoneView) {
+    @if(options.phoneView || promoBottomSheetOpen) {
     <app-promo-bottom-sheet
       [isOpen]="promoBottomSheetOpen"
       [promotions]="promoBottomSheetPromotions"

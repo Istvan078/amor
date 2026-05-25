@@ -101,6 +101,10 @@
       "newMatch": "New Match",
       "you": "You"
     },
+    "actions": {
+      "rewind": "Undo last pass",
+      "superLike": "Send Super Like"
+    },
     "profile": {
       "myProfile": "My profile",
       "edit": "Edit details",
@@ -137,6 +141,7 @@
     }
   },
   "profile": {
+    "photoViewerTitle": "Profile photos",
     "fields": {
       "pictures": "My photos",
       "aboutMe": "About me",
@@ -197,6 +202,13 @@
     "readReceiptTitle": "Read receipts",
     "readReceiptText": "Find out when {{name}} reads your message.",
     "enableReadReceipt": "Enable",
+    "menuAria": "Conversation options",
+    "blockUser": "Block user",
+    "blockUserHint": "Stop this person from contacting you.",
+    "reportUser": "Report user",
+    "reportUserHint": "Send this profile for a safety review.",
+    "blockedNotice": "This user is blocked locally. Backend moderation can be connected next.",
+    "reportedNotice": "Thanks. This report has been marked for review.",
     "loading": "Loading messages...",
     "startTitle": "Start the conversation",
     "startText": "A short, personal opener works best.",
@@ -231,6 +243,13 @@
       "title": "Amorino Gold",
       "offer": "50% off for 3 months",
       "description": "See who likes you, boost your profile and get more matches.",
+      "cta": "Upgrade now"
+    },
+    "rewind": {
+      "eyebrow": "Gold feature",
+      "title": "Undo your last pass",
+      "offer": "Rewind is available with Amorino Gold",
+      "description": "Go back to someone you accidentally skipped.",
       "cta": "Upgrade now"
     },
     "profileBoost": {

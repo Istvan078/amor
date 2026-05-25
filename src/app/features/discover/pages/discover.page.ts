@@ -44,7 +44,7 @@ import { ProfilePicturesRepository } from '../../profile/data-access/profile-pic
 import { ProfileStore } from '../../profile/store/profile.store';
 import { Options } from '../../../shared/models/options.model';
 import { Promotions } from '../../../shared/models/promotions.model';
-import { UserClass } from '../../../shared/models/user.model';
+import { MatchParts, UserClass } from '../../../shared/models/user.model';
 import { MessagesRepository } from '../../messages/data-access/messages.repository';
 import { Message } from '../../../shared/models/message.model';
 
@@ -101,6 +101,7 @@ export class DiscoverPage implements OnInit {
   promoBottomSheetOpen = false;
   promoBottomSheetPromotions: Promotions[] = [];
   promoBottomSheetActiveIndex = 0;
+  rewindStack: UserClass[] = [];
 
   private loadedDiscoverUid: string | null = null;
   private loadingDiscoverUid: string | null = null;
@@ -111,6 +112,8 @@ export class DiscoverPage implements OnInit {
   private readonly promoClosedCooldownMs = 24 * 60 * 60 * 1000;
   private readonly promoMaybeLaterCooldownMs = 12 * 60 * 60 * 1000;
   private readonly promoFirstDayMs = 24 * 60 * 60 * 1000;
+  private readonly freeDailyRewindLimit = 1;
+  private readonly freeDailySuperLikeLimit = 1;
 
   private authStore = inject(AuthStore);
   private profileStore = inject(ProfileStore);
@@ -165,10 +168,6 @@ export class DiscoverPage implements OnInit {
       this.isUserCardOpen = this.discoverUiStore.isUserCardOpen();
       this.isShowMessages = this.discoverUiStore.isShowMessages();
       this.options.phoneView = this.discoverUiStore.phoneView();
-
-      if (!this.options.phoneView) {
-        this.promoBottomSheetOpen = false;
-      }
 
       const selectedMessageProfile =
         this.discoverUiStore.selectedMessageProfile();
@@ -265,6 +264,7 @@ export class DiscoverPage implements OnInit {
     this.matchPreviewRequestId++;
     this.promoBottomSheetOpen = false;
     this.promoBottomSheetPromotions = [];
+    this.rewindStack = [];
   }
 
   private syncDiscoverState() {
@@ -596,6 +596,35 @@ export class DiscoverPage implements OnInit {
     return this.promotions.find((promotion) => promotion['id'] === id);
   }
 
+  private getRewindPromotion(): Promotions {
+    return {
+      id: 'rewind',
+      title: 'Undo your last pass',
+      titleKey: 'promotions.rewind.title',
+      category: 'Amorino Gold',
+      categoryKey: 'promotions.category.premium',
+      eyebrowKey: 'promotions.rewind.eyebrow',
+      offerLine: 'Rewind is available with Amorino Gold',
+      offerKey: 'promotions.rewind.offer',
+      iconName: 'return-up-back-outline',
+      accent: '#8a8f98',
+      accentSoft: '#f2c76e',
+      description: 'Go back to someone you accidentally skipped.',
+      descriptionKey: 'promotions.rewind.description',
+      ctaKey: 'promotions.rewind.cta',
+    };
+  }
+
+  private openActionPromoBottomSheet(promotion?: Promotions) {
+    if (!promotion) {
+      return;
+    }
+
+    this.promoBottomSheetPromotions = [promotion];
+    this.promoBottomSheetActiveIndex = 0;
+    this.promoBottomSheetOpen = true;
+  }
+
   private getHiddenLikesCount() {
     const profile = this.userProf as Record<string, unknown> | undefined;
     const hiddenLikeKeys = [
@@ -641,6 +670,99 @@ export class DiscoverPage implements OnInit {
       subscriptions?.silver ||
       subscriptions?.bronze
     );
+  }
+
+  get hasPremiumAccess() {
+    return this.isPremiumUser();
+  }
+
+  get hasRewindCandidate() {
+    return this.rewindStack.length > 0;
+  }
+
+  get freeRewindsRemaining() {
+    if (!this.userProf?.uid || this.hasPremiumAccess) {
+      return 0;
+    }
+
+    return Math.max(
+      this.freeDailyRewindLimit - this.getDailyActionCount('rewind'),
+      0
+    );
+  }
+
+  get isRewindLocked() {
+    return !this.hasPremiumAccess && this.freeRewindsRemaining <= 0;
+  }
+
+  get canSuperLike() {
+    return this.hasPremiumAccess || this.freeSuperLikesRemaining > 0;
+  }
+
+  private get freeSuperLikesRemaining() {
+    if (!this.userProf?.uid || this.hasPremiumAccess) {
+      return 0;
+    }
+
+    return Math.max(
+      this.freeDailySuperLikeLimit - this.getDailyActionCount('super-like'),
+      0
+    );
+  }
+
+  private getDailyActionCount(action: 'rewind' | 'super-like') {
+    const uid = this.userProf?.uid ?? this.user?.uid;
+
+    if (!uid) {
+      return 0;
+    }
+
+    try {
+      const storedValue = window.localStorage.getItem(
+        this.getDailyActionStorageKey(uid, action)
+      );
+
+      return Number(storedValue ?? 0) || 0;
+    } catch (error) {
+      console.error(error);
+      return 0;
+    }
+  }
+
+  private consumeDailyAction(action: 'rewind' | 'super-like') {
+    const uid = this.userProf?.uid ?? this.user?.uid;
+
+    if (!uid || this.hasPremiumAccess) {
+      return;
+    }
+
+    try {
+      const count = this.getDailyActionCount(action);
+      window.localStorage.setItem(
+        this.getDailyActionStorageKey(uid, action),
+        String(count + 1)
+      );
+    } catch (error) {
+      console.error(error);
+    }
+  }
+
+  private getDailyActionStorageKey(
+    uid: string,
+    action: 'rewind' | 'super-like'
+  ) {
+    return `amor:${action}:${uid}:${this.getTodayKey()}`;
+  }
+
+  private ensureMatchParts(profile: UserClass) {
+    profile.matchParts ??= new MatchParts();
+    profile.matchParts.matches ??= [];
+    profile.matchParts.possMatches ??= [];
+    profile.matchParts.liked ??= [];
+    profile.matchParts.notLiked ??= [];
+    profile.matchParts.superLiked ??= [];
+
+    return profile.matchParts;
   }
 
   setUProfLabels() {
@@ -727,23 +849,22 @@ export class DiscoverPage implements OnInit {
     isDontLike?: boolean
   ) {
     if (this.userProf && usr?.uid) {
+      const matchParts = this.ensureMatchParts(this.userProf);
+
       if (isLike) {
-        if (!this.userProf?.matchParts?.liked) {
-          this.userProf.matchParts!.liked = [usr.uid];
-        } else {
-          this.userProf?.matchParts?.liked.push(usr.uid);
+        if (!matchParts.liked.includes(usr.uid)) {
+          matchParts.liked.push(usr.uid);
         }
       } else if (isDontLike) {
-        if (!this.userProf?.matchParts?.notLiked) {
-          this.userProf.matchParts!.notLiked = [usr.uid];
-        } else {
-          this.userProf?.matchParts?.notLiked.push(usr.uid);
+        if (!matchParts.notLiked.includes(usr.uid)) {
+          matchParts.notLiked.push(usr.uid);
         }
       }
 
-      if (this.userProf?.matchParts?.possMatches?.includes(usr.uid)) {
-        this.userProf.matchParts.possMatches =
-          this.userProf.matchParts?.possMatches.filter((uid) => uid !== usr.uid);
+      if (matchParts.possMatches.includes(usr.uid)) {
+        matchParts.possMatches = matchParts.possMatches.filter(
+          (uid) => uid !== usr.uid
+        );
       }
 
       await this.profileStore.updateProfile(
@@ -785,7 +906,90 @@ export class DiscoverPage implements OnInit {
   }
 
   async dislikeCurrentMatch() {
+    if (this.matchProf?.uid) {
+      this.rewindStack = [
+        this.matchProf,
+        ...this.rewindStack.filter(
+          (profile) => profile.uid !== this.matchProf?.uid
+        ),
+      ].slice(0, 3);
+    }
+
     await this.likeOrDontUser(this.matchProf, false, true);
+    this.changeMatchProf();
+  }
+
+  async rewindCurrentMatch() {
+    if (!this.hasRewindCandidate) {
+      if (!this.hasPremiumAccess) {
+        this.openActionPromoBottomSheet(this.getRewindPromotion());
+      }
+
+      return;
+    }
+
+    if (this.isRewindLocked) {
+      this.openActionPromoBottomSheet(this.getRewindPromotion());
+      return;
+    }
+
+    const previousMatch = this.rewindStack.shift();
+
+    if (!previousMatch) {
+      return;
+    }
+
+    this.consumeDailyAction('rewind');
+
+    if (this.userProf && previousMatch.uid) {
+      const matchParts = this.ensureMatchParts(this.userProf);
+
+      matchParts.notLiked = matchParts.notLiked.filter(
+        (uid) => uid !== previousMatch.uid
+      );
+
+      if (
+        !matchParts.possMatches.includes(previousMatch.uid) &&
+        !matchParts.liked.includes(previousMatch.uid)
+      ) {
+        matchParts.possMatches.push(previousMatch.uid);
+      }
+
+      await this.profileStore.updateProfile(
+        this.userProf.uid!,
+        this.userProf.setDataForFireStore()
+      );
+      this.profileStore.setProfile(this.userProf);
+    }
+
+    this.matchProf = previousMatch;
+    this.matchProf['index'] = Number(previousMatch['index'] ?? 0);
+    this.isMatchPlaceHolder = false;
+    this.isMatchDetailsOpen = false;
+    this.setUProfLabels();
+  }
+
+  async superLikeCurrentMatch() {
+    if (!this.matchProf?.uid) {
+      return;
+    }
+
+    if (!this.canSuperLike) {
+      this.openActionPromoBottomSheet(this.getPromoById('superLike'));
+      return;
+    }
+
+    this.consumeDailyAction('super-like');
+
+    if (this.userProf) {
+      const matchParts = this.ensureMatchParts(this.userProf);
+
+      if (!matchParts.superLiked.includes(this.matchProf.uid)) {
+        matchParts.superLiked.push(this.matchProf.uid);
+      }
+    }
+
+    await this.likeOrDontUser(this.matchProf, true);
     this.changeMatchProf();
   }
 

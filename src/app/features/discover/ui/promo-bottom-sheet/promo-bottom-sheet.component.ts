@@ -18,6 +18,7 @@ import {
   eyeOutline,
   giftOutline,
   heartCircleOutline,
+  returnUpBackOutline,
   rocketOutline,
   sparklesOutline,
 } from 'ionicons/icons';
@@ -53,6 +54,7 @@ export class PromoBottomSheetComponent implements OnChanges {
       eyeOutline,
       giftOutline,
       heartCircleOutline,
+      returnUpBackOutline,
       rocketOutline,
       sparklesOutline,
     });

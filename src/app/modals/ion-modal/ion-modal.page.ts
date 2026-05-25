@@ -10,14 +10,12 @@ import { FormsModule } from '@angular/forms';
 import {
   IonButton,
   IonButtons,
-  IonChip,
   IonContent,
   IonDatetime,
   IonIcon,
   IonImg,
   IonInput,
   IonItem,
-  IonLabel,
   IonPopover,
   IonRange,
   IonSelect,
@@ -45,14 +43,12 @@ import { UserClass } from '../../shared/models/user.model';
     TranslocoDirective,
     IonButton,
     IonButtons,
-    IonChip,
     IonContent,
     IonDatetime,
     IonIcon,
     IonImg,
     IonInput,
     IonItem,
-    IonLabel,
     IonPopover,
     IonRange,
     IonSelect,
@@ -77,6 +73,7 @@ export class IonModalPage implements AfterViewInit {
   userProf: UserClass = new UserClass();
   myPhotos: { name: string; url: string }[] = [];
   chosenIndex: number = 0;
+  activePhotoIndex = 0;
 
   constructor(private modalCtrl: ModalController) { }
 
@@ -108,9 +105,17 @@ export class IonModalPage implements AfterViewInit {
 
   ngAfterViewInit() {
     if (this.myPhotos?.length) {
-      this.swiperRef?.nativeElement.swiper.slideTo(this.chosenIndex)
-      this.swiperRef?.nativeElement.swiper.autoplay.start()
+      this.activePhotoIndex = this.chosenIndex;
+
+      queueMicrotask(() => {
+        this.swiperRef?.nativeElement.swiper?.slideTo(this.chosenIndex);
+      });
     }
+  }
+
+  onPhotoSlideChange() {
+    this.activePhotoIndex =
+      this.swiperRef?.nativeElement.swiper?.activeIndex ?? this.activePhotoIndex;
   }
 
   cancel() {

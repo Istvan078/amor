@@ -103,12 +103,29 @@
 
         @if(!isMatchPlaceHolder) {
         <ion-buttons style="padding: 20px">
-          <ion-button fill="solid" shape="round" class="action-button">
+          <ion-button
+            (click)="rewindRequested.emit()"
+            fill="solid"
+            shape="round"
+            class="action-button rewind"
+            [class.locked]="isRewindLocked || !hasRewindCandidate"
+            [class.free-trial]="
+              hasRewindCandidate && !isRewindLocked && freeRewindsRemaining > 0
+            "
+            [attr.aria-label]="t('discover.actions.rewind')"
+          >
             <ion-icon
               slot="icon-only"
               size="large"
               name="return-up-back-outline"
             ></ion-icon>
+            @if(isRewindLocked || !hasRewindCandidate) {
+            <span class="action-lock-badge">
+              <ion-icon name="lock-closed-outline" aria-hidden="true"></ion-icon>
+            </span>
+            } @else if(freeRewindsRemaining > 0 && hasRewindCandidate) {
+            <span class="action-count-badge">{{ freeRewindsRemaining }}</span>
+            }
           </ion-button>
           <ion-button
             (click)="disliked.emit()"
@@ -122,12 +139,24 @@
               name="close-outline"
             ></ion-icon>
           </ion-button>
-          <ion-button fill="solid" shape="round" class="action-button">
+          <ion-button
+            (click)="superLiked.emit()"
+            fill="solid"
+            shape="round"
+            class="action-button super-like"
+            [class.locked]="!canSuperLike"
+            [attr.aria-label]="t('discover.actions.superLike')"
+          >
             <ion-icon
               slot="icon-only"
               size="large"
-              name="star-outline"
+              name="star"
             ></ion-icon>
+            @if(!canSuperLike) {
+            <span class="action-lock-badge">
+              <ion-icon name="lock-closed-outline" aria-hidden="true"></ion-icon>
+            </span>
+            }
           </ion-button>
           <ion-button
             (click)="liked.emit()"

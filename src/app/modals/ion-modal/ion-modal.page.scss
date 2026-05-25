@@ -277,8 +277,144 @@ ion-range ion-icon {
   display: flex !important;
 }
 
+ion-content.photo-modal-content {
+  --background:
+    radial-gradient(circle at 12% 8%, rgba(255, 93, 143, 0.17), transparent 34%),
+    radial-gradient(circle at 88% 0%, rgba(242, 199, 110, 0.12), transparent 30%),
+    linear-gradient(135deg, #080c18 0%, #11172a 52%, #090d19 100%);
+  --color: #ffffff;
+}
+
+ion-content.photo-modal-content::part(background) {
+  background:
+    radial-gradient(circle at 12% 8%, rgba(255, 93, 143, 0.17), transparent 34%),
+    radial-gradient(circle at 88% 0%, rgba(242, 199, 110, 0.12), transparent 30%),
+    linear-gradient(135deg, #080c18 0%, #11172a 52%, #090d19 100%);
+}
+
+.photo-viewer-shell {
+  display: grid;
+  grid-template-rows: auto minmax(0, 1fr);
+  gap: clamp(14px, 2vw, 22px);
+  min-height: 100%;
+  padding: clamp(16px, 3vw, 34px);
+}
+
+.photo-viewer-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  width: min(1040px, 100%);
+  margin: 0 auto;
+}
+
+.photo-viewer-header div {
+  display: grid;
+  gap: 4px;
+}
+
+.photo-viewer-header span {
+  color: var(--modal-gold);
+  font-size: 0.76rem;
+  font-weight: 900;
+  letter-spacing: 0;
+  text-transform: uppercase;
+}
+
+.photo-viewer-header strong {
+  color: #ffffff;
+  font-size: clamp(1.3rem, 2vw, 1.8rem);
+  line-height: 1.1;
+}
+
+.photo-viewer-close {
+  display: grid;
+  width: 48px;
+  height: 48px;
+  flex: 0 0 auto;
+  place-items: center;
+  color: #ffffff;
+  background: rgba(255, 255, 255, 0.08);
+  border: 1px solid rgba(255, 255, 255, 0.14);
+  border-radius: 999px;
+  box-shadow: 0 18px 34px rgba(0, 0, 0, 0.24);
+  cursor: pointer;
+}
+
+.photo-viewer-close ion-icon {
+  font-size: 24px;
+}
+
+.photo-viewer-swiper {
+  --swiper-navigation-color: #ff6f9d;
+  --swiper-pagination-color: #ff6f9d;
+  --swiper-pagination-bullet-inactive-color: rgba(255, 255, 255, 0.32);
+  --swiper-pagination-bullet-inactive-opacity: 1;
+  width: min(1040px, 100%);
+  height: min(78dvh, 760px);
+  min-height: 360px;
+  margin: 0 auto;
+  overflow: hidden;
+  border: 1px solid rgba(255, 255, 255, 0.14);
+  border-radius: 28px;
+  background:
+    radial-gradient(circle at 50% 100%, rgba(255, 93, 143, 0.18), transparent 36%),
+    rgba(255, 255, 255, 0.055);
+  box-shadow:
+    0 34px 90px rgba(0, 0, 0, 0.46),
+    inset 0 1px 0 rgba(255, 255, 255, 0.1);
+}
+
+.photo-viewer-swiper::part(button-prev),
+.photo-viewer-swiper::part(button-next) {
+  display: grid;
+  width: 52px;
+  height: 52px;
+  place-items: center;
+  border: 1px solid rgba(255, 255, 255, 0.16);
+  border-radius: 999px;
+  background: rgba(12, 17, 31, 0.66);
+  box-shadow: 0 18px 38px rgba(0, 0, 0, 0.3);
+  backdrop-filter: blur(12px);
+}
+
+.photo-viewer-slide {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: clamp(12px, 2vw, 26px);
+}
+
+.photo-viewer-frame {
+  display: grid;
+  width: 100%;
+  height: 100%;
+  place-items: center;
+  overflow: hidden;
+  border-radius: 22px;
+  background: rgba(4, 8, 18, 0.78);
+}
+
+.photo-viewer-frame ion-img {
+  display: block;
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+}
+
+.photo-viewer-frame ion-img::part(image) {
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+}
+
 @media screen and (max-width: 680px) {
   :host {
+    max-height: none;
+  }
+
+  ion-content.auth-modal-content {
     max-height: calc(100dvh - 112px);
   }
 
@@ -328,5 +464,38 @@ ion-range ion-icon {
 
   .auth-modal-toolbar .primary-action {
     min-width: min(178px, 54vw);
+  }
+
+  .photo-viewer-shell {
+    padding: 12px;
+  }
+
+  .photo-viewer-header {
+    padding: 2px 2px 0;
+  }
+
+  .photo-viewer-close {
+    width: 44px;
+    height: 44px;
+  }
+
+  .photo-viewer-swiper {
+    height: calc(100dvh - 116px);
+    min-height: 420px;
+    border-radius: 22px;
+  }
+
+  .photo-viewer-swiper::part(button-prev),
+  .photo-viewer-swiper::part(button-next) {
+    width: 44px;
+    height: 44px;
+  }
+
+  .photo-viewer-slide {
+    padding: 10px;
+  }
+
+  .photo-viewer-frame {
+    border-radius: 18px;
   }
 }

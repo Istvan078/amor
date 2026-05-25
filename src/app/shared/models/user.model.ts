@@ -75,6 +75,8 @@ export class UserClass {
   public matchParts?: MatchParts;
   public subscriptions?: UserSubscription;
   public isOnline?: boolean;
+  public blockedUsers?: string[];
+  public reportedUsers?: string[];
 
   constructor() { }
 
@@ -121,11 +123,13 @@ export class MatchParts {
   possMatches: string[];
   liked: string[];
   notLiked: string[];
+  superLiked: string[];
 
   constructor() {
     this.matches = [];
     this.possMatches = [];
     this.liked = [];
     this.notLiked = [];
+    this.superLiked = [];
   }
 }
