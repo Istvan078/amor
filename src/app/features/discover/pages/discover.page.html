@@ -13,7 +13,11 @@
       (messageOpened)="openMessWithMatch($event)"
     ></app-discover-sidebar>
 
-    <div id="main-view-container" class="m-0 p-0">
+    <div
+      id="main-view-container"
+      class="m-0 p-0"
+      [class.is-message-view]="isShowMessages"
+    >
       @if(!isUserCardOpen) {
       <ion-grid class="m-0 p-0">
         <ion-row class="m-0 p-0 ion-justify-content-center">

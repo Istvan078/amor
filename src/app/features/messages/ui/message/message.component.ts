@@ -16,8 +16,6 @@ import {
   IonAvatar,
   IonButton,
   IonIcon,
-  IonItem,
-  IonLabel,
   IonTextarea,
 } from '@ionic/angular/standalone';
 import { TranslocoDirective } from '@jsverse/transloco';
@@ -42,8 +40,6 @@ import { MessagesStore } from '../../store/messages.store';
   standalone: true,
   imports: [
     FormsModule,
-    IonItem,
-    IonLabel,
     IonTextarea,
     IonButton,
     IonIcon,

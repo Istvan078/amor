@@ -38,7 +38,7 @@
               fill="clear"
               [attr.aria-label]="t('messages.backAria')"
             >
-              <ion-icon name="arrow-back-outline"></ion-icon>
+              <ion-icon size="medium" name="arrow-back-outline"></ion-icon>
             </ion-button>
           }
 
@@ -117,11 +117,9 @@
             </div>
           } @else {
             @for (mess of messagesStore.messages(); track mess.number) {
-              <ion-item class="message-row" [class.own-message]="isOwnMessage(mess)">
-                <ion-label>
-                  <span>{{ mess.message || ' ' }}</span>
-                </ion-label>
-              </ion-item>
+              <div class="message-row" [class.own-message]="isOwnMessage(mess)">
+                <span class="message-bubble">{{ mess.message || ' ' }}</span>
+              </div>
             } @empty {
               <div class="messages-empty compact">
                 <ion-icon name="sparkles-outline"></ion-icon>

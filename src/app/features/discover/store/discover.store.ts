@@ -302,11 +302,55 @@ export const DiscoverStore = signalStore(
                     }
 
                     const userProfile = prepareUserProfile(profile, loggedUser.uid);
+                    const previousPlace = userProfile.currentPlace;
 
                     profileStore.setProfile(userProfile);
 
-                    const userPosition = await locationService.getLocation();
-                    const currentCity = await getCurrentCity(userPosition);
+                    await syncMutualMatches(userProfile);
+
+                    const matches = await repository.getMatchProfiles(
+                        userProfile.matchParts?.matches ?? []
+                    );
+
+                    let possibleMatchIds = userProfile.matchParts?.possMatches ?? [];
+
+                    patchState(store, {
+                        loggedUser: authStore.user(),
+                        userProfile,
+                        possibleMatchIds: shuffleArray(possibleMatchIds),
+                        matches,
+                        progress: 35,
+                        error: null,
+                    });
+
+                    let userPosition: Awaited<
+                        ReturnType<LocationService['getLocation']>
+                    >;
+                    let currentCity = '';
+
+                    try {
+                        userPosition = await locationService.getLocation();
+                        currentCity = await getCurrentCity(userPosition);
+                    } catch (locationError) {
+                        console.warn(
+                            'Skipping location-based discovery.',
+                            locationError
+                        );
+
+                        profileStore.setProfile(userProfile);
+
+                        patchState(store, {
+                            loggedUser: authStore.user(),
+                            userProfile,
+                            possibleMatchIds: shuffleArray(possibleMatchIds),
+                            matches,
+                            progress: 100,
+                            loading: false,
+                            error: null,
+                        });
+
+                        return;
+                    }
 
                     const userCoords = {
                         lat: userPosition.coords.latitude,
@@ -339,23 +383,16 @@ export const DiscoverStore = signalStore(
                     }
 
                     patchState(store, {
-                        progress: 25,
+                        progress: 55,
                     });
 
-                    await syncMutualMatches(userProfile);
-
-                    const matches = await repository.getMatchProfiles(
-                        userProfile.matchParts?.matches ?? []
-                    );
-
                     const users = await getUsers();
+                    const hasPossibleMatches = !!possibleMatchIds.length;
+                    const shouldRebuildPossibleMatches =
+                        !hasPossibleMatches ||
+                        (!!currentCity && currentCity !== previousPlace);
 
-                    const hasPossibleMatches =
-                        !!userProfile.matchParts?.possMatches?.length;
-
-                    let possibleMatchIds = userProfile.matchParts?.possMatches ?? [];
-
-                    if (!hasPossibleMatches || currentCity !== userProfile.currentPlace) {
+                    if (shouldRebuildPossibleMatches) {
                         possibleMatchIds = await buildPossibleMatches(
                             users,
                             loggedUser,

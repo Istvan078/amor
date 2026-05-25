@@ -73,12 +73,20 @@ app-discover {
   }
 
   #main-view-container {
+    box-sizing: border-box;
     display: grid;
     place-items: center;
     width: 100%;
     min-height: 100dvh;
     padding: 34px 40px;
     overflow-y: auto;
+  }
+
+  #main-view-container.is-message-view {
+    height: 100dvh;
+    min-height: 0;
+    overflow: hidden;
+    place-items: stretch center;
   }
 
   #main-view-container > ion-grid,
@@ -93,6 +101,17 @@ app-discover {
     align-items: center;
   }
 
+  #main-view-container.is-message-view > ion-grid,
+  #main-view-container.is-message-view ion-row,
+  #main-view-container.is-message-view ion-col {
+    height: 100%;
+    min-height: 0;
+  }
+
+  #main-view-container.is-message-view ion-col {
+    align-items: stretch;
+  }
+
   .app-message-card {
     display: block;
     width: min(1040px, 100%);
@@ -104,6 +123,10 @@ app-discover {
     border-radius: 8px;
     background: var(--amor-panel);
     box-shadow: var(--amor-shadow);
+  }
+
+  #main-view-container.is-message-view .app-message-card {
+    height: 100%;
   }
 
   .app-message-card app-message {
@@ -1356,14 +1379,33 @@ app-discover {
       overflow-y: auto;
     }
 
+    #main-view-container.is-message-view {
+      height: calc(100dvh - 68px);
+      min-height: 0;
+      padding: 8px 8px 0;
+      overflow: hidden;
+    }
+
     #main-view-container ion-col {
       display: block;
+    }
+
+    #main-view-container.is-message-view > ion-grid,
+    #main-view-container.is-message-view ion-row,
+    #main-view-container.is-message-view ion-col {
+      height: 100%;
+      min-height: 0;
     }
 
     .app-message-card {
       width: 100%;
       height: calc(100dvh - 96px);
       min-height: 0;
+    }
+
+    #main-view-container.is-message-view .app-message-card {
+      height: 100%;
+      max-height: none;
     }
 
     .user-card {
