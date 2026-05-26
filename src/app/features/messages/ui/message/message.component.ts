@@ -32,7 +32,8 @@ import {
 
 import { Message } from '../../../../shared/models/message.model';
 import { Options } from '../../../../shared/models/options.model';
-import { MatchParts, UserClass } from '../../../../shared/models/user.model';
+import { UserClass } from '../../../../shared/models/user.model';
+import { ModerationStore } from '../../../moderation/store/moderation.store';
 import { ProfileStore } from '../../../profile/store/profile.store';
 import { MessagesStore } from '../../store/messages.store';
 
@@ -65,6 +66,7 @@ export class MessageComponent implements AfterViewChecked, OnChanges {
 
   readonly messagesStore = inject(MessagesStore);
 
+  private moderationStore = inject(ModerationStore);
   private profileStore = inject(ProfileStore);
   private userProfile?: UserClass;
   private pendingScrollToBottom = false;
@@ -183,52 +185,33 @@ export class MessageComponent implements AfterViewChecked, OnChanges {
   }
 
   async blockUser() {
-    await this.updateModerationList('blockedUsers');
+    if (!this.userProfile || !this.matchProfile) {
+      return;
+    }
+
+    await this.moderationStore.blockUser(this.userProfile, this.matchProfile);
     this.moderationNoticeKey = 'messages.blockedNotice';
     this.closeConversationMenu();
   }
 
   async unblockUser() {
-    if (!this.userProfile?.uid || !this.matchProfile?.uid) {
+    if (!this.userProfile || !this.matchProfile) {
       return;
     }
 
-    const nextBlockedUsers = (this.userProfile.blockedUsers ?? []).filter(
-      (uid) => uid !== this.matchProfile?.uid
-    );
-
-    await this.profileStore.updateProfile(this.userProfile.uid, {
-      blockedUsers: nextBlockedUsers,
-    });
-
-    this.userProfile.blockedUsers = nextBlockedUsers;
+    await this.moderationStore.unblockUser(this.userProfile, this.matchProfile);
     this.moderationNoticeKey = 'messages.unblockedNotice';
     this.closeConversationMenu();
   }
 
   async removeMatch() {
-    if (!this.userProfile?.uid || !this.matchProfile?.uid) {
+    if (!this.userProfile || !this.matchProfile) {
       return;
     }
 
     const removedMatch = this.matchProfile;
-    const matchUid = removedMatch.uid;
-    const matchParts = this.ensureMatchParts(this.userProfile);
 
-    matchParts.matches = matchParts.matches.filter((uid) => uid !== matchUid);
-    matchParts.liked = matchParts.liked.filter((uid) => uid !== matchUid);
-    matchParts.superLiked = matchParts.superLiked.filter((uid) => uid !== matchUid);
-
-    if (matchUid)
-      if (!matchParts.notLiked.includes(matchUid)) {
-        matchParts.notLiked.push(matchUid);
-      }
-
-    await this.profileStore.updateProfile(this.userProfile.uid, {
-      matchParts,
-    });
-
-    this.userProfile.matchParts = matchParts;
+    await this.moderationStore.removeMatch(this.userProfile, removedMatch);
     this.moderationNoticeKey = 'messages.matchRemovedNotice';
     this.messagesStore.clearMessages();
     this.closeConversationMenu();
@@ -236,28 +219,13 @@ export class MessageComponent implements AfterViewChecked, OnChanges {
   }
 
   async reportUser() {
-    await this.updateModerationList('reportedUsers');
-    this.moderationNoticeKey = 'messages.reportedNotice';
-    this.closeConversationMenu();
-  }
-
-  private async updateModerationList(key: 'blockedUsers' | 'reportedUsers') {
-    if (!this.userProfile?.uid || !this.matchProfile?.uid) {
+    if (!this.userProfile || !this.matchProfile) {
       return;
     }
 
-    const currentValues = Array.isArray(this.userProfile[key])
-      ? this.userProfile[key]
-      : [];
-    const nextValues = currentValues.includes(this.matchProfile.uid)
-      ? currentValues
-      : [...currentValues, this.matchProfile.uid];
-
-    await this.profileStore.updateProfile(this.userProfile.uid, {
-      [key]: nextValues,
-    });
-
-    this.userProfile[key] = nextValues;
+    await this.moderationStore.reportUser(this.userProfile, this.matchProfile);
+    this.moderationNoticeKey = 'messages.reportedNotice';
+    this.closeConversationMenu();
   }
 
   async onMessageSend(form: NgForm) {
@@ -308,14 +276,4 @@ export class MessageComponent implements AfterViewChecked, OnChanges {
     });
   }
 
-  private ensureMatchParts(profile: UserClass) {
-    profile.matchParts ??= new MatchParts();
-    profile.matchParts.matches ??= [];
-    profile.matchParts.possMatches ??= [];
-    profile.matchParts.liked ??= [];
-    profile.matchParts.notLiked ??= [];
-    profile.matchParts.superLiked ??= [];
-
-    return profile.matchParts;
-  }
 }

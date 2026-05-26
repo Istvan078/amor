@@ -19,6 +19,12 @@ type RequiredConsentKey =
     | 'privacyPolicyAccepted'
     | 'ageConfirmed';
 
+type OptionalConsentKey =
+    | 'analytics'
+    | 'crashReports'
+    | 'personalisation'
+    | 'marketingNotifications';
+
 @Component({
     selector: 'app-privacy-preferences',
     templateUrl: './privacy-preferences.page.html',
@@ -41,6 +47,9 @@ export class PrivacyPreferencesPage implements OnInit {
     termsAccepted = false;
     privacyPolicyAccepted = false;
     ageConfirmed = false;
+    analytics = false;
+    crashReports = false;
+    personalisation = false;
     marketingNotifications = false;
 
     constructor() {
@@ -61,6 +70,9 @@ export class PrivacyPreferencesPage implements OnInit {
         this.termsAccepted = this.privacyStore.termsAccepted();
         this.privacyPolicyAccepted = this.privacyStore.privacyPolicyAccepted();
         this.ageConfirmed = this.privacyStore.ageConfirmed();
+        this.analytics = this.privacyStore.analytics();
+        this.crashReports = this.privacyStore.crashReports();
+        this.personalisation = this.privacyStore.personalisation();
         this.marketingNotifications = this.privacyStore.marketingNotifications();
     }
 
@@ -68,8 +80,8 @@ export class PrivacyPreferencesPage implements OnInit {
         this[key] = !this[key];
     }
 
-    toggleMarketing() {
-        this.marketingNotifications = !this.marketingNotifications;
+    toggleOptional(key: OptionalConsentKey) {
+        this[key] = !this[key];
     }
 
     canContinue() {
@@ -89,6 +101,9 @@ export class PrivacyPreferencesPage implements OnInit {
         }
 
         await this.privacyStore.acceptConsent(uid, {
+            analytics: this.analytics,
+            crashReports: this.crashReports,
+            personalisation: this.personalisation,
             marketingNotifications: this.marketingNotifications,
         });
 

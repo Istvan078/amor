@@ -71,16 +71,21 @@ export const PrivacyConsentStore = signalStore(
 
         async acceptConsent(
             uid: string,
-            options: { marketingNotifications: boolean }
+            options: {
+                analytics: boolean;
+                crashReports: boolean;
+                personalisation: boolean;
+                marketingNotifications: boolean;
+            }
         ) {
             const consent: PrivacyConsent = {
                 essential: true,
                 termsAccepted: true,
                 privacyPolicyAccepted: true,
                 ageConfirmed: true,
-                crashReports: true,
-                analytics: true,
-                personalisation: true,
+                crashReports: options.crashReports,
+                analytics: options.analytics,
+                personalisation: options.personalisation,
                 marketingNotifications: options.marketingNotifications,
                 consentVersion: CURRENT_PRIVACY_CONSENT_VERSION,
                 updatedAt: new Date().toISOString(),

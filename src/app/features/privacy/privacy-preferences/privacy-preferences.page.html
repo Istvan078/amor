@@ -76,8 +76,41 @@
           <button
             class="privacy-consent-row is-optional"
             type="button"
+            [class.is-accepted]="analytics"
+            (click)="toggleOptional('analytics')"
+          >
+            <ion-checkbox [checked]="analytics"></ion-checkbox>
+            <span>{{ t('privacy.dataConsent.analytics') }}</span>
+            <ion-icon name="chevron-forward-outline"></ion-icon>
+          </button>
+
+          <button
+            class="privacy-consent-row is-optional"
+            type="button"
+            [class.is-accepted]="crashReports"
+            (click)="toggleOptional('crashReports')"
+          >
+            <ion-checkbox [checked]="crashReports"></ion-checkbox>
+            <span>{{ t('privacy.dataConsent.crashReports') }}</span>
+            <ion-icon name="chevron-forward-outline"></ion-icon>
+          </button>
+
+          <button
+            class="privacy-consent-row is-optional"
+            type="button"
+            [class.is-accepted]="personalisation"
+            (click)="toggleOptional('personalisation')"
+          >
+            <ion-checkbox [checked]="personalisation"></ion-checkbox>
+            <span>{{ t('privacy.dataConsent.personalisation') }}</span>
+            <ion-icon name="chevron-forward-outline"></ion-icon>
+          </button>
+
+          <button
+            class="privacy-consent-row is-optional"
+            type="button"
             [class.is-accepted]="marketingNotifications"
-            (click)="toggleMarketing()"
+            (click)="toggleOptional('marketingNotifications')"
           >
             <ion-checkbox [checked]="marketingNotifications"></ion-checkbox>
             <span>{{ t('privacy.dataConsent.marketing') }}</span>

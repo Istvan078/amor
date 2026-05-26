@@ -44,17 +44,11 @@ import { ProfilePicturesRepository } from '../../profile/data-access/profile-pic
 import { ProfileStore } from '../../profile/store/profile.store';
 import { Options } from '../../../shared/models/options.model';
 import { Promotions } from '../../../shared/models/promotions.model';
-import { MatchParts, UserClass } from '../../../shared/models/user.model';
+import { UserClass } from '../../../shared/models/user.model';
 import { MessagesRepository } from '../../messages/data-access/messages.repository';
 import { Message } from '../../../shared/models/message.model';
-
-type PromoSheetState = {
-  firstSeenAt: number;
-  dailyShows: Record<string, number>;
-  lastClosedAt?: number;
-  lastMaybeLaterAt?: number;
-  shownTriggers?: Record<string, number>;
-};
+import { MatchActionsStore } from '../../matching/store/match-actions.store';
+import { PromoStore } from '../../promotions/store/promo.store';
 
 @Component({
   selector: 'app-discover',
@@ -109,16 +103,13 @@ export class DiscoverPage implements OnInit {
   private matchPreviewSignature = '';
   private promoBottomSheetQueued = false;
   private promoBottomSheetShownForUid: string | null = null;
-  private readonly promoClosedCooldownMs = 24 * 60 * 60 * 1000;
-  private readonly promoMaybeLaterCooldownMs = 12 * 60 * 60 * 1000;
-  private readonly promoFirstDayMs = 24 * 60 * 60 * 1000;
-  private readonly freeDailyRewindLimit = 1;
-  private readonly freeDailySuperLikeLimit = 1;
 
   private authStore = inject(AuthStore);
   private profileStore = inject(ProfileStore);
   readonly discoverStore = inject(DiscoverStore);
   private discoverUiStore = inject(DiscoverUiStore);
+  private matchActionsStore = inject(MatchActionsStore);
+  private promoStore = inject(PromoStore);
   private transloco = inject(TranslocoService);
   private messagesRepository = inject(MessagesRepository);
 
@@ -359,16 +350,7 @@ export class DiscoverPage implements OnInit {
     const uid = this.userProf?.uid ?? this.user?.uid;
 
     if (uid) {
-      const state = this.readPromoSheetState(uid);
-      const now = Date.now();
-
-      if (reason === 'maybeLater') {
-        state.lastMaybeLaterAt = now;
-      } else {
-        state.lastClosedAt = now;
-      }
-
-      this.writePromoSheetState(uid, state);
+      this.promoStore.recordDismiss(uid, reason);
     }
 
     this.promoBottomSheetOpen = false;
@@ -390,206 +372,27 @@ export class DiscoverPage implements OnInit {
   private maybeOpenPromoBottomSheet() {
     const uid = this.userProf?.uid ?? this.user?.uid;
 
-    if (
-      !uid ||
-      !this.options.phoneView ||
-      !this.promotions.length ||
-      this.promoBottomSheetOpen ||
-      this.loadedDiscoverUid !== uid ||
-      this.promoBottomSheetShownForUid === uid ||
-      this.isPremiumUser()
-    ) {
+    const decision = this.promoStore.getBottomSheetDecision({
+      uid,
+      phoneView: !!this.options.phoneView,
+      promotions: this.promotions,
+      isOpen: this.promoBottomSheetOpen,
+      loadedDiscoverUid: this.loadedDiscoverUid,
+      alreadyShownForUid: this.promoBottomSheetShownForUid,
+      userProfile: this.userProf,
+      possibleMatchIds: this.possibleMatchIds,
+      matches: this.matches,
+      isMatchPlaceHolder: this.isMatchPlaceHolder,
+    });
+
+    if (!decision || !uid) {
       return;
     }
 
-    const now = Date.now();
-    const state = this.readPromoSheetState(uid);
-    const isFirstDay = now - state.firstSeenAt < this.promoFirstDayMs;
-
-    if (!this.canShowPromoBottomSheet(state, isFirstDay, now)) {
-      this.writePromoSheetState(uid, state);
-      return;
-    }
-
-    const candidates = this.getPromoBottomSheetCandidates(state, isFirstDay);
-
-    if (!candidates.length) {
-      return;
-    }
-
-    this.promoBottomSheetPromotions = candidates;
-    this.promoBottomSheetActiveIndex = 0;
+    this.promoBottomSheetPromotions = decision.promotions;
+    this.promoBottomSheetActiveIndex = decision.activeIndex;
     this.promoBottomSheetOpen = true;
     this.promoBottomSheetShownForUid = uid;
-    this.markPromoBottomSheetShown(uid, state, candidates[0]?.['id']);
-  }
-
-  private canShowPromoBottomSheet(
-    state: PromoSheetState,
-    isFirstDay: boolean,
-    now: number
-  ) {
-    const dailyLimit = isFirstDay ? 2 : 1;
-    const todayKey = this.getTodayKey();
-    const todaysShows = state.dailyShows[todayKey] ?? 0;
-
-    if (todaysShows >= dailyLimit) {
-      return false;
-    }
-
-    if (
-      state.lastClosedAt &&
-      now - state.lastClosedAt < this.promoClosedCooldownMs
-    ) {
-      return false;
-    }
-
-    if (
-      state.lastMaybeLaterAt &&
-      now - state.lastMaybeLaterAt < this.promoMaybeLaterCooldownMs
-    ) {
-      return false;
-    }
-
-    return true;
-  }
-
-  private getPromoBottomSheetCandidates(
-    state: PromoSheetState,
-    isFirstDay: boolean
-  ) {
-    const orderedIds: string[] = [];
-    const likedCount = this.userProf?.matchParts?.liked?.length ?? 0;
-    const notLikedCount = this.userProf?.matchParts?.notLiked?.length ?? 0;
-    const hiddenLikesCount = this.getHiddenLikesCount();
-    const possibleCount = this.possibleMatchIds.length;
-    const matchCount = this.matches.length;
-
-    if (isFirstDay) {
-      orderedIds.push('firstMonth');
-    }
-
-    if (hiddenLikesCount > 0) {
-      orderedIds.push('seeLikes');
-    }
-
-    if (likedCount >= 8 || (likedCount >= 3 && possibleCount <= 1)) {
-      orderedIds.push('amorinoGold');
-    }
-
-    if ((matchCount <= 1 && possibleCount <= 2) || this.isMatchPlaceHolder) {
-      orderedIds.push('profileBoost');
-    }
-
-    if (likedCount + notLikedCount >= 8 && notLikedCount >= likedCount) {
-      orderedIds.push('superLike');
-    }
-
-    orderedIds.push(
-      'amorinoGold',
-      'profileBoost',
-      'seeLikes',
-      'superLike',
-      'firstMonth'
-    );
-
-    const candidates = this.uniquePromoIds(orderedIds)
-      .map((id) => this.getPromoById(id))
-      .filter((promotion): promotion is Promotions => !!promotion);
-
-    return this.preferPromosNotShownToday(candidates, state).slice(0, 3);
-  }
-
-  private preferPromosNotShownToday(
-    promotions: Promotions[],
-    state: PromoSheetState
-  ) {
-    const todayKey = this.getTodayKey();
-    const shownToday = new Set(
-      Object.entries(state.shownTriggers ?? {})
-        .filter(([, shownAt]) => this.getTodayKey(new Date(shownAt)) === todayKey)
-        .map(([id]) => id)
-    );
-    const freshPromotions = promotions.filter(
-      (promotion) => !shownToday.has(String(promotion['id']))
-    );
-
-    return freshPromotions.length ? freshPromotions : promotions;
-  }
-
-  private markPromoBottomSheetShown(
-    uid: string,
-    state: PromoSheetState,
-    promoId?: string
-  ) {
-    const todayKey = this.getTodayKey();
-    const now = Date.now();
-
-    state.dailyShows[todayKey] = (state.dailyShows[todayKey] ?? 0) + 1;
-    state.shownTriggers ??= {};
-
-    if (promoId) {
-      state.shownTriggers[promoId] = now;
-    }
-
-    this.writePromoSheetState(uid, state);
-  }
-
-  private readPromoSheetState(uid: string): PromoSheetState {
-    const fallbackState: PromoSheetState = {
-      firstSeenAt: Date.now(),
-      dailyShows: {},
-      shownTriggers: {},
-    };
-
-    try {
-      const storedState = window.localStorage.getItem(
-        this.getPromoSheetStorageKey(uid)
-      );
-
-      if (!storedState) {
-        return fallbackState;
-      }
-
-      const parsedState = JSON.parse(storedState) as Partial<PromoSheetState>;
-
-      return {
-        firstSeenAt: parsedState.firstSeenAt ?? Date.now(),
-        dailyShows: parsedState.dailyShows ?? {},
-        lastClosedAt: parsedState.lastClosedAt,
-        lastMaybeLaterAt: parsedState.lastMaybeLaterAt,
-        shownTriggers: parsedState.shownTriggers ?? {},
-      };
-    } catch (error) {
-      console.error(error);
-      return fallbackState;
-    }
-  }
-
-  private writePromoSheetState(uid: string, state: PromoSheetState) {
-    try {
-      window.localStorage.setItem(
-        this.getPromoSheetStorageKey(uid),
-        JSON.stringify(state)
-      );
-    } catch (error) {
-      console.error(error);
-    }
-  }
-
-  private getPromoSheetStorageKey(uid: string) {
-    return `amor:mobile-promo-sheet:${uid}`;
-  }
-
-  private getTodayKey(date = new Date()) {
-    const month = `${date.getMonth() + 1}`.padStart(2, '0');
-    const day = `${date.getDate()}`.padStart(2, '0');
-
-    return `${date.getFullYear()}-${month}-${day}`;
-  }
-
-  private uniquePromoIds(ids: string[]) {
-    return [...new Set(ids)];
   }
 
   private getPromoById(id: string) {
@@ -625,55 +428,8 @@ export class DiscoverPage implements OnInit {
     this.promoBottomSheetOpen = true;
   }
 
-  private getHiddenLikesCount() {
-    const profile = this.userProf as Record<string, unknown> | undefined;
-    const hiddenLikeKeys = [
-      'hiddenLikes',
-      'likedBy',
-      'likesReceived',
-      'receivedLikes',
-      'profileLikes',
-    ];
-
-    if (!profile) {
-      return 0;
-    }
-
-    for (const key of hiddenLikeKeys) {
-      const value = profile[key];
-
-      if (Array.isArray(value)) {
-        return value.length;
-      }
-
-      if (typeof value === 'number') {
-        return value;
-      }
-
-      if (value && typeof value === 'object' && 'count' in value) {
-        const count = (value as { count?: unknown }).count;
-
-        if (typeof count === 'number') {
-          return count;
-        }
-      }
-    }
-
-    return 0;
-  }
-
-  private isPremiumUser() {
-    const subscriptions = this.userProf?.subscriptions;
-
-    return !!(
-      subscriptions?.gold ||
-      subscriptions?.silver ||
-      subscriptions?.bronze
-    );
-  }
-
   get hasPremiumAccess() {
-    return this.isPremiumUser();
+    return this.matchActionsStore.hasPremiumAccess(this.userProf);
   }
 
   get hasRewindCandidate() {
@@ -681,88 +437,22 @@ export class DiscoverPage implements OnInit {
   }
 
   get freeRewindsRemaining() {
-    if (!this.userProf?.uid || this.hasPremiumAccess) {
-      return 0;
-    }
-
-    return Math.max(
-      this.freeDailyRewindLimit - this.getDailyActionCount('rewind'),
-      0
+    return this.matchActionsStore.getFreeRewindsRemaining(
+      this.userProf,
+      this.user?.uid
     );
   }
 
   get isRewindLocked() {
-    return !this.hasPremiumAccess && this.freeRewindsRemaining <= 0;
-  }
-
-  get canSuperLike() {
-    return this.hasPremiumAccess || this.freeSuperLikesRemaining > 0;
-  }
-
-  private get freeSuperLikesRemaining() {
-    if (!this.userProf?.uid || this.hasPremiumAccess) {
-      return 0;
-    }
-
-    return Math.max(
-      this.freeDailySuperLikeLimit - this.getDailyActionCount('super-like'),
-      0
+    return this.matchActionsStore.isRewindLocked(
+      this.userProf,
+      this.hasRewindCandidate,
+      this.user?.uid
     );
   }
 
-  private getDailyActionCount(action: 'rewind' | 'super-like') {
-    const uid = this.userProf?.uid ?? this.user?.uid;
-
-    if (!uid) {
-      return 0;
-    }
-
-    try {
-      const storedValue = window.localStorage.getItem(
-        this.getDailyActionStorageKey(uid, action)
-      );
-
-      return Number(storedValue ?? 0) || 0;
-    } catch (error) {
-      console.error(error);
-      return 0;
-    }
-  }
-
-  private consumeDailyAction(action: 'rewind' | 'super-like') {
-    const uid = this.userProf?.uid ?? this.user?.uid;
-
-    if (!uid || this.hasPremiumAccess) {
-      return;
-    }
-
-    try {
-      const count = this.getDailyActionCount(action);
-      window.localStorage.setItem(
-        this.getDailyActionStorageKey(uid, action),
-        String(count + 1)
-      );
-    } catch (error) {
-      console.error(error);
-    }
-  }
-
-  private getDailyActionStorageKey(
-    uid: string,
-    action: 'rewind' | 'super-like'
-  ) {
-    return `amor:${action}:${uid}:${this.getTodayKey()}`;
-  }
-
-  private ensureMatchParts(profile: UserClass) {
-    profile.matchParts ??= new MatchParts();
-    profile.matchParts.matches ??= [];
-    profile.matchParts.possMatches ??= [];
-    profile.matchParts.liked ??= [];
-    profile.matchParts.notLiked ??= [];
-    profile.matchParts.superLiked ??= [];
-
-    return profile.matchParts;
+  get canSuperLike() {
+    return this.matchActionsStore.canSuperLike(this.userProf, this.user?.uid);
   }
 
   setUProfLabels() {
@@ -848,31 +538,12 @@ export class DiscoverPage implements OnInit {
     isLike?: boolean,
     isDontLike?: boolean
   ) {
-    if (this.userProf && usr?.uid) {
-      const matchParts = this.ensureMatchParts(this.userProf);
-
-      if (isLike) {
-        if (!matchParts.liked.includes(usr.uid)) {
-          matchParts.liked.push(usr.uid);
-        }
-      } else if (isDontLike) {
-        if (!matchParts.notLiked.includes(usr.uid)) {
-          matchParts.notLiked.push(usr.uid);
-        }
-      }
-
-      if (matchParts.possMatches.includes(usr.uid)) {
-        matchParts.possMatches = matchParts.possMatches.filter(
-          (uid) => uid !== usr.uid
-        );
-      }
-
-      await this.profileStore.updateProfile(
-        this.userProf?.uid!,
-        this.userProf.setDataForFireStore()
-      );
-      this.profileStore.setProfile(this.userProf);
-    }
+    await this.matchActionsStore.likeOrDontUser(
+      this.userProf,
+      usr,
+      isLike,
+      isDontLike
+    );
   }
 
   openUserCard() {
@@ -939,28 +610,15 @@ export class DiscoverPage implements OnInit {
       return;
     }
 
-    this.consumeDailyAction('rewind');
-
-    if (this.userProf && previousMatch.uid) {
-      const matchParts = this.ensureMatchParts(this.userProf);
-
-      matchParts.notLiked = matchParts.notLiked.filter(
-        (uid) => uid !== previousMatch.uid
-      );
-
-      if (
-        !matchParts.possMatches.includes(previousMatch.uid) &&
-        !matchParts.liked.includes(previousMatch.uid)
-      ) {
-        matchParts.possMatches.push(previousMatch.uid);
-      }
-
-      await this.profileStore.updateProfile(
-        this.userProf.uid!,
-        this.userProf.setDataForFireStore()
-      );
-      this.profileStore.setProfile(this.userProf);
-    }
+    this.matchActionsStore.consumeDailyAction(
+      this.userProf,
+      'rewind',
+      this.user?.uid
+    );
+    await this.matchActionsStore.restoreRewindCandidate(
+      this.userProf,
+      previousMatch
+    );
 
     this.matchProf = previousMatch;
     this.matchProf['index'] = Number(previousMatch['index'] ?? 0);
@@ -979,17 +637,12 @@ export class DiscoverPage implements OnInit {
       return;
     }
 
-    this.consumeDailyAction('super-like');
-
-    if (this.userProf) {
-      const matchParts = this.ensureMatchParts(this.userProf);
-
-      if (!matchParts.superLiked.includes(this.matchProf.uid)) {
-        matchParts.superLiked.push(this.matchProf.uid);
-      }
-    }
-
-    await this.likeOrDontUser(this.matchProf, true);
+    this.matchActionsStore.consumeDailyAction(
+      this.userProf,
+      'super-like',
+      this.user?.uid
+    );
+    await this.matchActionsStore.superLikeUser(this.userProf, this.matchProf);
     this.changeMatchProf();
   }
 
@@ -1102,6 +755,29 @@ export class DiscoverPage implements OnInit {
       this.discoverUiStore.reset();
       this.router.navigate(['/amor/register']);
     }
+  }
+
+  async confirmDeleteUserProf() {
+    const alert = await this.alertCtrl.create({
+      header: this.transloco.translate('profile.deleteConfirm.title'),
+      message: this.transloco.translate('profile.deleteConfirm.message'),
+      cssClass: 'delete-profile-alert',
+      buttons: [
+        {
+          text: this.transloco.translate('common.cancel'),
+          role: 'cancel',
+          cssClass: 'delete-profile-alert-cancel-button',
+        },
+        {
+          text: this.transloco.translate('profile.deleteConfirm.confirm'),
+          role: 'destructive',
+          handler: () => this.deleteUserProf(),
+          cssClass: 'delete-profile-alert-confirm-button',
+        },
+      ],
+    });
+
+    await alert.present();
   }
 
   onSelectChoices(eventObj: any, labelKey: any) {

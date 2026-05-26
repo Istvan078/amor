@@ -134,6 +134,9 @@
       "policyPrefix": "I accept the",
       "policyLink": "Privacy Policy",
       "ageConfirm": "I am at least 18 and above the legal age of consent",
+      "analytics": "Help Amor improve matching with anonymous analytics (optional)",
+      "crashReports": "Send crash reports so we can fix issues faster (optional)",
+      "personalisation": "Use my activity to personalise discovery and offers (optional)",
       "marketing": "Send me exclusive offers and product news (optional)",
       "secureStorage": "Consent is stored with your profile",
       "personalisedMatches": "Used for safer, more relevant discovery",
@@ -188,6 +191,11 @@
     },
     "edit": {
       "delete": "Delete profile"
+    },
+    "deleteConfirm": {
+      "title": "Delete profile?",
+      "message": "This permanently removes your profile, matches and account access from Amor. This action cannot be undone.",
+      "confirm": "Delete profile"
     }
   },
   "messages": {

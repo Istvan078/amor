@@ -11,7 +11,7 @@
   "common": {
     "back": "Vissza",
     "cancel": "Mégsem",
-    "close": "Bez\u00e1r\u00e1s",
+    "close": "Bezárás",
     "continue": "Tovább",
     "loading": "Betöltés...",
     "save": "Mentés",
@@ -48,31 +48,31 @@
     "register": {
       "title": "Fiók létrehozása",
       "eyebrow": "Csatlakozz az Amorhoz",
-      "cardEyebrow": "\u00daj vagy itt?",
-      "subtitle": "\u00c9p\u00edts olyan profilt, ami m\u00e1r az els\u0151 pillanatt\u00f3l ig\u00e9nyesnek hat.",
-      "heroTitle": "Tal\u00e1lj valakit, aki a te temp\u00f3dban kapcsol\u00f3dik",
-      "heroCopy": "Hozz l\u00e9tre letisztult profilt, finomhangold a preferenci\u00e1idat, \u00e9s l\u00e9pj be jobb besz\u00e9lget\u00e9sekbe.",
-      "featureOne": "Priv\u00e1t profilbe\u00e1ll\u00edt\u00e1s",
-      "featureTwo": "V\u00e1logatott felfedez\u00e9s",
-      "featureThree": "Tartalmas besz\u00e9lget\u00e9sek",
-      "secureNote": "A k\u00e9peidet, adataidat \u00e9s preferenci\u00e1idat regisztr\u00e1ci\u00f3 ut\u00e1n is finom\u00edthatod.",
+      "cardEyebrow": "Új vagy itt?",
+      "subtitle": "Építs olyan profilt, ami már az első pillanattól igényesnek hat.",
+      "heroTitle": "Találj valakit, aki a te tempódban kapcsolódik",
+      "heroCopy": "Hozz létre letisztult profilt, finomhangold a preferenciáidat, és lépj be jobb beszélgetésekbe.",
+      "featureOne": "Privát profilbeállítás",
+      "featureTwo": "Válogatott felfedezés",
+      "featureThree": "Tartalmas beszélgetések",
+      "secureNote": "A képeidet, adataidat és preferenciáidat regisztráció után is finomíthatod.",
       "continue": "Folytatás az Amorba",
       "createAccount": "Fiók létrehozása",
       "goToLogin": "Már van fiókod? Jelentkezz be"
     },
     "modal": {
-      "accountEyebrow": "Biztons\u00e1gos bel\u00e9p\u00e9s",
-      "accountIntro": "Kezdd az emailed megad\u00e1s\u00e1val, ut\u00e1na fel\u00e9p\u00edtj\u00fck azt a profilt, amit m\u00e1sok l\u00e1tnak.",
+      "accountEyebrow": "Biztonságos belépés",
+      "accountIntro": "Kezdd az emailed megadásával, utána felépítjük azt a profilt, amit mások látnak.",
       "emailLabel": "Email cím",
       "emailPlaceholder": "Email",
       "passwordLabel": "Minimum 6 karakter",
       "passwordPlaceholder": "Jelszó",
       "welcome": "Üdvözlünk az Amorban",
-      "profileEyebrow": "Profilbe\u00e1ll\u00edt\u00e1s",
-      "profileIntro": "Ezek az adatok seg\u00edtenek, hogy az Amor hozz\u00e1d ill\u0151 embereket aj\u00e1nljon.",
+      "profileEyebrow": "Profilbeállítás",
+      "profileIntro": "Ezek az adatok segítenek, hogy az Amor hozzád illő embereket ajánljon.",
       "basicData": "Alapadatok",
       "createAccount": "Fiók létrehozása",
-      "selectDate": "V\u00e1lassz d\u00e1tumot",
+      "selectDate": "Válassz dátumot",
       "next": "Tovább"
     },
     "signOut": {
@@ -99,11 +99,12 @@
       "online": "Online",
       "offline": "Offline",
       "newMatch": "Új match",
+      "blockedPreview": "Blokkolva",
       "you": "Te"
     },
     "actions": {
-      "rewind": "El\u0151z\u0151 profil visszahoz\u00e1sa",
-      "superLike": "Super Like k\u00fcld\u00e9se"
+      "rewind": "Előző profil visszahozása",
+      "superLike": "Super Like küldése"
     },
     "profile": {
       "myProfile": "Profilom",
@@ -133,6 +134,9 @@
       "policyPrefix": "Elfogadom az",
       "policyLink": "Adatkezelési tájékoztatót",
       "ageConfirm": "Elmúltam 18 éves, és elmúltam a törvényes beleegyezési korhatárt",
+      "analytics": "Segíthetem az Amor fejlesztését anonim analitikával (nem kötelező)",
+      "crashReports": "Küldhet hibajelentést, hogy gyorsabban javíthassuk a problémákat (nem kötelező)",
+      "personalisation": "Használhatja az aktivitásomat személyre szabott felfedezéshez és ajánlatokhoz (nem kötelező)",
       "marketing": "Szeretnék exkluzív ajánlatokat és újdonságokat kapni (nem kötelező)",
       "secureStorage": "A hozzájárulás a profiloddal együtt mentődik",
       "personalisedMatches": "Biztonságosabb és relevánsabb felfedezéshez használjuk",
@@ -141,7 +145,7 @@
     }
   },
   "profile": {
-    "photoViewerTitle": "Profilk\u00e9pek",
+    "photoViewerTitle": "Profilképek",
     "fields": {
       "pictures": "Képeim",
       "aboutMe": "Rólam",
@@ -187,6 +191,11 @@
     },
     "edit": {
       "delete": "Profil törlése"
+    },
+    "deleteConfirm": {
+      "title": "Törlöd a profilod?",
+      "message": "Ez végleg eltávolítja a profilodat, a matcheket és a fiókhozzáférést az Amorban. A művelet nem vonható vissza.",
+      "confirm": "Profil törlése"
     }
   },
   "messages": {
@@ -202,13 +211,25 @@
     "readReceiptTitle": "Olvasási visszaigazolás",
     "readReceiptText": "Tudd meg, hogy {{name}} mikor olvassa el az üzeneted.",
     "enableReadReceipt": "Bekapcsolom",
-    "menuAria": "Besz\u00e9lget\u00e9si opci\u00f3k",
-    "blockUser": "Felhaszn\u00e1l\u00f3 blokkol\u00e1sa",
-    "blockUserHint": "Ne tudjon t\u00f6bb \u00fczenetet k\u00fcldeni neked.",
-    "reportUser": "Felhaszn\u00e1l\u00f3 jelent\u00e9se",
-    "reportUserHint": "K\u00fcldd el a profilt biztons\u00e1gi ellen\u0151rz\u00e9sre.",
-    "blockedNotice": "A felhaszn\u00e1l\u00f3 helyileg blokkolva lett. A backend moder\u00e1ci\u00f3 k\u00f6vetkez\u0151 l\u00e9p\u00e9sk\u00e9nt k\u00f6thet\u0151 be.",
-    "reportedNotice": "K\u00f6sz\u00f6nj\u00fck. A jelent\u00e9s ellen\u0151rz\u00e9sre jel\u00f6lve.",
+    "menuAria": "Beszélgetési opciók",
+    "blockUser": "Felhasználó blokkolása",
+    "blockUserHint": "Ne tudjon több üzenetet küldeni neked.",
+    "reportUser": "Felhasználó jelentése",
+    "reportUserHint": "Küldd el a profilt biztonsági ellenőrzésre.",
+    "unblockUser": "Blokkolás feloldása",
+    "unblockUserHint": "Engedélyezd újra az üzeneteket ettől a matchtől.",
+    "removeMatch": "Match törlése",
+    "removeMatchHint": "Eltávolítja ezt a matcht a beszélgetéseidből.",
+    "blockedStatus": "Blokkolva",
+    "blockedListHint": "Blokkolt match",
+    "blockedBannerTitle": "Blokkoltad ezt a matchet",
+    "blockedBannerText": "Az üzenetküldés szünetel, amíg fel nem oldod a blokkolást.",
+    "blockedPlaceholder": "Oldd fel a blokkolást az üzenetíráshoz.",
+    "blockedNotice": "Ez a match blokkolva lett.",
+    "blockedComposerNotice": "Oldd fel a blokkolást, mielőtt üzenetet küldesz.",
+    "unblockedNotice": "A blokkolás feloldva. Újra tudsz üzenetet küldeni.",
+    "matchRemovedNotice": "A match törölve lett a beszélgetéseidből.",
+    "reportedNotice": "Köszönjük. A jelentés ellenőrzésre jelölve.",
     "loading": "Üzenetek betöltése...",
     "startTitle": "Kezdj beszélgetést",
     "startText": "Egy rövid, személyes nyitás jobban működik.",
@@ -217,11 +238,11 @@
   },
   "promotions": {
     "sheet": {
-      "close": "Aj\u00e1nlat bez\u00e1r\u00e1sa",
-      "maybeLater": "K\u00e9s\u0151bb d\u00f6nt\u00f6k",
-      "seeOtherOffers": "M\u00e1s aj\u00e1nlatok",
-      "previousOffer": "El\u0151z\u0151 aj\u00e1nlat",
-      "nextOffer": "K\u00f6vetkez\u0151 aj\u00e1nlat"
+      "close": "Ajánlat bezárása",
+      "maybeLater": "Később döntök",
+      "seeOtherOffers": "Más ajánlatok",
+      "previousOffer": "Előző ajánlat",
+      "nextOffer": "Következő ajánlat"
     },
     "category": {
       "subscription": "Előfizetés",
@@ -246,10 +267,10 @@
       "cta": "Upgrade most"
     },
     "rewind": {
-      "eyebrow": "Gold funkci\u00f3",
-      "title": "El\u0151z\u0151 pass visszavon\u00e1sa",
-      "offer": "A rewind Amorino Golddal \u00e9rhet\u0151 el",
-      "description": "Hozd vissza azt, akit v\u00e9letlen\u00fcl kihagyt\u00e1l.",
+      "eyebrow": "Gold funkció",
+      "title": "Előző pass visszavonása",
+      "offer": "A rewind Amorino Golddal érhető el",
+      "description": "Hozd vissza azt, akit véletlenül kihagytál.",
       "cta": "Upgrade most"
     },
     "profileBoost": {

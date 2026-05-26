@@ -1631,3 +1631,63 @@ app-discover {
     }
   }
 }
+
+.delete-profile-alert {
+  --backdrop-opacity: 0.72;
+
+  .alert-wrapper {
+    overflow: hidden;
+    border: 1px solid rgba(255, 93, 143, 0.28);
+    border-radius: 24px;
+    background:
+      radial-gradient(circle at 18% 0%, rgba(255, 93, 143, 0.2), transparent 34%),
+      linear-gradient(145deg, rgba(24, 29, 48, 0.98), rgba(13, 18, 34, 0.98));
+    color: #f8f5ef;
+    box-shadow:
+      0 32px 90px rgba(0, 0, 0, 0.52),
+      inset 0 1px 0 rgba(255, 255, 255, 0.08);
+  }
+
+  .alert-head {
+    padding: 28px 28px 10px;
+  }
+
+  .alert-title {
+    color: #ffffff;
+    font-size: 1.35rem;
+    font-weight: 900;
+    letter-spacing: 0;
+  }
+
+  .alert-message {
+    padding: 0 28px 22px;
+    color: rgba(248, 245, 239, 0.72);
+    font-size: 0.95rem;
+    line-height: 1.55;
+  }
+
+  .alert-button-group {
+    gap: 10px;
+    padding: 0 20px 20px;
+  }
+
+  .delete-profile-alert-cancel-button,
+  .delete-profile-alert-confirm-button {
+    min-height: 44px;
+    border-radius: 999px;
+    font-weight: 900;
+    letter-spacing: 0;
+    text-transform: none;
+  }
+
+  .delete-profile-alert-cancel-button {
+    color: rgba(248, 245, 239, 0.82);
+    background: rgba(255, 255, 255, 0.07);
+  }
+
+  .delete-profile-alert-confirm-button {
+    color: #ffffff;
+    background: linear-gradient(135deg, #ff5d8f, #ff7a59);
+    box-shadow: 0 14px 32px rgba(255, 93, 143, 0.24);
+  }
+}
