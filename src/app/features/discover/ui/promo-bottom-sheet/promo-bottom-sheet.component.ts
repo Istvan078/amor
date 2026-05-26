@@ -26,6 +26,10 @@ import {
 import { Promotions } from '../../../../shared/models/promotions.model';
 
 export type PromoBottomSheetDismissReason = 'close' | 'maybeLater' | 'cta';
+export type PromoBottomSheetDismissEvent = {
+  reason: PromoBottomSheetDismissReason;
+  promotion?: Promotions;
+};
 
 @Component({
   selector: 'app-promo-bottom-sheet',
@@ -39,7 +43,7 @@ export class PromoBottomSheetComponent implements OnChanges {
   @Input() promotions: Promotions[] = [];
   @Input() activeIndex = 0;
 
-  @Output() dismissed = new EventEmitter<PromoBottomSheetDismissReason>();
+  @Output() dismissed = new EventEmitter<PromoBottomSheetDismissEvent>();
 
   selectedIndex = 0;
   showOtherOffers = false;
@@ -91,8 +95,10 @@ export class PromoBottomSheetComponent implements OnChanges {
   }
 
   dismiss(reason: PromoBottomSheetDismissReason) {
+    const promotion = this.currentPromotion;
+
     this.showOtherOffers = false;
-    this.dismissed.emit(reason);
+    this.dismissed.emit({ reason, promotion });
   }
 
   selectOffer(index: number) {

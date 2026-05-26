@@ -38,7 +38,7 @@ import {
 } from '../ui/discover-sidebar/discover-sidebar.component';
 import {
   PromoBottomSheetComponent,
-  type PromoBottomSheetDismissReason,
+  type PromoBottomSheetDismissEvent,
 } from '../ui/promo-bottom-sheet/promo-bottom-sheet.component';
 import { ProfilePicturesRepository } from '../../profile/data-access/profile-pictures.repository';
 import { ProfileStore } from '../../profile/store/profile.store';
@@ -49,6 +49,7 @@ import { MessagesRepository } from '../../messages/data-access/messages.reposito
 import { Message } from '../../../shared/models/message.model';
 import { MatchActionsStore } from '../../matching/store/match-actions.store';
 import { PromoStore } from '../../promotions/store/promo.store';
+import { PaywallComponent } from '../../billing/ui/paywall/paywall.component';
 
 @Component({
   selector: 'app-discover',
@@ -112,16 +113,15 @@ export class DiscoverPage implements OnInit {
   private promoStore = inject(PromoStore);
   private transloco = inject(TranslocoService);
   private messagesRepository = inject(MessagesRepository);
+  private modalCtrl = inject(ModalController);
+  private config = inject(ConfigService);
+  private router = inject(Router);
+  private locationService = inject(LocationService);
+  private alertCtrl = inject(AlertController);
+  private discoverRepository = inject(DiscoverRepository);
+  private profilePicturesRepository = inject(ProfilePicturesRepository);
 
-  constructor(
-    private modalCtrl: ModalController,
-    private config: ConfigService,
-    private router: Router,
-    private locationService: LocationService,
-    private alertCtrl: AlertController,
-    private discoverRepository: DiscoverRepository,
-    private profilePicturesRepository: ProfilePicturesRepository
-  ) {
+  constructor() {
     effect(() => {
       this.user = this.authStore.user();
 
@@ -346,14 +346,18 @@ export class DiscoverPage implements OnInit {
     this.promotions = this.config.getPromotions();
   }
 
-  handlePromoBottomSheetDismiss(reason: PromoBottomSheetDismissReason) {
+  handlePromoBottomSheetDismiss(event: PromoBottomSheetDismissEvent) {
     const uid = this.userProf?.uid ?? this.user?.uid;
 
     if (uid) {
-      this.promoStore.recordDismiss(uid, reason);
+      this.promoStore.recordDismiss(uid, event.reason);
     }
 
     this.promoBottomSheetOpen = false;
+
+    if (event.reason === 'cta') {
+      void this.openPaywall(event.promotion);
+    }
   }
 
   private schedulePromoBottomSheetCheck() {
@@ -426,6 +430,18 @@ export class DiscoverPage implements OnInit {
     this.promoBottomSheetPromotions = [promotion];
     this.promoBottomSheetActiveIndex = 0;
     this.promoBottomSheetOpen = true;
+  }
+
+  async openPaywall(promotion?: Promotions) {
+    const modal = await this.modalCtrl.create({
+      component: PaywallComponent,
+      componentProps: {
+        promotionId: promotion?.['id'],
+      },
+      cssClass: 'paywall-modal',
+    });
+
+    await modal.present();
   }
 
   get hasPremiumAccess() {

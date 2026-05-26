@@ -1,0 +1,331 @@
+:host {
+  display: block;
+  width: 100%;
+  color: #fff;
+}
+
+.paywall-shell {
+  position: relative;
+  display: grid;
+  gap: 22px;
+  width: min(980px, calc(100vw - 32px));
+  max-height: min(760px, calc(100dvh - 32px));
+  padding: 28px;
+  overflow: auto;
+  background:
+    radial-gradient(circle at 18% 12%, rgba(255, 93, 143, 0.24), transparent 30%),
+    radial-gradient(circle at 84% 18%, rgba(242, 199, 110, 0.18), transparent 30%),
+    linear-gradient(145deg, rgba(31, 36, 58, 0.98), rgba(10, 15, 31, 0.98));
+  border: 1px solid rgba(255, 255, 255, 0.14);
+  border-radius: 30px;
+  box-shadow: 0 34px 100px rgba(0, 0, 0, 0.58);
+}
+
+.paywall-close {
+  position: absolute;
+  top: 18px;
+  right: 18px;
+  display: grid;
+  width: 42px;
+  height: 42px;
+  place-items: center;
+  padding: 0;
+  color: rgba(255, 255, 255, 0.82);
+  background: rgba(255, 255, 255, 0.08);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  border-radius: 999px;
+}
+
+.paywall-close ion-icon {
+  width: 22px;
+  height: 22px;
+}
+
+.paywall-hero {
+  max-width: 690px;
+  padding-right: 54px;
+}
+
+.paywall-hero__badge {
+  display: grid;
+  width: 62px;
+  height: 62px;
+  place-items: center;
+  margin-bottom: 18px;
+  color: #fff;
+  background:
+    radial-gradient(circle at 34% 24%, rgba(255, 255, 255, 0.58), transparent 24%),
+    linear-gradient(135deg, #ff5d8f, #f2c76e);
+  border-radius: 22px;
+  box-shadow: 0 20px 48px rgba(255, 93, 143, 0.28);
+}
+
+.paywall-hero__badge ion-icon {
+  width: 30px;
+  height: 30px;
+}
+
+.paywall-eyebrow,
+.paywall-benefits__header p {
+  margin: 0 0 8px;
+  color: #ffd76a;
+  font-size: 0.76rem;
+  font-weight: 900;
+  letter-spacing: 0;
+  text-transform: uppercase;
+}
+
+.paywall-hero h2 {
+  max-width: 12ch;
+  margin: 0;
+  font-size: clamp(2.4rem, 5vw, 4.5rem);
+  font-weight: 950;
+  line-height: 0.96;
+}
+
+.paywall-hero p:not(.paywall-eyebrow) {
+  max-width: 46ch;
+  margin: 16px 0 0;
+  color: rgba(255, 255, 255, 0.72);
+  font-size: 1.02rem;
+  line-height: 1.55;
+}
+
+.paywall-content {
+  display: grid;
+  grid-template-columns: minmax(0, 1.05fr) minmax(290px, 0.75fr);
+  gap: 18px;
+  align-items: stretch;
+}
+
+.paywall-packages {
+  display: grid;
+  gap: 12px;
+}
+
+.paywall-package {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 18px;
+  width: 100%;
+  min-height: 96px;
+  padding: 16px 18px;
+  color: #fff;
+  text-align: left;
+  background: rgba(255, 255, 255, 0.07);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  border-radius: 22px;
+  cursor: pointer;
+}
+
+.paywall-package.is-selected {
+  background:
+    linear-gradient(135deg, rgba(255, 93, 143, 0.18), rgba(242, 199, 110, 0.1)),
+    rgba(255, 255, 255, 0.08);
+  border-color: rgba(255, 93, 143, 0.58);
+  box-shadow: 0 20px 44px rgba(255, 93, 143, 0.13);
+}
+
+.paywall-package__main {
+  display: grid;
+  gap: 5px;
+}
+
+.paywall-package__pill {
+  width: fit-content;
+  padding: 5px 10px;
+  color: #fff;
+  font-size: 0.68rem;
+  font-weight: 900;
+  text-transform: uppercase;
+  background: rgba(255, 93, 143, 0.28);
+  border: 1px solid rgba(255, 255, 255, 0.14);
+  border-radius: 999px;
+}
+
+.paywall-package strong {
+  font-size: 1.12rem;
+  line-height: 1.1;
+}
+
+.paywall-package small {
+  color: rgba(255, 255, 255, 0.62);
+  font-size: 0.9rem;
+  line-height: 1.35;
+}
+
+.paywall-package__price {
+  flex: 0 0 auto;
+  color: #ffd76a;
+  font-size: 1.08rem;
+  font-weight: 950;
+}
+
+.paywall-benefits {
+  padding: 18px;
+  background:
+    linear-gradient(145deg, rgba(255, 93, 143, 0.11), rgba(53, 198, 189, 0.08)),
+    rgba(255, 255, 255, 0.06);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  border-radius: 24px;
+}
+
+.paywall-benefits__header {
+  display: flex;
+  gap: 12px;
+  align-items: center;
+  margin-bottom: 16px;
+}
+
+.paywall-benefits__header > ion-icon {
+  width: 34px;
+  height: 34px;
+  color: #ff6d92;
+}
+
+.paywall-benefits h3 {
+  margin: 0;
+  font-size: 1.22rem;
+}
+
+.paywall-benefits ul {
+  display: grid;
+  gap: 12px;
+  padding: 0;
+  margin: 0;
+  list-style: none;
+}
+
+.paywall-benefits li {
+  display: flex;
+  gap: 10px;
+  align-items: flex-start;
+  color: rgba(255, 255, 255, 0.82);
+  line-height: 1.38;
+}
+
+.paywall-benefits li ion-icon {
+  flex: 0 0 auto;
+  width: 20px;
+  height: 20px;
+  color: #ffd76a;
+}
+
+.paywall-error {
+  margin: -6px 0 0;
+  padding: 12px 14px;
+  color: #ffd7df;
+  background: rgba(255, 93, 143, 0.14);
+  border: 1px solid rgba(255, 93, 143, 0.26);
+  border-radius: 16px;
+}
+
+.paywall-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+}
+
+.paywall-primary,
+.paywall-restore {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  min-height: 54px;
+  padding: 0 22px;
+  color: #fff;
+  font: inherit;
+  font-weight: 900;
+  border: 0;
+  border-radius: 999px;
+  cursor: pointer;
+}
+
+.paywall-primary {
+  flex: 1 1 280px;
+  background: linear-gradient(135deg, #ff5d8f, #ff7a59);
+  box-shadow: 0 18px 44px rgba(255, 93, 143, 0.26);
+}
+
+.paywall-restore {
+  flex: 0 0 auto;
+  background: rgba(255, 255, 255, 0.08);
+  border: 1px solid rgba(255, 255, 255, 0.13);
+}
+
+.paywall-primary:disabled,
+.paywall-restore:disabled {
+  cursor: default;
+  opacity: 0.55;
+}
+
+.paywall-note {
+  max-width: 70ch;
+  margin: 0;
+  color: rgba(255, 255, 255, 0.54);
+  font-size: 0.82rem;
+  line-height: 1.45;
+}
+
+.paywall-empty {
+  display: grid;
+  min-height: 220px;
+  place-items: center;
+  color: rgba(255, 255, 255, 0.72);
+  text-align: center;
+  background: rgba(255, 255, 255, 0.06);
+  border: 1px dashed rgba(255, 255, 255, 0.18);
+  border-radius: 22px;
+}
+
+.paywall-empty ion-icon {
+  width: 38px;
+  height: 38px;
+  color: #ff6d92;
+}
+
+@media screen and (max-width: 768px) {
+  .paywall-shell {
+    width: 100vw;
+    max-height: 100dvh;
+    min-height: 100dvh;
+    padding: 22px 18px 26px;
+    border-width: 0;
+    border-radius: 0;
+  }
+
+  .paywall-hero {
+    padding-right: 46px;
+  }
+
+  .paywall-hero h2 {
+    max-width: 10ch;
+    font-size: clamp(2.2rem, 14vw, 3.6rem);
+  }
+
+  .paywall-content {
+    grid-template-columns: 1fr;
+  }
+
+  .paywall-package {
+    min-height: 86px;
+  }
+
+  .paywall-package__price {
+    font-size: 0.98rem;
+  }
+
+  .paywall-actions {
+    position: sticky;
+    bottom: 0;
+    padding-top: 12px;
+    background: linear-gradient(180deg, transparent, rgba(10, 15, 31, 0.96) 28%);
+  }
+
+  .paywall-primary,
+  .paywall-restore {
+    flex: 1 1 100%;
+  }
+}

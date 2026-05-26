@@ -306,6 +306,63 @@
       "description": "Get 70% off every boost for 1 month."
     }
   },
+  "billing": {
+    "paywall": {
+      "eyebrow": "Amorino Gold",
+      "title": "Unlock premium dating",
+      "subtitle": "See who likes you, boost your profile and use stronger match tools without interrupting the flow.",
+      "bestValue": "Best value",
+      "noOffers": "Payment offers are not configured yet.",
+      "includedEyebrow": "Included",
+      "includedTitle": "Premium advantages",
+      "cta": "Continue securely",
+      "processing": "Opening checkout...",
+      "restore": "Restore purchases",
+      "restoring": "Restoring...",
+      "secureNote": "Payments are handled by the App Store or Google Play through RevenueCat. Amor caches entitlement status for the app experience, but premium access should still be verified securely on the backend."
+    },
+    "features": {
+      "unlimitedLikes": "Unlimited likes for faster matching",
+      "seeLikes": "See who already liked you",
+      "rewind": "Rewind your last pass",
+      "profileBoost": "Boost your profile visibility",
+      "advancedFilters": "Use advanced discovery filters",
+      "superLikes": "Send stronger Super Like signals",
+      "privateCheckout": "Private, secure checkout"
+    },
+    "packages": {
+      "goldMonthly": {
+        "title": "Amorino Gold",
+        "description": "The complete premium dating toolkit."
+      },
+      "firstMonth": {
+        "title": "First Month Premium",
+        "description": "Try premium discovery as a new member."
+      },
+      "profileBoost": {
+        "title": "Profile Boost",
+        "description": "Get shown to more people near you."
+      },
+      "superLikePack": {
+        "title": "Super Like Pack",
+        "description": "Five stronger signals for profiles you really like."
+      },
+      "default": {
+        "title": "Premium offer",
+        "description": "Unlock a better Amor experience."
+      }
+    },
+    "errors": {
+      "notConfigured": "Billing is not configured for this platform yet.",
+      "packageUnavailable": "This offer is not available right now.",
+      "purchaseFailed": "Purchase failed. Please try again.",
+      "restoreFailed": "Restore failed. Please try again.",
+      "signInRequired": "You need to sign in before purchasing.",
+      "restoreSignInRequired": "You need to sign in before restoring purchases.",
+      "initializationFailed": "Billing initialization failed.",
+      "offeringsFailed": "Failed to load payment offers."
+    }
+  },
   "update": {
     "available": "A new version is available.",
     "reload": "Update",

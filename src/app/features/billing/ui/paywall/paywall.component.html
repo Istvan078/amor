@@ -1,0 +1,122 @@
+<ng-container *transloco="let t">
+  <section class="paywall-shell" role="dialog" aria-modal="true">
+    <button
+      class="paywall-close"
+      type="button"
+      (click)="close()"
+      [attr.aria-label]="t('common.close')"
+    >
+      <ion-icon name="close-outline" aria-hidden="true"></ion-icon>
+    </button>
+
+    <div class="paywall-hero">
+      <div class="paywall-hero__badge">
+        <ion-icon name="diamond-outline" aria-hidden="true"></ion-icon>
+      </div>
+      <p class="paywall-eyebrow">{{ t('billing.paywall.eyebrow') }}</p>
+      <h2>{{ t('billing.paywall.title') }}</h2>
+      <p>{{ t('billing.paywall.subtitle') }}</p>
+    </div>
+
+    <div class="paywall-content">
+      <div class="paywall-packages" role="list">
+        @for (
+          offer of billingStore.offerings();
+          track packageTrackBy($index, offer)
+        ) {
+          <button
+            class="paywall-package"
+            type="button"
+            role="listitem"
+            [class.is-selected]="selectedPackageIdForTemplate() === offer.id"
+            [class.is-featured]="offer.isFeatured"
+            (click)="selectPackage(offer.id)"
+          >
+            <span class="paywall-package__main">
+              @if (offer.isFeatured) {
+                <span class="paywall-package__pill">
+                  {{ t('billing.paywall.bestValue') }}
+                </span>
+              }
+              <strong>{{ t(offer.titleKey) }}</strong>
+              <small>{{ t(offer.descriptionKey) }}</small>
+            </span>
+            <span class="paywall-package__price">{{ offer.priceLabel }}</span>
+          </button>
+        } @empty {
+          <div class="paywall-empty">
+            <ion-icon name="sparkles-outline" aria-hidden="true"></ion-icon>
+            <p>{{ t('billing.paywall.noOffers') }}</p>
+          </div>
+        }
+      </div>
+
+      <article class="paywall-benefits">
+        <div class="paywall-benefits__header">
+          <ion-icon name="shield-checkmark-outline" aria-hidden="true"></ion-icon>
+          <div>
+            <p>{{ t('billing.paywall.includedEyebrow') }}</p>
+            <h3>{{ t('billing.paywall.includedTitle') }}</h3>
+          </div>
+        </div>
+
+        <ul>
+          @for (
+            featureKey of selectedFeatureKeys();
+            track featureKey
+          ) {
+            <li>
+              <ion-icon name="checkmark-circle" aria-hidden="true"></ion-icon>
+              <span>{{ t(featureKey) }}</span>
+            </li>
+          } @empty {
+            <li>
+              <ion-icon name="checkmark-circle" aria-hidden="true"></ion-icon>
+              <span>{{ t('billing.features.privateCheckout') }}</span>
+            </li>
+          }
+        </ul>
+      </article>
+    </div>
+
+    @if (billingStore.error()) {
+      <p class="paywall-error">{{ t(billingStore.error() ?? '') }}</p>
+    }
+
+    <div class="paywall-actions">
+      <button
+        class="paywall-primary"
+        type="button"
+        [disabled]="!selectedPackage() || billingStore.purchasing()"
+        (click)="purchaseSelectedPackage()"
+      >
+        <span>
+          @if (billingStore.purchasing()) {
+            {{ t('billing.paywall.processing') }}
+          } @else {
+            {{ t('billing.paywall.cta') }}
+          }
+        </span>
+        <ion-icon name="arrow-forward-outline" aria-hidden="true"></ion-icon>
+      </button>
+
+      <button
+        class="paywall-restore"
+        type="button"
+        [disabled]="billingStore.restoring()"
+        (click)="restorePurchases()"
+      >
+        <ion-icon name="refresh-outline" aria-hidden="true"></ion-icon>
+        <span>
+          @if (billingStore.restoring()) {
+            {{ t('billing.paywall.restoring') }}
+          } @else {
+            {{ t('billing.paywall.restore') }}
+          }
+        </span>
+      </button>
+    </div>
+
+    <p class="paywall-note">{{ t('billing.paywall.secureNote') }}</p>
+  </section>
+</ng-container>

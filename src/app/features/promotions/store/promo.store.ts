@@ -3,6 +3,7 @@ import { signalStore, withMethods, withState } from '@ngrx/signals';
 
 import { Promotions } from '../../../shared/models/promotions.model';
 import { UserClass } from '../../../shared/models/user.model';
+import { BillingStore } from '../../billing/store/billing.store';
 import {
     PromoPreferencesRepository,
     PromoSheetState,
@@ -39,7 +40,19 @@ function todayKey(date = new Date()) {
     return `${date.getFullYear()}-${month}-${day}`;
 }
 
-function isPremiumUser(profile?: UserClass) {
+type BillingAccess = {
+    isPremium: () => boolean;
+    hasEntitlement: (entitlementId: string) => boolean;
+};
+
+function isPremiumUser(profile?: UserClass, billingStore?: BillingAccess) {
+    if (
+        billingStore?.isPremium() ||
+        billingStore?.hasEntitlement('premium')
+    ) {
+        return true;
+    }
+
     const subscriptions = profile?.subscriptions;
 
     return !!(
@@ -201,7 +214,11 @@ export const PromoStore = signalStore(
         providedIn: 'root',
     },
     withState(initialState),
-    withMethods((store, repository = inject(PromoPreferencesRepository)) => ({
+    withMethods((
+        store,
+        repository = inject(PromoPreferencesRepository),
+        billingStore = inject(BillingStore)
+    ) => ({
         getBottomSheetDecision(input: PromoDecisionInput): PromoDecision | null {
             const uid = input.uid;
 
@@ -212,7 +229,7 @@ export const PromoStore = signalStore(
                 input.isOpen ||
                 input.loadedDiscoverUid !== uid ||
                 input.alreadyShownForUid === uid ||
-                isPremiumUser(input.userProfile)
+                isPremiumUser(input.userProfile, billingStore)
             ) {
                 return null;
             }

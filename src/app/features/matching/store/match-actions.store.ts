@@ -2,6 +2,7 @@ import { inject } from '@angular/core';
 import { signalStore, withMethods, withState } from '@ngrx/signals';
 
 import { MatchParts, UserClass } from '../../../shared/models/user.model';
+import { BillingStore } from '../../billing/store/billing.store';
 import { ProfileStore } from '../../profile/store/profile.store';
 
 type DailyAction = 'rewind' | 'super-like';
@@ -19,7 +20,22 @@ function ensureMatchParts(profile: UserClass) {
     return profile.matchParts;
 }
 
-function isPremiumProfile(profile?: UserClass | null) {
+type BillingAccess = {
+    isPremium: () => boolean;
+    hasEntitlement: (entitlementId: string) => boolean;
+};
+
+function isPremiumProfile(
+    profile?: UserClass | null,
+    billingStore?: BillingAccess
+) {
+    if (
+        billingStore?.isPremium() ||
+        billingStore?.hasEntitlement('premium')
+    ) {
+        return true;
+    }
+
     const subscriptions = profile?.subscriptions;
 
     return !!(
@@ -59,11 +75,12 @@ function readDailyActionCount(uid: string, action: DailyAction) {
 
 function getFreeRewindsRemainingForProfile(
     profile?: UserClass | null,
-    fallbackUid?: string
+    fallbackUid?: string,
+    billingStore?: BillingAccess
 ) {
     const uid = profile?.uid ?? fallbackUid;
 
-    if (!uid || isPremiumProfile(profile)) {
+    if (!uid || isPremiumProfile(profile, billingStore)) {
         return 0;
     }
 
@@ -75,13 +92,21 @@ export const MatchActionsStore = signalStore(
         providedIn: 'root',
     },
     withState(initialState),
-    withMethods((store, profileStore = inject(ProfileStore)) => ({
+    withMethods((
+        store,
+        profileStore = inject(ProfileStore),
+        billingStore = inject(BillingStore)
+    ) => ({
         hasPremiumAccess(profile?: UserClass | null) {
-            return isPremiumProfile(profile);
+            return isPremiumProfile(profile, billingStore);
         },
 
         getFreeRewindsRemaining(profile?: UserClass | null, fallbackUid?: string) {
-            return getFreeRewindsRemainingForProfile(profile, fallbackUid);
+            return getFreeRewindsRemainingForProfile(
+                profile,
+                fallbackUid,
+                billingStore
+            );
         },
 
         isRewindLocked(
@@ -89,17 +114,21 @@ export const MatchActionsStore = signalStore(
             hasRewindCandidate: boolean,
             fallbackUid?: string
         ) {
-            if (!hasRewindCandidate || isPremiumProfile(profile)) {
+            if (!hasRewindCandidate || isPremiumProfile(profile, billingStore)) {
                 return false;
             }
 
-            return getFreeRewindsRemainingForProfile(profile, fallbackUid) <= 0;
+            return getFreeRewindsRemainingForProfile(
+                profile,
+                fallbackUid,
+                billingStore
+            ) <= 0;
         },
 
         canSuperLike(profile?: UserClass | null, fallbackUid?: string) {
             const uid = profile?.uid ?? fallbackUid;
 
-            if (isPremiumProfile(profile)) {
+            if (isPremiumProfile(profile, billingStore)) {
                 return true;
             }
 
@@ -117,7 +146,11 @@ export const MatchActionsStore = signalStore(
         ) {
             const uid = profile?.uid ?? fallbackUid;
 
-            if (!uid || isPremiumProfile(profile) || typeof window === 'undefined') {
+            if (
+                !uid ||
+                isPremiumProfile(profile, billingStore) ||
+                typeof window === 'undefined'
+            ) {
                 return;
             }
 

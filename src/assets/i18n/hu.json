@@ -306,6 +306,63 @@
       "description": "1 hónapig 70% kedvezményt kapsz minden kiemelésre."
     }
   },
+  "billing": {
+    "paywall": {
+      "eyebrow": "Amorino Gold",
+      "title": "Prémium társkeresés feloldása",
+      "subtitle": "Nézd meg, kik kedvelnek, emeld ki a profilod, és használj erősebb match eszközöket megszakítás nélkül.",
+      "bestValue": "Legjobb ajánlat",
+      "noOffers": "A fizetési ajánlatok még nincsenek beállítva.",
+      "includedEyebrow": "Tartalmazza",
+      "includedTitle": "Prémium előnyök",
+      "cta": "Biztonságos folytatás",
+      "processing": "Fizetés megnyitása...",
+      "restore": "Vásárlások visszaállítása",
+      "restoring": "Visszaállítás...",
+      "secureNote": "A fizetéseket az App Store vagy a Google Play kezeli RevenueCaten keresztül. Az Amor cache-eli a jogosultságot az app élményéhez, de a prémium hozzáférést élesben backend oldalon is ellenőrizni kell."
+    },
+    "features": {
+      "unlimitedLikes": "Korlátlan like a gyorsabb matchekhez",
+      "seeLikes": "Láthatod, kik kedveltek már",
+      "rewind": "Visszahozhatod az előző passt",
+      "profileBoost": "Nagyobb profil láthatóság",
+      "advancedFilters": "Haladó felfedezési szűrők",
+      "superLikes": "Erősebb Super Like jelzések",
+      "privateCheckout": "Privát, biztonságos fizetés"
+    },
+    "packages": {
+      "goldMonthly": {
+        "title": "Amorino Gold",
+        "description": "A teljes prémium társkereső eszköztár."
+      },
+      "firstMonth": {
+        "title": "Első hónap prémium",
+        "description": "Próbáld ki a prémium felfedezést új tagként."
+      },
+      "profileBoost": {
+        "title": "Profile Boost",
+        "description": "Jelenj meg több közeli embernek."
+      },
+      "superLikePack": {
+        "title": "Super Like Pack",
+        "description": "Öt erősebb jelzés azoknak, akik igazán tetszenek."
+      },
+      "default": {
+        "title": "Prémium ajánlat",
+        "description": "Oldj fel egy jobb Amor élményt."
+      }
+    },
+    "errors": {
+      "notConfigured": "A fizetés még nincs beállítva ezen a platformon.",
+      "packageUnavailable": "Ez az ajánlat most nem érhető el.",
+      "purchaseFailed": "A vásárlás sikertelen. Próbáld újra.",
+      "restoreFailed": "A visszaállítás sikertelen. Próbáld újra.",
+      "signInRequired": "Vásárlás előtt be kell jelentkezned.",
+      "restoreSignInRequired": "A vásárlások visszaállításához be kell jelentkezned.",
+      "initializationFailed": "A fizetési rendszer inicializálása sikertelen.",
+      "offeringsFailed": "Nem sikerült betölteni a fizetési ajánlatokat."
+    }
+  },
   "update": {
     "available": "Új verzió elérhető.",
     "reload": "Frissítés",

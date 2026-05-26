@@ -58,7 +58,12 @@
                     : prom.description
                 }}
               </p>
-              <ion-button class="prom-cta-button" fill="solid" type="button">
+              <ion-button
+                class="prom-cta-button"
+                fill="solid"
+                type="button"
+                (click)="promotionSelected.emit(prom)"
+              >
                 {{ prom["ctaKey"] ? t(prom["ctaKey"]) : t('promotions.gold.cta') }}
                 <ion-icon name="arrow-forward-outline" slot="end"></ion-icon>
               </ion-button>

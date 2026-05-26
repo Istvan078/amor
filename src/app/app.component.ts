@@ -1,10 +1,11 @@
-import { Component, inject, OnInit } from '@angular/core';
+import { Component, effect, inject, OnInit } from '@angular/core';
 import { SwUpdate } from '@angular/service-worker';
 import { IonApp, IonRouterOutlet } from '@ionic/angular/standalone';
 import { TranslocoService } from '@jsverse/transloco';
 
 import { UpdateService } from './core/update/update.service';
 import { AuthStore } from './features/auth/store/auth.store';
+import { BillingStore } from './features/billing/store/billing.store';
 import { LanguageSwitcherComponent } from './shared/ui/language-switcher/language-switcher.component';
 import { Capacitor } from '@capacitor/core';
 import { StatusBar, Style } from '@capacitor/status-bar';
@@ -21,6 +22,22 @@ export class AppComponent implements OnInit {
   private updateService = inject(UpdateService);
   private swUpdate = inject(SwUpdate);
   private transloco = inject(TranslocoService);
+  private billingStore = inject(BillingStore);
+
+  constructor() {
+    effect(() => {
+      const uid = this.authStore.uid();
+
+      queueMicrotask(() => {
+        if (uid) {
+          void this.billingStore.initBilling(uid);
+          return;
+        }
+
+        this.billingStore.resetBilling();
+      });
+    });
+  }
 
   async ngOnInit() {
     await this.setupNativeStatusBar();
