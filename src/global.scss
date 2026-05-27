@@ -99,6 +99,98 @@
   margin-bottom: 15px;
 }
 
+.premium-moderation-alert {
+  --backdrop-opacity: 0.72;
+}
+
+.premium-moderation-alert .alert-wrapper {
+  overflow: hidden;
+  border: 1px solid rgba(255, 255, 255, 0.14);
+  border-radius: 24px;
+  background:
+    radial-gradient(circle at 0% 0%, rgba(255, 93, 143, 0.22), transparent 42%),
+    linear-gradient(145deg, #20263b, #111728 74%);
+  color: #f8f5ef;
+  box-shadow: 0 34px 90px rgba(0, 0, 0, 0.48);
+}
+
+.premium-moderation-alert .alert-head {
+  padding: 24px 24px 8px;
+}
+
+.premium-moderation-alert .alert-title {
+  color: #ffffff;
+  font-size: 1.3rem;
+  font-weight: 900;
+  letter-spacing: 0;
+}
+
+.premium-moderation-alert .alert-message {
+  padding: 0 24px 18px;
+  color: rgba(248, 245, 239, 0.72);
+  font-size: 0.94rem;
+  line-height: 1.5;
+}
+
+.premium-moderation-alert .alert-radio-group {
+  border: 0;
+  padding: 0 14px 6px;
+}
+
+.premium-moderation-alert .alert-radio-button {
+  margin: 8px 0;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 16px;
+  background: rgba(255, 255, 255, 0.06);
+}
+
+.premium-moderation-alert .alert-radio-label {
+  color: #f8f5ef;
+  font-weight: 800;
+}
+
+.premium-moderation-alert .alert-radio-icon {
+  border-color: rgba(255, 255, 255, 0.38);
+}
+
+.premium-moderation-alert [aria-checked='true'] .alert-radio-icon {
+  border-color: #ff5d8f;
+}
+
+.premium-moderation-alert [aria-checked='true'] .alert-radio-inner {
+  background: #ff5d8f;
+}
+
+.premium-moderation-alert .alert-button-group {
+  gap: 10px;
+  padding: 12px 18px 18px;
+}
+
+.premium-moderation-alert .alert-button {
+  min-height: 44px;
+  margin: 0;
+  border-radius: 999px;
+  font-weight: 900;
+  letter-spacing: 0;
+  text-transform: none;
+}
+
+.premium-moderation-alert .premium-alert-cancel-button {
+  color: rgba(248, 245, 239, 0.76);
+  background: rgba(255, 255, 255, 0.08);
+}
+
+.premium-moderation-alert .premium-alert-confirm-button,
+.premium-moderation-alert .premium-alert-danger-button {
+  color: #ffffff;
+  background: linear-gradient(135deg, #ff5d8f, #ff7a59);
+  box-shadow: 0 16px 34px rgba(255, 93, 143, 0.22);
+}
+
+.premium-moderation-alert .premium-alert-danger-button {
+  background: linear-gradient(135deg, #b43758, #ff5d8f);
+}
+
 ion-modal.amor-auth-modal {
   --width: min(760px, calc(100vw - 40px));
   --height: min(780px, calc(100dvh - 48px));

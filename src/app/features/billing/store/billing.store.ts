@@ -81,13 +81,16 @@ export const BillingStore = signalStore(
           return;
         }
 
-          patchState(store, {
-            uid,
-            loading: true,
-            error: null,
+        patchState(store, {
+          uid,
+          loading: true,
+          error: null,
         });
 
         try {
+          const cached = await repository.getCachedBilling(uid);
+          patchBillingCurrent(store, cached);
+
           const configured = await repository.configure(uid);
           const [offerings, customer] = await Promise.all([
             repository.getOfferings(),
@@ -114,6 +117,10 @@ export const BillingStore = signalStore(
             offerings: repository.getConfiguredPackages(),
             error: 'billing.errors.initializationFailed',
           });
+
+          if (!store.current()) {
+            patchBillingCurrent(store, await repository.getCachedBilling(uid));
+          }
         }
       },
 

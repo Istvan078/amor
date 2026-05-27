@@ -17,16 +17,22 @@ import {
   IonButton,
   IonIcon,
   IonTextarea,
+  AlertController,
 } from '@ionic/angular/standalone';
-import { TranslocoDirective } from '@jsverse/transloco';
+import { TranslocoDirective, TranslocoService } from '@jsverse/transloco';
 import { addIcons } from 'ionicons';
 import {
+  arrowBackOutline,
   banOutline,
+  chatbubbleEllipsesOutline,
+  chevronForwardOutline,
   ellipsisHorizontal,
   flagOutline,
   lockOpenOutline,
   removeCircleOutline,
+  sendOutline,
   shieldCheckmarkOutline,
+  sparklesOutline,
   trashOutline,
 } from 'ionicons/icons';
 
@@ -68,6 +74,8 @@ export class MessageComponent implements AfterViewChecked, OnChanges {
 
   private moderationStore = inject(ModerationStore);
   private profileStore = inject(ProfileStore);
+  private alertCtrl = inject(AlertController);
+  private transloco = inject(TranslocoService);
   private userProfile?: UserClass;
   private pendingScrollToBottom = false;
   private lastRenderedMessageSignature = '';
@@ -78,12 +86,17 @@ export class MessageComponent implements AfterViewChecked, OnChanges {
 
   constructor() {
     addIcons({
+      arrowBackOutline,
       banOutline,
+      chatbubbleEllipsesOutline,
+      chevronForwardOutline,
       ellipsisHorizontal,
       flagOutline,
       lockOpenOutline,
       removeCircleOutline,
+      sendOutline,
       shieldCheckmarkOutline,
+      sparklesOutline,
       trashOutline,
     });
 
@@ -210,6 +223,12 @@ export class MessageComponent implements AfterViewChecked, OnChanges {
     }
 
     const removedMatch = this.matchProfile;
+    const confirmed = await this.confirmRemoveMatch(removedMatch);
+
+    if (!confirmed) {
+      this.closeConversationMenu();
+      return;
+    }
 
     await this.moderationStore.removeMatch(this.userProfile, removedMatch);
     this.moderationNoticeKey = 'messages.matchRemovedNotice';
@@ -223,7 +242,19 @@ export class MessageComponent implements AfterViewChecked, OnChanges {
       return;
     }
 
-    await this.moderationStore.reportUser(this.userProfile, this.matchProfile);
+    const reason = await this.selectReportReason();
+
+    if (!reason) {
+      this.closeConversationMenu();
+      return;
+    }
+
+    await this.moderationStore.reportUser(
+      this.userProfile,
+      this.matchProfile,
+      reason,
+      this.transloco.translate(`messages.reportReasons.${reason}`)
+    );
     this.moderationNoticeKey = 'messages.reportedNotice';
     this.closeConversationMenu();
   }
@@ -274,6 +305,81 @@ export class MessageComponent implements AfterViewChecked, OnChanges {
 
       element.scrollTop = element.scrollHeight;
     });
+  }
+
+  private async confirmRemoveMatch(match: UserClass) {
+    let confirmed = false;
+    const matchName = this.getDisplayName(match) || match.firstName || '';
+    const alert = await this.alertCtrl.create({
+      header: this.transloco.translate('messages.removeMatchConfirmTitle'),
+      message: this.transloco.translate('messages.removeMatchConfirmText', {
+        name: matchName,
+      }),
+      cssClass: 'premium-moderation-alert remove-match-alert',
+      buttons: [
+        {
+          text: this.transloco.translate('common.cancel'),
+          role: 'cancel',
+          cssClass: 'premium-alert-cancel-button',
+        },
+        {
+          text: this.transloco.translate('messages.removeMatchConfirmButton'),
+          role: 'destructive',
+          cssClass: 'premium-alert-danger-button',
+          handler: () => {
+            confirmed = true;
+          },
+        },
+      ],
+    });
+
+    this.closeConversationMenu();
+    await alert.present();
+    await alert.onDidDismiss();
+
+    return confirmed;
+  }
+
+  private async selectReportReason() {
+    let selectedReason: string | undefined;
+    const reasons = [
+      'fakeProfile',
+      'harassment',
+      'spam',
+      'inappropriateContent',
+      'other',
+    ];
+    const alert = await this.alertCtrl.create({
+      header: this.transloco.translate('messages.reportReasonTitle'),
+      message: this.transloco.translate('messages.reportReasonText'),
+      cssClass: 'premium-moderation-alert report-reason-alert',
+      inputs: reasons.map((reason, index) => ({
+        type: 'radio',
+        label: this.transloco.translate(`messages.reportReasons.${reason}`),
+        value: reason,
+        checked: index === 0,
+      })),
+      buttons: [
+        {
+          text: this.transloco.translate('common.cancel'),
+          role: 'cancel',
+          cssClass: 'premium-alert-cancel-button',
+        },
+        {
+          text: this.transloco.translate('messages.reportConfirm'),
+          cssClass: 'premium-alert-confirm-button',
+          handler: (reason?: string) => {
+            selectedReason = reason || reasons[0];
+          },
+        },
+      ],
+    });
+
+    this.closeConversationMenu();
+    await alert.present();
+    await alert.onDidDismiss();
+
+    return selectedReason;
   }
 
 }

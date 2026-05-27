@@ -52,6 +52,8 @@ type PromoSwiperElement = HTMLElement & {
   grabCursor?: boolean;
   initialize?: () => void;
   loop?: boolean;
+  noSwiping?: boolean;
+  noSwipingSelector?: string;
   pagination?: boolean | Record<string, unknown>;
   slidesPerView?: number;
   spaceBetween?: number;
@@ -188,6 +190,8 @@ export class DiscoverSidebarComponent implements AfterViewInit, OnChanges {
 
     swiperElement.grabCursor = hasMultiplePromotions;
     swiperElement.loop = hasMultiplePromotions;
+    swiperElement.noSwiping = true;
+    swiperElement.noSwipingSelector = '.prom-cta-button';
     swiperElement.slidesPerView = 1;
     swiperElement.spaceBetween = 0;
     swiperElement.speed = 650;

@@ -58,15 +58,17 @@
                     : prom.description
                 }}
               </p>
-              <ion-button
+              <button
                 class="prom-cta-button"
-                fill="solid"
                 type="button"
-                (click)="promotionSelected.emit(prom)"
+                (pointerdown)="$event.stopPropagation()"
+                (mousedown)="$event.stopPropagation()"
+                (touchstart)="$event.stopPropagation()"
+                (click)="$event.stopPropagation(); promotionSelected.emit(prom)"
               >
                 {{ prom["ctaKey"] ? t(prom["ctaKey"]) : t('promotions.gold.cta') }}
-                <ion-icon name="arrow-forward-outline" slot="end"></ion-icon>
-              </ion-button>
+                <ion-icon name="arrow-forward-outline"></ion-icon>
+              </button>
             </ion-card-content>
           </ion-card>
         </swiper-slide>

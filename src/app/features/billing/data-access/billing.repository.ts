@@ -115,12 +115,20 @@ export class BillingRepository {
 
   async purchasePackage(uid: string, packageId: string) {
     if (!this.configured) {
+      if (this.canUseWebMock()) {
+        return this.createMockPurchase(uid, packageId);
+      }
+
       throw new Error('billing.errors.notConfigured');
     }
 
     const packageToBuy = this.packageCache.get(packageId);
 
     if (!packageToBuy) {
+      if (this.canUseWebMock()) {
+        return this.createMockPurchase(uid, packageId);
+      }
+
       throw new Error('billing.errors.packageUnavailable');
     }
 
@@ -138,6 +146,15 @@ export class BillingRepository {
 
   async restorePurchases(uid: string) {
     if (!this.configured) {
+      if (this.canUseWebMock()) {
+        const current = await this.getCachedBilling(uid);
+
+        return {
+          customerInfo: null,
+          current,
+        };
+      }
+
       throw new Error('billing.errors.notConfigured');
     }
 
@@ -181,17 +198,24 @@ export class BillingRepository {
     }
 
     const data = snapshot.data() as Partial<BillingCurrent>;
-
-    return {
+    const current = {
       ...this.emptyBillingCurrent('cache'),
       ...data,
       source: data.source ?? 'cache',
     };
+
+    return this.resolveCachedBillingCurrent(current);
   }
 
   async cacheCustomerInfo(uid: string, customerInfo: CustomerInfo) {
     const current = this.mapCustomerInfo(customerInfo);
 
+    await this.cacheBillingCurrent(uid, current);
+
+    return current;
+  }
+
+  async cacheBillingCurrent(uid: string, current: BillingCurrent) {
     await this.runInFirebaseContext(() => {
       const billingRef = doc(this.firestore, `users/${uid}/billing/current`);
 
@@ -277,6 +301,74 @@ export class BillingRepository {
       activeSubscriptions: [],
       source,
     };
+  }
+
+  private resolveCachedBillingCurrent(current: BillingCurrent): BillingCurrent {
+    if (!current.isPremium || !current.expiresAt) {
+      return current;
+    }
+
+    const expiresAtMs = Date.parse(current.expiresAt);
+
+    if (Number.isNaN(expiresAtMs) || expiresAtMs > Date.now()) {
+      return current;
+    }
+
+    return {
+      ...current,
+      isPremium: false,
+      entitlement: null,
+      activeEntitlements: [],
+      activeSubscriptions: [],
+    };
+  }
+
+  private async createMockPurchase(uid: string, packageId: string) {
+    const billingPackage = this.getConfiguredPackages().find(
+      (configuredPackage) => configuredPackage.id === packageId
+    );
+
+    if (!billingPackage) {
+      throw new Error('billing.errors.packageUnavailable');
+    }
+
+    const current = billingPackage.entitlementId
+      ? this.createMockPremiumCurrent(billingPackage)
+      : await this.getCachedBilling(uid);
+
+    await this.cacheBillingCurrent(uid, current);
+
+    return {
+      customerInfo: null,
+      current,
+    };
+  }
+
+  private createMockPremiumCurrent(billingPackage: BillingPackage): BillingCurrent {
+    const expiresAt = new Date();
+    expiresAt.setDate(expiresAt.getDate() + 30);
+
+    return {
+      isPremium: billingPackage.entitlementId === this.entitlementId,
+      entitlement: billingPackage.entitlementId ?? null,
+      productId: billingPackage.productId,
+      platform: this.getPlatform(),
+      expiresAt: expiresAt.toISOString(),
+      activeEntitlements: billingPackage.entitlementId
+        ? [billingPackage.entitlementId]
+        : [],
+      activeSubscriptions:
+        billingPackage.kind === 'subscription' ? [billingPackage.productId] : [],
+      source: 'local',
+    };
+  }
+
+  private canUseWebMock() {
+    return (
+      this.getPlatform() === 'web' &&
+      environment.billing.revenueCat.webMockResults &&
+      !environment.production
+    );
   }
 
   private getRevenueCatApiKey(platform: BillingPlatform) {

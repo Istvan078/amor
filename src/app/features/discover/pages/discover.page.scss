@@ -631,9 +631,18 @@ app-discover {
   }
 
   .prom-cta-button {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
     width: 100%;
     min-height: 42px;
     margin: 0;
+    padding: 0 18px;
+    border: 0;
+    border-radius: 999px;
+    background: linear-gradient(135deg, var(--promo-accent), var(--promo-accent-soft));
+    color: #ffffff;
     --background: linear-gradient(135deg, var(--promo-accent), var(--promo-accent-soft));
     --background-hover: linear-gradient(
       135deg,
@@ -643,9 +652,24 @@ app-discover {
     --border-radius: 999px;
     --box-shadow: 0 14px 34px color-mix(in srgb, var(--promo-accent) 26%, transparent);
     --color: #ffffff;
+    box-shadow: 0 14px 34px color-mix(in srgb, var(--promo-accent) 26%, transparent);
     font-weight: 900;
     letter-spacing: 0;
     text-transform: none;
+    cursor: pointer;
+    transition:
+      transform 180ms ease,
+      box-shadow 180ms ease,
+      filter 180ms ease;
+  }
+
+  .prom-cta-button:hover {
+    filter: brightness(1.05);
+    transform: translateY(-1px);
+  }
+
+  .prom-cta-button ion-icon {
+    font-size: 18px;
   }
 
   .matches-and-messages-cont {
