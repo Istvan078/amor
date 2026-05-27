@@ -20,6 +20,22 @@
           <ion-text>{{ userProfile?.firstName + " " + userProfile?.lastName }}</ion-text>
         </span>
       </button>
+
+      @if(hasBillingSummary()) {
+        <div class="billing-mini-card">
+          <div class="billing-mini-icon">
+            <ion-icon name="diamond-outline"></ion-icon>
+          </div>
+          <div class="billing-mini-copy">
+            <small>{{ t('billing.status.label') }}</small>
+            <strong>{{ t(billingTitleKey()) }}</strong>
+            <span>{{ t(billingSubtitleKey(), billingSubtitleParams()) }}</span>
+            @if(getBillingProductLabel()) {
+              <em>{{ getBillingProductLabel() }}</em>
+            }
+          </div>
+        </div>
+      }
     </nav>
 
     <div class="promotions-container">

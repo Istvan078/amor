@@ -3,6 +3,13 @@ import { Injectable } from '@angular/core';
 import { Geolocation, Position } from '@capacitor/geolocation';
 import { catchError, firstValueFrom, of, timeout } from 'rxjs';
 
+type GeocodeXyzResponse = {
+  error?: boolean;
+  message?: string;
+  latt?: string;
+  longt?: string;
+};
+
 @Injectable({
   providedIn: 'root',
 })
@@ -68,41 +75,44 @@ export class LocationService {
   }
 
   getCoordsGeocodeXYZ = async (address: string) => {
-    return new Promise<any>((res, rej) => {
-      const url = `https://geocode.xyz/${address}?json=1&auth=469206953456508521936x26064`;
-      try {
-        this.http.get(url).subscribe((data: any) => {
-          if (data) {
-            if (data.latt == '0.00000') res(new Error('Lejart a napi limit'));
-            const location = { lat: data.latt, lon: data.longt };
-            res(location);
-          } else {
-            res('Hiba');
-          }
-        });
-      } catch (error) {
-        res(error);
-      }
-    });
+    const url = `https://geocode.xyz/${encodeURIComponent(address)}?json=1&auth=469206953456508521936x26064`;
+    const data = await firstValueFrom(
+      this.http.get<GeocodeXyzResponse>(url).pipe(
+        timeout(8000),
+        catchError((error) => {
+          console.warn('Geocode.xyz lookup failed:', error);
+          return of({
+            error: true,
+            message: 'Geocode lookup failed',
+          } satisfies GeocodeXyzResponse);
+        })
+      )
+    );
+
+    if (!data || data['error'] || data['latt'] === '0.00000') {
+      return new Error(String(data?.['message'] ?? 'Lejart a napi limit'));
+    }
+
+    return {
+      lat: data['latt'],
+      lon: data['longt'],
+    };
   };
 
   delay = (millisec: number) => new Promise((res) => setTimeout(res, millisec));
 
   getCoordinatesOSM = async (address: string) => {
-    return new Promise<any>((res, rej) => {
-      const url = `https://nominatim.openstreetmap.org/search?format=json&q=${address}`;
-      try {
-        this.http.get(url).subscribe((data: any) => {
-          if (data.length > 0) {
-            const location = data[0];
-            res(location);
-          } else {
-            res('Hiba');
-          }
-        });
-      } catch (error) {
-        res(error);
-      }
-    });
+    const url = `https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(address)}`;
+    const data = await firstValueFrom(
+      this.http.get<unknown[]>(url).pipe(
+        timeout(8000),
+        catchError((error) => {
+          console.warn('OpenStreetMap lookup failed:', error);
+          return of([]);
+        })
+      )
+    );
+
+    return data.length > 0 ? data[0] : 'Hiba';
   };
 }

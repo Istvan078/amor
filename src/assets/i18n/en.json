@@ -320,6 +320,15 @@
     }
   },
   "billing": {
+    "status": {
+      "label": "Active plan",
+      "gold": "Amorino Gold",
+      "superLikePack": "Super Like Pack",
+      "activePackage": "Purchased package",
+      "active": "Active now",
+      "activeUntil": "Active until {{date}}",
+      "superLikesBalance": "{{count}} Super Likes available"
+    },
     "paywall": {
       "eyebrow": "Amorino Gold",
       "title": "Unlock premium dating",

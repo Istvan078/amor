@@ -46,7 +46,8 @@ service cloud.firestore {
 
     match /conversations/{conversationId} {
       allow create: if isConversationParticipantOnCreate();
-      allow read, update: if isConversationParticipant();
+      allow read: if isConversationParticipant() || isAdminOrModerator();
+      allow update: if isConversationParticipant();
       allow delete: if isAdminOrModerator();
 
       match /messages/{messageId} {
@@ -58,7 +59,7 @@ service cloud.firestore {
           return signedIn() && request.auth.uid in conversation().data.participants;
         }
 
-        allow read: if isMessageParticipant();
+        allow read: if isMessageParticipant() || isAdminOrModerator();
         allow create: if isMessageParticipant()
           && request.resource.data.senderUid == request.auth.uid;
         allow update: if isMessageParticipant();
@@ -67,7 +68,7 @@ service cloud.firestore {
     }
 
     match /matches/{legacyDocument=**} {
-      allow read, write: if signedIn();
+      allow read, write: if false;
     }
 
     match /{document=**} {

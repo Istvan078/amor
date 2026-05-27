@@ -50,6 +50,25 @@
             </ion-button>
           </div>
 
+          @if (hasBillingSummary()) {
+            <section class="profile-billing-summary">
+              <div class="profile-billing-icon">
+                <ion-icon name="diamond-outline"></ion-icon>
+              </div>
+              <div class="profile-billing-copy">
+                <small>{{ t('billing.status.label') }}</small>
+                <strong>{{ t(billingTitleKey()) }}</strong>
+                <span>{{ t(billingSubtitleKey(), billingSubtitleParams()) }}</span>
+                @if (getBillingProductLabel()) {
+                  <em>{{ getBillingProductLabel() }}</em>
+                }
+              </div>
+              <div class="profile-billing-spark">
+                <ion-icon name="sparkles-outline"></ion-icon>
+              </div>
+            </section>
+          }
+
           <section class="profile-info-panel">
             <div class="profile-section-heading">
               <span>{{ t('discover.profile.details') }}</span>

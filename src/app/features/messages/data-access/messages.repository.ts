@@ -3,8 +3,8 @@ import {
     Firestore,
     collection,
     doc,
-    getDoc,
     getDocs,
+    onSnapshot,
     orderBy,
     query,
     serverTimestamp,
@@ -12,7 +12,7 @@ import {
     writeBatch,
 } from '@angular/fire/firestore';
 
-import { Message, Messages } from '../../../shared/models/message.model';
+import { Message } from '../../../shared/models/message.model';
 
 @Injectable({
     providedIn: 'root',
@@ -23,25 +23,45 @@ export class MessagesRepository {
 
     async getMessages(
         myUid: string,
-        myEmail: string,
+        _myEmail: string,
         matchUid: string,
-        matchEmail: string
+        _matchEmail: string
     ) {
-        const conversationMessages = await this.getConversationMessages(
-            myUid,
-            matchUid
-        );
+        return this.getConversationMessages(myUid, matchUid);
+    }
 
-        if (conversationMessages.length) {
-            return conversationMessages;
-        }
+    listenToMessages(
+        myUid: string,
+        matchUid: string,
+        onMessages: (messages: Message[]) => void,
+        onError?: (error: unknown) => void
+    ) {
+        const conversationId = this.getConversationId(myUid, matchUid);
 
-        return this.getLegacyMessages(myUid, myEmail, matchUid, matchEmail);
+        return this.runInFirebaseContext(() => {
+            const messagesCollection = collection(
+                this.firestore,
+                `conversations/${conversationId}/messages`
+            );
+            const messagesQuery = query(messagesCollection, orderBy('number', 'asc'));
+
+            return onSnapshot(
+                messagesQuery,
+                (snapshot) => {
+                    onMessages(
+                        snapshot.docs.map((messageSnapshot) =>
+                            this.mapConversationMessage(messageSnapshot.data())
+                        )
+                    );
+                },
+                (error) => onError?.(error)
+            );
+        });
     }
 
     async saveMessagesWithMatch(
         myUid: string,
-        myEmail: string,
+        _myEmail: string,
         matchUid: string,
         messages: Message[]
     ) {
@@ -90,8 +110,6 @@ export class MessagesRepository {
 
             await batch.commit();
         });
-
-        await this.saveLegacyMessagesWithMatch(myUid, myEmail, matchUid, messages);
     }
 
     private async getConversationMessages(myUid: string, matchUid: string) {
@@ -112,70 +130,7 @@ export class MessagesRepository {
         );
     }
 
-    private async getLegacyMessages(
-        myUid: string,
-        myEmail: string,
-        matchUid: string,
-        matchEmail: string
-    ) {
-        const msgsCopy: Messages = new Messages([]);
-
-        const [myMessageSnapshot, matchMessageSnapshot] =
-            await this.runInFirebaseContext(() => {
-                const myMessageRef = doc(
-                    this.firestore,
-                    `matches/messages/${myEmail}/${matchUid}_${myUid}`
-                );
-
-                const matchMessageRef = doc(
-                    this.firestore,
-                    `matches/messages/${matchEmail}/${myUid}_${matchUid}`
-                );
-
-                return Promise.all([
-                    getDoc(myMessageRef),
-                    getDoc(matchMessageRef),
-                ]);
-            });
-
-        const myMsgs = myMessageSnapshot.exists()
-            ? (myMessageSnapshot.data() as Message)
-            : undefined;
-
-        const matchMsgs = matchMessageSnapshot.exists()
-            ? (matchMessageSnapshot.data() as Message)
-            : undefined;
-
-        const allMsgs: any = {
-            ...(myMsgs ?? {}),
-            ...(matchMsgs ?? {}),
-        };
-
-        msgsCopy.messages = Object.values(allMsgs).flat() as Message[];
-        msgsCopy.messages.sort((a, b) => a.number - b.number);
-
-        return msgsCopy.messages;
-    }
-
-    private async saveLegacyMessagesWithMatch(
-        myUid: string,
-        myEmail: string,
-        matchUid: string,
-        messages: Message[]
-    ) {
-        await this.runInFirebaseContext(() => {
-            const messageRef = doc(
-                this.firestore,
-                `matches/messages/${myEmail}/${matchUid}_${myUid}`
-            );
-
-            return setDoc(messageRef, new Messages(messages).setMessagesForFirestore(), {
-                merge: true,
-            });
-        });
-    }
-
-    private getConversationId(uidA: string, uidB: string) {
+    getConversationId(uidA: string, uidB: string) {
         return this.getConversationParticipants(uidA, uidB).join('_');
     }
 

@@ -320,6 +320,15 @@
     }
   },
   "billing": {
+    "status": {
+      "label": "Aktív csomag",
+      "gold": "Amorino Gold",
+      "superLikePack": "Super Like Pack",
+      "activePackage": "Megvásárolt csomag",
+      "active": "Jelenleg aktív",
+      "activeUntil": "Aktív eddig: {{date}}",
+      "superLikesBalance": "{{count}} Super Like elérhető"
+    },
     "paywall": {
       "eyebrow": "Amorino Gold",
       "title": "Prémium társkeresés feloldása",

@@ -29,77 +29,102 @@ export const MessagesStore = signalStore(
 
     withState(initialState),
 
-    withMethods((store, repository = inject(MessagesRepository)) => ({
-        async loadMessages(userProfile: UserClass, matchProfile: UserClass) {
-            if (
-                !userProfile.uid ||
-                !userProfile.email ||
-                !matchProfile.uid ||
-                !matchProfile.email
-            ) {
-                patchState(store, {
-                    messages: [],
-                });
-                return;
-            }
+    withMethods((store, repository = inject(MessagesRepository)) => {
+        let unsubscribeMessages: (() => void) | null = null;
+        let activeConversationId: string | null = null;
 
-            patchState(store, {
-                loading: true,
-                error: null,
-            });
+        const stopListening = () => {
+            unsubscribeMessages?.();
+            unsubscribeMessages = null;
+            activeConversationId = null;
+        };
 
-            try {
-                const messages = await repository.getMessages(
+        return {
+            async loadMessages(userProfile: UserClass, matchProfile: UserClass) {
+                if (!userProfile.uid || !matchProfile.uid) {
+                    stopListening();
+                    patchState(store, {
+                        messages: [],
+                        loading: false,
+                    });
+                    return;
+                }
+
+                const conversationId = repository.getConversationId(
                     userProfile.uid,
-                    userProfile.email,
-                    matchProfile.uid,
-                    matchProfile.email
+                    matchProfile.uid
                 );
+
+                if (activeConversationId === conversationId) {
+                    return;
+                }
+
+                stopListening();
+                activeConversationId = conversationId;
+
+                patchState(store, {
+                    loading: true,
+                    error: null,
+                });
+
+                try {
+                    unsubscribeMessages = repository.listenToMessages(
+                        userProfile.uid,
+                        matchProfile.uid,
+                        (messages) => {
+                            patchState(store, {
+                                messages,
+                                loading: false,
+                                error: null,
+                            });
+                        },
+                        (error) => {
+                            console.error(error);
+                            patchState(store, {
+                                messages: [],
+                                loading: false,
+                                error: 'Failed to load messages.',
+                            });
+                        }
+                    );
+                } catch (error) {
+                    console.error(error);
+                    activeConversationId = null;
+                    patchState(store, {
+                        messages: [],
+                        loading: false,
+                        error: 'Failed to load messages.',
+                    });
+                }
+            },
+
+            async sendMessage(
+                userProfile: UserClass,
+                matchProfile: UserClass,
+                message: Message
+            ) {
+                if (!userProfile.uid || !matchProfile.uid) {
+                    return;
+                }
+
+                const messages = [...store.messages(), message];
 
                 patchState(store, {
                     messages,
-                    loading: false,
                 });
-            } catch (error) {
-                console.error(error);
-                patchState(store, {
-                    messages: [],
-                    loading: false,
-                    error: 'Failed to load messages.',
-                });
-            }
-        },
 
-        async sendMessage(
-            userProfile: UserClass,
-            matchProfile: UserClass,
-            message: Message
-        ) {
-            if (
-                !userProfile.uid ||
-                !userProfile.email ||
-                !matchProfile.uid ||
-                !matchProfile.email
-            ) {
-                return;
-            }
+                await repository.saveMessagesWithMatch(
+                    userProfile.uid,
+                    userProfile.email ?? '',
+                    matchProfile.uid,
+                    messages
+                );
+            },
 
-            const messages = [...store.messages(), message];
-
-            patchState(store, {
-                messages,
-            });
-
-            await repository.saveMessagesWithMatch(
-                userProfile.uid,
-                userProfile.email,
-                matchProfile.uid,
-                messages
-            );
-        },
-
-        clearMessages() {
-            patchState(store, initialState);
-        },
-    }))
+            clearMessages() {
+                stopListening();
+                patchState(store, initialState);
+            },
+        };
+    })
 );

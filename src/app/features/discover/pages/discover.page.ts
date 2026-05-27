@@ -50,6 +50,7 @@ import { Message } from '../../../shared/models/message.model';
 import { MatchActionsStore } from '../../matching/store/match-actions.store';
 import { PromoStore } from '../../promotions/store/promo.store';
 import { PaywallComponent } from '../../billing/ui/paywall/paywall.component';
+import { BillingStore } from '../../billing/store/billing.store';
 
 @Component({
   selector: 'app-discover',
@@ -117,6 +118,7 @@ export class DiscoverPage implements OnInit {
   private discoverUiStore = inject(DiscoverUiStore);
   private matchActionsStore = inject(MatchActionsStore);
   private promoStore = inject(PromoStore);
+  readonly billingStore = inject(BillingStore);
   private transloco = inject(TranslocoService);
   private messagesRepository = inject(MessagesRepository);
   private modalCtrl = inject(ModalController);
@@ -279,11 +281,10 @@ export class DiscoverPage implements OnInit {
   private async loadMatchConversationPreviews() {
     const userProfile = this.userProf;
     const matches = this.matches.filter(
-      (match): match is UserClass & { uid: string; email: string } =>
-        !!match.uid && !!match.email
+      (match): match is UserClass & { uid: string } => !!match.uid
     );
 
-    if (!userProfile?.uid || !userProfile.email || !matches.length) {
+    if (!userProfile?.uid || !matches.length) {
       this.matchConversationPreviews = {};
       this.matchPreviewSignature = '';
       this.matchPreviewRequestId++;
@@ -292,8 +293,7 @@ export class DiscoverPage implements OnInit {
 
     const signature = [
       userProfile.uid,
-      userProfile.email,
-      ...matches.map((match) => `${match.uid}:${match.email}`),
+      ...matches.map((match) => match.uid),
     ].join('|');
 
     if (signature === this.matchPreviewSignature) {
@@ -308,9 +308,9 @@ export class DiscoverPage implements OnInit {
         try {
           const messages = await this.messagesRepository.getMessages(
             userProfile.uid!,
-            userProfile.email!,
+            userProfile.email ?? '',
             match.uid,
-            match.email
+            match.email ?? ''
           );
           const lastMessage = messages.at(-1);
           const unreadCount = messages.filter(

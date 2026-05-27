@@ -39,6 +39,7 @@ import {
 
 import { Promotions } from '../../../../shared/models/promotions.model';
 import { UserClass } from '../../../../shared/models/user.model';
+import { BillingCurrent } from '../../../billing/data-access/billing.repository';
 
 export type MatchConversationPreview = {
   hasMessages: boolean;
@@ -93,6 +94,10 @@ export class DiscoverSidebarComponent implements AfterViewInit, OnChanges {
   @Input() matches: UserClass[] = [];
   @Input() conversationPreviews: Record<string, MatchConversationPreview> = {};
   @Input() selectedMatchUid?: string;
+  @Input() billingCurrent: BillingCurrent | null = null;
+  @Input() isPremium = false;
+  @Input() activeEntitlements: string[] = [];
+  @Input() superLikesBalance = 0;
 
   @Output() profileOpened = new EventEmitter<void>();
   @Output() messageOpened = new EventEmitter<UserClass>();
@@ -161,6 +166,68 @@ export class DiscoverSidebarComponent implements AfterViewInit, OnChanges {
 
   formatUnreadCount(unreadCount: number) {
     return unreadCount > 99 ? '99+' : String(unreadCount);
+  }
+
+  hasBillingSummary() {
+    return !!(
+      this.isPremium ||
+      this.activeEntitlements.length ||
+      this.superLikesBalance > 0 ||
+      this.billingCurrent?.productId
+    );
+  }
+
+  billingTitleKey() {
+    if (this.isPremium) {
+      return 'billing.status.gold';
+    }
+
+    if (this.superLikesBalance > 0) {
+      return 'billing.status.superLikePack';
+    }
+
+    return 'billing.status.activePackage';
+  }
+
+  billingSubtitleKey() {
+    if (this.isPremium && this.billingCurrent?.expiresAt) {
+      return 'billing.status.activeUntil';
+    }
+
+    if (this.superLikesBalance > 0) {
+      return 'billing.status.superLikesBalance';
+    }
+
+    return 'billing.status.active';
+  }
+
+  billingSubtitleParams() {
+    return {
+      date: this.formatBillingDate(this.billingCurrent?.expiresAt),
+      count: this.superLikesBalance,
+    };
+  }
+
+  getBillingProductLabel() {
+    return this.billingCurrent?.productId?.replace(/_/g, ' ') ?? '';
+  }
+
+  private formatBillingDate(value?: string | null) {
+    if (!value) {
+      return '';
+    }
+
+    const date = new Date(value);
+
+    if (Number.isNaN(date.getTime())) {
+      return value;
+    }
+
+    return date.toLocaleDateString(undefined, {
+      day: '2-digit',
+      month: 'short',
+      year: 'numeric',
+    });
   }
 
   private emptyPreview(): MatchConversationPreview {

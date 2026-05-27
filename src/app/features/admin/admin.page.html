@@ -1,0 +1,282 @@
+<main class="admin-shell">
+  <header class="admin-hero">
+    <div>
+      <p class="admin-eyebrow">Amor moderation</p>
+      <h1>Admin panel</h1>
+      <p>
+        Review reports, inspect users and check premium state without changing
+        billing manually.
+      </p>
+    </div>
+
+    <a routerLink="/amor/discover" class="admin-back-link">Back to app</a>
+  </header>
+
+  <section class="admin-stats" aria-label="Admin overview">
+    <article>
+      <span>Open reports</span>
+      <strong>{{ openReports() }}</strong>
+    </article>
+    <article>
+      <span>Users</span>
+      <strong>{{ users().length }}</strong>
+    </article>
+    <article>
+      <span>Premium users</span>
+      <strong>{{ premiumUsers() }}</strong>
+    </article>
+  </section>
+
+  <nav class="admin-tabs" aria-label="Admin sections">
+    <button
+      type="button"
+      [class.is-active]="activePanel() === 'reports'"
+      (click)="setPanel('reports')"
+    >
+      <ion-icon name="flag-outline"></ion-icon>
+      Reports
+    </button>
+    <button
+      type="button"
+      [class.is-active]="activePanel() === 'users'"
+      (click)="setPanel('users')"
+    >
+      <ion-icon name="people-outline"></ion-icon>
+      Users
+    </button>
+    <button
+      type="button"
+      [class.is-active]="activePanel() === 'conversations'"
+      (click)="setPanel('conversations')"
+    >
+      <ion-icon name="chatbubbles-outline"></ion-icon>
+      Conversations
+    </button>
+    <button
+      type="button"
+      [class.is-active]="activePanel() === 'billing'"
+      (click)="setPanel('billing')"
+    >
+      <ion-icon name="card-outline"></ion-icon>
+      Billing
+    </button>
+  </nav>
+
+  @if (error()) {
+    <p class="admin-error">{{ error() }}</p>
+  }
+
+  @if (loading()) {
+    <p class="admin-loading">Loading admin data...</p>
+  }
+
+  @if (activePanel() === 'reports') {
+    <section class="admin-panel admin-panel--split">
+      <div class="admin-list">
+        @for (report of reports(); track trackReport($index, report)) {
+          <button
+            type="button"
+            class="admin-report-card"
+            [class.is-active]="selectedReport()?.id === report.id"
+            (click)="selectReport(report)"
+          >
+            <span class="admin-status" [class]="'is-' + report.status">
+              {{ report.status }}
+            </span>
+            <strong>{{ report.reason }}</strong>
+            <small>{{ getUserName(report.reporterUid) }} reported {{ getUserName(report.reportedUid) }}</small>
+          </button>
+        } @empty {
+          <p class="admin-empty">There are no reports yet.</p>
+        }
+      </div>
+
+      <div class="admin-detail-card">
+        @if (selectedReport(); as report) {
+          <span class="admin-status" [class]="'is-' + report.status">
+            {{ report.status }}
+          </span>
+          <h2>{{ report.reason }}</h2>
+          <dl class="admin-detail-grid">
+            <div>
+              <dt>Reporter</dt>
+              <dd>{{ getUserName(report.reporterUid) }}</dd>
+            </div>
+            <div>
+              <dt>Reported user</dt>
+              <dd>{{ getUserName(report.reportedUid) }}</dd>
+            </div>
+            <div>
+              <dt>Created at</dt>
+              <dd>{{ formatDate(report.createdAt) }}</dd>
+            </div>
+            <div>
+              <dt>Description</dt>
+              <dd>{{ report.description || 'No description provided.' }}</dd>
+            </div>
+          </dl>
+
+          <div class="admin-actions">
+            <button type="button" (click)="markReviewed(report)">
+              <ion-icon name="checkmark-done-outline"></ion-icon>
+              Mark reviewed
+            </button>
+            <button type="button" (click)="dismiss(report)">
+              <ion-icon name="close-circle-outline"></ion-icon>
+              Dismiss
+            </button>
+            <button type="button" class="is-danger" (click)="blockReportedUser(report)">
+              <ion-icon name="ban-outline"></ion-icon>
+              Block reported user
+            </button>
+            <button type="button" class="is-danger" (click)="removeMatch(report)">
+              <ion-icon name="trash-outline"></ion-icon>
+              Remove match
+            </button>
+            <button type="button" class="is-soft" (click)="openConversation(report)">
+              <ion-icon name="eye-outline"></ion-icon>
+              View conversation
+            </button>
+          </div>
+        } @else {
+          <p class="admin-empty">Select a report to review it.</p>
+        }
+      </div>
+    </section>
+  }
+
+  @if (activePanel() === 'users') {
+    <section class="admin-panel">
+      <label class="admin-search">
+        <span>Search users</span>
+        <input
+          type="search"
+          [ngModel]="userSearch()"
+          (ngModelChange)="setSearch($event)"
+          placeholder="UID, email or display name"
+        />
+      </label>
+
+      <div class="admin-user-grid">
+        @for (user of filteredUsers(); track trackUser($index, user)) {
+          <article class="admin-user-card">
+            <img [src]="user.photoURL || 'assets/icon/user-icon.png'" alt="" />
+            <div>
+              <strong>{{ user.displayName }}</strong>
+              <span>{{ user.email || user.uid }}</span>
+              <small>
+                {{ user.createdProfile ? 'Profile ready' : 'No profile' }} ·
+                {{ user.isPremium ? 'Premium' : 'Free' }} ·
+                {{ user.reportsCount }} reports
+              </small>
+            </div>
+            <div class="admin-card-actions">
+              <button type="button" (click)="viewReports(user)">View reports</button>
+              <button type="button" (click)="viewBilling(user)">View billing</button>
+            </div>
+          </article>
+        } @empty {
+          <p class="admin-empty">No users match this search.</p>
+        }
+      </div>
+    </section>
+  }
+
+  @if (activePanel() === 'conversations') {
+    <section class="admin-panel admin-panel--split">
+      <div class="admin-list">
+        @for (report of reports(); track trackReport($index, report)) {
+          <button
+            type="button"
+            class="admin-report-card"
+            (click)="openConversation(report)"
+          >
+            <strong>{{ getUserName(report.reporterUid) }}</strong>
+            <small>with {{ getUserName(report.reportedUid) }}</small>
+          </button>
+        }
+      </div>
+
+      <div class="admin-conversation">
+        @if (selectedConversation(); as conversation) {
+          <header>
+            <span>Conversation</span>
+            <strong>{{ conversation.id }}</strong>
+          </header>
+          <div class="admin-message-list">
+            @for (message of conversation.messages; track trackMessage($index, message)) {
+              <article>
+                <span>{{ getUserName(message.senderUid) }}</span>
+                <p>{{ message.text }}</p>
+                <small>{{ formatDate(message.sentAt) }}</small>
+              </article>
+            } @empty {
+              <p class="admin-empty">This conversation has no messages.</p>
+            }
+          </div>
+        } @else {
+          <p class="admin-empty">
+            Open a conversation from a report. Conversation lookup is intended
+            for active moderation cases only.
+          </p>
+        }
+      </div>
+    </section>
+  }
+
+  @if (activePanel() === 'billing') {
+    <section class="admin-panel admin-panel--split">
+      <div class="admin-list">
+        @for (user of users(); track trackUser($index, user)) {
+          <button
+            type="button"
+            class="admin-report-card"
+            [class.is-active]="selectedUser()?.uid === user.uid"
+            (click)="selectUser(user)"
+          >
+            <strong>{{ user.displayName }}</strong>
+            <small>{{ user.isPremium ? 'Premium active' : 'Free account' }}</small>
+          </button>
+        }
+      </div>
+
+      <div class="admin-detail-card admin-billing-card">
+        @if (selectedUser(); as user) {
+          <p class="admin-eyebrow">Read only billing</p>
+          <h2>{{ user.displayName }}</h2>
+
+          @if (selectedBilling(); as billing) {
+            <dl class="admin-detail-grid">
+              <div>
+                <dt>Premium</dt>
+                <dd>{{ billing.isPremium ? 'Yes' : 'No' }}</dd>
+              </div>
+              <div>
+                <dt>Entitlements</dt>
+                <dd>{{ billing.activeEntitlements.join(', ') || 'None' }}</dd>
+              </div>
+              <div>
+                <dt>Subscriptions</dt>
+                <dd>{{ billing.activeSubscriptions.join(', ') || 'None' }}</dd>
+              </div>
+              <div>
+                <dt>Super Likes</dt>
+                <dd>{{ billing.superLikesBalance }}</dd>
+              </div>
+              <div>
+                <dt>Product</dt>
+                <dd>{{ billing.productId || 'None' }}</dd>
+              </div>
+              <div>
+                <dt>Expires</dt>
+                <dd>{{ billing.expiresAt || 'No expiry' }}</dd>
+              </div>
+            </dl>
+          } @else {
+            <p class="admin-empty">No billing cache exists for this user.</p>
+          }
+        }
+      </div>
+    </section>
+  }
+</main>

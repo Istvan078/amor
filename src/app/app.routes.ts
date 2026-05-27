@@ -2,6 +2,7 @@ import { Routes } from '@angular/router';
 import { publicOnlyGuard } from './features/auth/guards/public-only.guard';
 import { authGuard } from './features/auth/guards/auth.guard';
 import { privacyConsentGuard } from './features/privacy/guards/privacy-consent.guard';
+import { adminGuard } from './features/admin/guards/admin.guard';
 
 export const routes: Routes = [
     {
@@ -50,6 +51,12 @@ export const routes: Routes = [
                 pathMatch: 'full',
             },
         ],
+    },
+    {
+        path: 'admin',
+        canActivate: [adminGuard],
+        loadComponent: () =>
+            import('./features/admin/admin.page').then((m) => m.AdminPage),
     },
     {
         path: '**',
