@@ -108,6 +108,7 @@
     },
     "profile": {
       "myProfile": "Profilom",
+      "adminPanel": "Admin felulet",
       "edit": "Adatszerkesztés",
       "details": "Profiladatok",
       "editing": "Adatok szerkesztése",
@@ -118,8 +119,7 @@
       "aboutMe": "Rólam",
       "lookingForType": "Milyen társat keresek?",
       "interests": "Érdeklődési körök",
-      "freeTime": "Szabadidő",
-      "adminPanel": "Admin panel"
+      "freeTime": "Szabadidő"
     }
   },
   "privacy": {
@@ -248,7 +248,8 @@
     "startTitle": "Kezdj beszélgetést",
     "startText": "Egy rövid, személyes nyitás jobban működik.",
     "placeholder": "Írd ide az üzeneted...",
-    "sendAria": "Üzenet küldése"
+    "sendAria": "Üzenet küldése",
+    "readAt": "Olvasva {{time}}"
   },
   "promotions": {
     "sheet": {

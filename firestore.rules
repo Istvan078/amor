@@ -28,6 +28,56 @@ service cloud.firestore {
         && request.resource.data.participants.size() == 2;
     }
 
+    function validReportReason(reason) {
+      return reason in [
+        'fakeProfile',
+        'harassment',
+        'spam',
+        'inappropriateContent',
+        'other',
+        'conversation_report'
+      ];
+    }
+
+    function validReportStatus(status) {
+      return status in [
+        'open',
+        'reviewed',
+        'dismissed',
+        'action_taken'
+      ];
+    }
+
+    function validReportCreate(reportId) {
+      return request.resource.data.keys().hasOnly([
+          'reportId',
+          'reporterUid',
+          'reportedUid',
+          'reason',
+          'description',
+          'createdAt',
+          'status'
+        ])
+        && request.resource.data.keys().hasAll([
+          'reportId',
+          'reporterUid',
+          'reportedUid',
+          'reason',
+          'description',
+          'createdAt',
+          'status'
+        ])
+        && request.resource.data.reportId == reportId
+        && request.resource.data.reporterUid == request.auth.uid
+        && request.resource.data.reporterUid is string
+        && request.resource.data.reportedUid is string
+        && request.resource.data.reportedUid != request.auth.uid
+        && request.resource.data.description is string
+        && validReportReason(request.resource.data.reason)
+        && request.resource.data.status == 'open'
+        && request.resource.data.createdAt is timestamp;
+    }
+
     match /users/{uid} {
       allow read: if signedIn();
       allow create, update, delete: if isOwner(uid) || isAdminOrModerator();
@@ -39,9 +89,11 @@ service cloud.firestore {
     }
 
     match /reports/{reportId} {
-      allow create: if signedIn()
-        && request.resource.data.reporterUid == request.auth.uid;
-      allow read, update, delete: if isAdminOrModerator();
+      allow create: if signedIn() && validReportCreate(reportId);
+      allow read, delete: if isAdminOrModerator();
+      allow update: if isAdminOrModerator()
+        && request.resource.data.diff(resource.data).changedKeys().hasOnly(['status'])
+        && validReportStatus(request.resource.data.status);
     }
 
     match /conversations/{conversationId} {

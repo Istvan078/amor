@@ -112,6 +112,42 @@ export class MessagesRepository {
         });
     }
 
+    async markConversationMessagesRead(myUid: string, matchUid: string) {
+        const conversationId = this.getConversationId(myUid, matchUid);
+
+        await this.runInFirebaseContext(async () => {
+            const messagesCollection = collection(
+                this.firestore,
+                `conversations/${conversationId}/messages`
+            );
+            const snapshot = await getDocs(messagesCollection);
+            const batch = writeBatch(this.firestore);
+            let hasUnreadMessages = false;
+
+            snapshot.docs.forEach((messageSnapshot) => {
+                const data = messageSnapshot.data();
+                const isUnreadForCurrentUser =
+                    data['senderUid'] === matchUid &&
+                    data['sentToUid'] === myUid &&
+                    data['isRead'] !== true;
+
+                if (!isUnreadForCurrentUser) {
+                    return;
+                }
+
+                hasUnreadMessages = true;
+                batch.update(messageSnapshot.ref, {
+                    isRead: true,
+                    readAt: serverTimestamp(),
+                });
+            });
+
+            if (hasUnreadMessages) {
+                await batch.commit();
+            }
+        });
+    }
+
     private async getConversationMessages(myUid: string, matchUid: string) {
         const conversationId = this.getConversationId(myUid, matchUid);
 

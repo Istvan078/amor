@@ -35,6 +35,9 @@
     >
       <ion-icon name="flag-outline"></ion-icon>
       Reports
+      @if (openReports()) {
+        <span class="admin-tab-badge">{{ openReports() }}</span>
+      }
     </button>
     <button
       type="button"
@@ -73,7 +76,45 @@
   @if (activePanel() === 'reports') {
     <section class="admin-panel admin-panel--split">
       <div class="admin-list">
-        @for (report of reports(); track trackReport($index, report)) {
+        <div class="admin-status-filter" aria-label="Report status filter">
+          <button
+            type="button"
+            [class.is-active]="reportStatusFilter() === 'open'"
+            (click)="setReportStatusFilter('open')"
+          >
+            Open
+          </button>
+          <button
+            type="button"
+            [class.is-active]="reportStatusFilter() === 'reviewed'"
+            (click)="setReportStatusFilter('reviewed')"
+          >
+            Reviewed
+          </button>
+          <button
+            type="button"
+            [class.is-active]="reportStatusFilter() === 'dismissed'"
+            (click)="setReportStatusFilter('dismissed')"
+          >
+            Dismissed
+          </button>
+          <button
+            type="button"
+            [class.is-active]="reportStatusFilter() === 'action_taken'"
+            (click)="setReportStatusFilter('action_taken')"
+          >
+            Action taken
+          </button>
+          <button
+            type="button"
+            [class.is-active]="reportStatusFilter() === 'all'"
+            (click)="setReportStatusFilter('all')"
+          >
+            All
+          </button>
+        </div>
+
+        @for (report of filteredReports(); track trackReport($index, report)) {
           <button
             type="button"
             class="admin-report-card"
@@ -185,18 +226,22 @@
   @if (activePanel() === 'conversations') {
     <section class="admin-panel admin-panel--split">
       <div class="admin-list">
-        @for (report of reports(); track trackReport($index, report)) {
+        @for (conversation of conversations(); track trackConversation($index, conversation)) {
           <button
             type="button"
             class="admin-report-card"
-            [class.is-active]="selectedReport()?.id === report.id"
-            (click)="openConversation(report)"
+            [class.is-active]="selectedConversation()?.id === conversation.id"
+            (click)="openConversationSummary(conversation)"
           >
-            <strong>{{ getUserName(report.reporterUid) }}</strong>
-            <small>with {{ getUserName(report.reportedUid) }}</small>
+            <strong>
+              @for (participant of conversation.participants; track participant) {
+                {{ getUserName(participant) }}@if (!$last) {, }
+              }
+            </strong>
+            <small>{{ formatDate(conversation.updatedAt) }}</small>
           </button>
         } @empty {
-          <p class="admin-empty">There are no report conversations yet.</p>
+          <p class="admin-empty">There are no conversations yet.</p>
         }
       </div>
 
@@ -219,8 +264,7 @@
           </div>
         } @else {
           <p class="admin-empty">
-            Open a conversation from a report. Conversation lookup is intended
-            for active moderation cases only.
+            Open a conversation to inspect messages for active moderation cases.
           </p>
         }
       </div>

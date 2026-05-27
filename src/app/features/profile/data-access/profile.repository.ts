@@ -10,6 +10,45 @@ import {
 
 import { UserClass } from '../../../shared/models/user.model';
 
+type FirestoreData = Record<string, any>;
+
+function sanitizeFirestoreValue(value: unknown): unknown {
+    if (value === undefined || typeof value === 'function') {
+        return undefined;
+    }
+
+    if (value === null || typeof value !== 'object') {
+        return value;
+    }
+
+    if (value instanceof Date) {
+        return value.toISOString();
+    }
+
+    if (Array.isArray(value)) {
+        return value
+            .map((item) => sanitizeFirestoreValue(item))
+            .filter((item) => item !== undefined);
+    }
+
+    return Object.entries(value as Record<string, unknown>).reduce<FirestoreData>(
+        (result, [key, item]) => {
+            const sanitizedValue = sanitizeFirestoreValue(item);
+
+            if (sanitizedValue !== undefined) {
+                result[key] = sanitizedValue;
+            }
+
+            return result;
+        },
+        {}
+    );
+}
+
+function sanitizeProfileForFirestore(profile: Partial<UserClass>): FirestoreData {
+    return sanitizeFirestoreValue(profile) as FirestoreData;
+}
+
 @Injectable({
     providedIn: 'root',
 })
@@ -38,7 +77,7 @@ export class ProfileRepository {
         await this.runInFirebaseContext(() => {
             const profileRef = doc(this.firestore, `users/${uid}`);
 
-            return setDoc(profileRef, profile);
+            return setDoc(profileRef, sanitizeProfileForFirestore(profile));
         });
     }
 
@@ -46,7 +85,7 @@ export class ProfileRepository {
         await this.runInFirebaseContext(() => {
             const profileRef = doc(this.firestore, `users/${uid}`);
 
-            return updateDoc(profileRef, profile);
+            return updateDoc(profileRef, sanitizeProfileForFirestore(profile));
         });
     }
 

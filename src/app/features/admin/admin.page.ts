@@ -1,7 +1,7 @@
 import { FormsModule } from '@angular/forms';
 import { Component, OnInit, computed, inject, signal } from '@angular/core';
 import { RouterLink } from '@angular/router';
-import { IonIcon } from '@ionic/angular/standalone';
+import { AlertController, IonIcon } from '@ionic/angular/standalone';
 import { addIcons } from 'ionicons';
 import {
   banOutline,
@@ -19,12 +19,15 @@ import {
 import {
   AdminBillingSnapshot,
   AdminConversation,
+  AdminConversationSummary,
   AdminReport,
   AdminRepository,
   AdminUser,
 } from './data-access/admin.repository';
+import { ModerationReportStatus } from '../moderation/data-access/moderation.repository';
 
 type AdminPanel = 'reports' | 'users' | 'conversations' | 'billing';
+type ReportStatusFilter = ModerationReportStatus | 'all';
 
 @Component({
   selector: 'app-admin',
@@ -41,9 +44,11 @@ export class AdminPage implements OnInit {
   readonly selectedUser = signal<AdminUser | null>(null);
   readonly selectedBilling = signal<AdminBillingSnapshot | null>(null);
   readonly selectedConversation = signal<AdminConversation | null>(null);
+  readonly conversations = signal<AdminConversationSummary[]>([]);
   readonly loading = signal(false);
   readonly error = signal<string | null>(null);
   readonly userSearch = signal('');
+  readonly reportStatusFilter = signal<ReportStatusFilter>('open');
 
   readonly openReports = computed(
     () => this.reports().filter((report) => report.status === 'open').length
@@ -51,6 +56,15 @@ export class AdminPage implements OnInit {
   readonly premiumUsers = computed(
     () => this.users().filter((user) => user.isPremium).length
   );
+  readonly filteredReports = computed(() => {
+    const status = this.reportStatusFilter();
+
+    if (status === 'all') {
+      return this.reports();
+    }
+
+    return this.reports().filter((report) => report.status === status);
+  });
   readonly filteredUsers = computed(() => {
     const search = this.userSearch().trim().toLowerCase();
 
@@ -67,6 +81,7 @@ export class AdminPage implements OnInit {
   });
 
   private adminRepository = inject(AdminRepository);
+  private alertCtrl = inject(AlertController);
 
   constructor() {
     addIcons({
@@ -92,13 +107,29 @@ export class AdminPage implements OnInit {
     this.error.set(null);
 
     try {
-      const reports = await this.adminRepository.loadReports();
+      const previousSelectedReportId = this.selectedReport()?.id;
+      const previousSelectedConversationId = this.selectedConversation()?.id;
+      const [reports, conversations] = await Promise.all([
+        this.adminRepository.loadReports(),
+        this.adminRepository.loadConversationSummaries(),
+      ]);
       const users = await this.adminRepository.loadUsers(reports);
 
       this.reports.set(reports);
       this.users.set(users);
-      this.selectedReport.set(reports[0] ?? null);
+      this.conversations.set(conversations);
+      this.selectedReport.set(
+        reports.find((report) => report.id === previousSelectedReportId) ??
+          reports[0] ??
+          null
+      );
       this.selectedUser.set(users[0] ?? null);
+
+      if (previousSelectedConversationId) {
+        this.selectedConversation.set(
+          await this.adminRepository.loadConversation(previousSelectedConversationId)
+        );
+      }
 
       if (users[0]) {
         this.selectedBilling.set(
@@ -117,6 +148,19 @@ export class AdminPage implements OnInit {
     this.activePanel.set(panel);
   }
 
+  setReportStatusFilter(status: ReportStatusFilter) {
+    this.reportStatusFilter.set(status);
+
+    const selected = this.selectedReport();
+    if (
+      selected &&
+      status !== 'all' &&
+      selected.status !== status
+    ) {
+      this.selectedReport.set(this.filteredReports()[0] ?? null);
+    }
+  }
+
   async selectReport(report: AdminReport) {
     this.selectedReport.set(report);
     this.selectedConversation.set(null);
@@ -133,11 +177,31 @@ export class AdminPage implements OnInit {
   }
 
   async blockReportedUser(report: AdminReport) {
+    const confirmed = await this.confirmAdminAction(
+      'Block reported user?',
+      'This will add the reported user to the reporter blocked list and mark the report as action taken.',
+      'Block user'
+    );
+
+    if (!confirmed) {
+      return;
+    }
+
     await this.adminRepository.blockReportedUser(report);
     await this.loadDashboard();
   }
 
   async removeMatch(report: AdminReport) {
+    const confirmed = await this.confirmAdminAction(
+      'Remove match?',
+      'This removes the match for both users and marks the report as action taken.',
+      'Remove match'
+    );
+
+    if (!confirmed) {
+      return;
+    }
+
     await this.adminRepository.removeMatchForReport(report);
     await this.loadDashboard();
   }
@@ -154,6 +218,26 @@ export class AdminPage implements OnInit {
       );
       if (!this.selectedConversation()) {
         this.error.set('Conversation could not be found for this report.');
+      }
+    } catch (error) {
+      console.error(error);
+      this.error.set('Conversation could not be loaded.');
+    } finally {
+      this.loading.set(false);
+    }
+  }
+
+  async openConversationSummary(conversation: AdminConversationSummary) {
+    this.activePanel.set('conversations');
+    this.loading.set(true);
+    this.error.set(null);
+
+    try {
+      this.selectedConversation.set(
+        await this.adminRepository.loadConversation(conversation.id)
+      );
+      if (!this.selectedConversation()) {
+        this.error.set('Conversation could not be found.');
       }
     } catch (error) {
       console.error(error);
@@ -192,6 +276,10 @@ export class AdminPage implements OnInit {
     return user.uid;
   }
 
+  trackConversation(_index: number, conversation: AdminConversationSummary) {
+    return conversation.id;
+  }
+
   trackMessage(_index: number, message: { id: string }) {
     return message.id;
   }
@@ -215,6 +303,39 @@ export class AdminPage implements OnInit {
 
   setSearch(value: string) {
     this.userSearch.set(value);
+  }
+
+  private async confirmAdminAction(
+    header: string,
+    message: string,
+    confirmText: string
+  ) {
+    let confirmed = false;
+    const alert = await this.alertCtrl.create({
+      header,
+      message,
+      cssClass: 'premium-moderation-alert admin-confirm-alert',
+      buttons: [
+        {
+          text: 'Cancel',
+          role: 'cancel',
+          cssClass: 'premium-alert-cancel-button',
+        },
+        {
+          text: confirmText,
+          role: 'destructive',
+          cssClass: 'premium-alert-danger-button',
+          handler: () => {
+            confirmed = true;
+          },
+        },
+      ],
+    });
+
+    await alert.present();
+    await alert.onDidDismiss();
+
+    return confirmed;
   }
 
   private toDate(value: unknown) {

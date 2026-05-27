@@ -109,6 +109,7 @@
     "profile": {
       "myProfile": "My profile",
       "edit": "Edit details",
+      "adminPanel": "Admin panel",
       "details": "Profile details",
       "editing": "Edit profile",
       "gender": "Gender",
@@ -118,8 +119,7 @@
       "aboutMe": "About me",
       "lookingForType": "What I am looking for",
       "interests": "Interests",
-      "freeTime": "Free time",
-      "adminPanel": "Admin panel"
+      "freeTime": "Free time"
     }
   },
   "privacy": {
@@ -248,7 +248,8 @@
     "startTitle": "Start the conversation",
     "startText": "A short, personal opener works best.",
     "placeholder": "Write your message...",
-    "sendAria": "Send message"
+    "sendAria": "Send message",
+    "readAt": "Read {{time}}"
   },
   "promotions": {
     "sheet": {

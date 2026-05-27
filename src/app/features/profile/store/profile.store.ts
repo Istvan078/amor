@@ -142,6 +142,8 @@ export const ProfileStore = signalStore(
                     profileCreated: true,
                     loading: false,
                 });
+
+                return true;
             } catch (error) {
                 console.error(error);
 
@@ -149,6 +151,8 @@ export const ProfileStore = signalStore(
                     loading: false,
                     error: 'Failed to update profile',
                 });
+
+                return false;
             }
         },
 

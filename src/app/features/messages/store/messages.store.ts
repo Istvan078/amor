@@ -87,6 +87,10 @@ export const MessagesStore = signalStore(
                             });
                         }
                     );
+                    await repository.markConversationMessagesRead(
+                        userProfile.uid,
+                        matchProfile.uid
+                    );
                 } catch (error) {
                     console.error(error);
                     activeConversationId = null;

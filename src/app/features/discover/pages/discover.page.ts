@@ -1,6 +1,7 @@
 import {
   Component,
   HostListener,
+  OnDestroy,
   OnInit,
   ViewEncapsulation,
   effect,
@@ -51,6 +52,7 @@ import { MatchActionsStore } from '../../matching/store/match-actions.store';
 import { PromoStore } from '../../promotions/store/promo.store';
 import { PaywallComponent } from '../../billing/ui/paywall/paywall.component';
 import { BillingStore } from '../../billing/store/billing.store';
+import { UserClaims } from '../../auth/store/auth.slice';
 import { Auth } from '@angular/fire/auth';
 
 @Component({
@@ -73,7 +75,7 @@ import { Auth } from '@angular/fire/auth';
     IonRow,
   ],
 })
-export class DiscoverPage implements OnInit {
+export class DiscoverPage implements OnInit, OnDestroy {
   possibleMatchIds: string[] = [];
   matchProfiles: UserClass[] = [];
   progress = 0;
@@ -112,8 +114,10 @@ export class DiscoverPage implements OnInit {
   private loadingDiscoverUid: string | null = null;
   private matchPreviewRequestId = 0;
   private matchPreviewSignature = '';
+  private matchPreviewUnsubscribers: Array<() => void> = [];
   private promoBottomSheetQueued = false;
   private promoBottomSheetShownForUid: string | null = null;
+  private onlinePresenceUid: string | null = null;
 
   private authStore = inject(AuthStore);
   private auth = inject(Auth);
@@ -134,7 +138,7 @@ export class DiscoverPage implements OnInit {
   private profilePicturesRepository = inject(ProfilePicturesRepository);
 
   async canOpenAdminPanel() {
-    const claims = await this.auth.currentUser?.getIdTokenResult(true);
+    const claims = await this.auth.currentUser?.getIdTokenResult();
     this.canOpenAdminPanelResult = claims?.claims?.['admin'] === true || claims?.claims?.['moderator'] === true;
   }
 
@@ -145,6 +149,7 @@ export class DiscoverPage implements OnInit {
       const uid = this.user?.uid ?? null;
 
       if (!uid) {
+        void this.setOnlinePresence(false);
         this.loadedDiscoverUid = null;
         this.loadingDiscoverUid = null;
         this.promoBottomSheetShownForUid = null;
@@ -153,6 +158,7 @@ export class DiscoverPage implements OnInit {
 
       queueMicrotask(() => {
         if (this.authStore.user()?.uid === uid) {
+          void this.setOnlinePresence(true);
           void this.ensureDiscoverData(uid);
         }
       });
@@ -211,12 +217,41 @@ export class DiscoverPage implements OnInit {
     this.updatePhoneView();
   }
 
+  @HostListener('window:pagehide')
+  handlePageHide() {
+    void this.setOnlinePresence(false);
+  }
+
   async ngOnInit() {
     this.updatePhoneView();
     this.setPromotion();
     void this.canOpenAdminPanel();
 
     await this.ensureDiscoverData(this.authStore.user()?.uid);
+  }
+
+  ngOnDestroy() {
+    this.clearMatchPreviewListeners();
+    void this.setOnlinePresence(false);
+  }
+
+  private async setOnlinePresence(isOnline: boolean) {
+    const uid = this.user?.uid ?? this.authStore.user()?.uid ?? this.onlinePresenceUid;
+
+    if (!uid) {
+      return;
+    }
+
+    if (isOnline && this.onlinePresenceUid === uid) {
+      return;
+    }
+
+    try {
+      await this.discoverRepository.updateUserOnlineStatus(uid, isOnline);
+      this.onlinePresenceUid = isOnline ? uid : null;
+    } catch (error) {
+      console.warn('Online presence update failed.', error);
+    }
   }
 
   private updatePhoneView() {
@@ -259,6 +294,7 @@ export class DiscoverPage implements OnInit {
   }
 
   private resetActiveDiscoverView() {
+    this.clearMatchPreviewListeners();
     this.matchProf = undefined;
     this.selectedMessProf = undefined;
     this.matches = [];
@@ -288,13 +324,14 @@ export class DiscoverPage implements OnInit {
     this.syncMatchActionState();
   }
 
-  private async loadMatchConversationPreviews() {
+  private loadMatchConversationPreviews() {
     const userProfile = this.userProf;
     const matches = this.matches.filter(
       (match): match is UserClass & { uid: string } => !!match.uid
     );
 
     if (!userProfile?.uid || !matches.length) {
+      this.clearMatchPreviewListeners();
       this.matchConversationPreviews = {};
       this.matchPreviewSignature = '';
       this.matchPreviewRequestId++;
@@ -310,55 +347,75 @@ export class DiscoverPage implements OnInit {
       return;
     }
 
+    this.clearMatchPreviewListeners();
     this.matchPreviewSignature = signature;
     const requestId = ++this.matchPreviewRequestId;
-
-    const previewEntries = await Promise.all(
-      matches.map(async (match) => {
-        try {
-          const messages = await this.messagesRepository.getMessages(
-            userProfile.uid!,
-            userProfile.email ?? '',
-            match.uid,
-            match.email ?? ''
-          );
-          const lastMessage = messages.at(-1);
-          const unreadCount = messages.filter(
-            (message) =>
-              message.senderUid === match.uid &&
-              message.sentToUid === userProfile.uid &&
-              message.isRead !== true
-          ).length;
-
-          return [
-            match.uid,
-            {
-              hasMessages: messages.length > 0,
-              isLastMessageMine: lastMessage?.senderUid === userProfile.uid,
-              lastMessage: lastMessage?.message?.trim() ?? '',
-              unreadCount,
-            },
-          ] as const;
-        } catch (error) {
-          console.error(error);
-          return [
-            match.uid,
-            {
-              hasMessages: false,
-              isLastMessageMine: false,
-              lastMessage: '',
-              unreadCount: 0,
-            },
-          ] as const;
-        }
-      })
+    this.matchConversationPreviews = Object.fromEntries(
+      matches.map((match) => [match.uid, this.emptyConversationPreview()])
     );
 
-    if (requestId !== this.matchPreviewRequestId) {
-      return;
-    }
+    for (const match of matches) {
+      try {
+        const unsubscribe = this.messagesRepository.listenToMessages(
+          userProfile.uid,
+          match.uid,
+          (messages) => {
+            if (requestId !== this.matchPreviewRequestId) {
+              return;
+            }
 
-    this.matchConversationPreviews = Object.fromEntries(previewEntries);
+            this.matchConversationPreviews = {
+              ...this.matchConversationPreviews,
+              [match.uid]: this.buildConversationPreview(
+                messages,
+                userProfile.uid!,
+                match.uid
+              ),
+            };
+          },
+          (error) => console.error(error)
+        );
+
+        this.matchPreviewUnsubscribers.push(unsubscribe);
+      } catch (error) {
+        console.error(error);
+      }
+    }
+  }
+
+  private buildConversationPreview(
+    messages: Message[],
+    userUid: string,
+    matchUid: string
+  ): MatchConversationPreview {
+    const lastMessage = messages.at(-1);
+    const unreadCount = messages.filter(
+      (message) =>
+        message.senderUid === matchUid &&
+        message.sentToUid === userUid &&
+        message.isRead !== true
+    ).length;
+
+    return {
+      hasMessages: messages.length > 0,
+      isLastMessageMine: lastMessage?.senderUid === userUid,
+      lastMessage: lastMessage?.message?.trim() ?? '',
+      unreadCount,
+    };
+  }
+
+  private emptyConversationPreview(): MatchConversationPreview {
+    return {
+      hasMessages: false,
+      isLastMessageMine: false,
+      lastMessage: '',
+      unreadCount: 0,
+    };
+  }
+
+  private clearMatchPreviewListeners() {
+    this.matchPreviewUnsubscribers.forEach((unsubscribe) => unsubscribe());
+    this.matchPreviewUnsubscribers = [];
   }
 
   private syncMatchActionState() {
@@ -763,25 +820,63 @@ export class DiscoverPage implements OnInit {
   }
 
   async updateUserProf() {
-    const userProf = { ...this.userProf };
-    userProf.uid = this.user.uid;
-    const currentPosition = await this.locationService.getLocation();
-    const claims = {
+    const uid = this.userProf?.uid ?? this.user?.uid;
+
+    if (!uid || !this.userProf) {
+      return;
+    }
+
+    const userProf = {
+      ...this.userProf,
+      uid,
+    } as Partial<UserClass> & { uid: string };
+
+    const profileSaved = await this.profileStore.updateProfile(uid, userProf);
+
+    if (!profileSaved) {
+      return;
+    }
+
+    this.startUpdUserProf = false;
+    this.discoverUiStore.showMatchesCard();
+    this.loadedDiscoverUid = null;
+    this.discoverStore.clearDiscoverData();
+    this.resetActiveDiscoverView();
+
+    try {
+      const claims = await this.buildClaimsFromProfile(userProf);
+      await this.authStore.setCustomClaims(uid, claims);
+    } catch (error) {
+      console.warn('Profile was saved, but claim refresh failed.', error);
+    }
+
+    await this.ensureDiscoverData(uid);
+  }
+
+  private async buildClaimsFromProfile(
+    userProf: Partial<UserClass>
+  ): Promise<UserClaims> {
+    let currentLocCoords = userProf.currentLocCoords;
+
+    try {
+      const currentPosition = await this.locationService.getLocation();
+
+      currentLocCoords = {
+        lat: currentPosition.coords.latitude,
+        lon: currentPosition.coords.longitude,
+      };
+    } catch (error) {
+      console.warn('Skipping profile claim location refresh.', error);
+    }
+
+    return {
       gender: userProf.gender,
       lookingForGender: userProf.lookingForGender,
       lookingForAge: userProf.lookingForAge,
       lookingForDistance: userProf.lookingForDistance,
-      currentLocCoords: {
-        lat: currentPosition.coords.latitude,
-        lon: currentPosition.coords.longitude,
-      },
-      currentPlace: this.userProf!.currentPlace as string,
+      currentLocCoords,
+      currentPlace: userProf.currentPlace ?? '',
     };
-
-    if (userProf?.uid) {
-      await this.profileStore.updateProfile(userProf.uid, userProf);
-      await this.authStore.setCustomClaims(userProf.uid, claims);
-    }
   }
 
   async deleteUserProf() {
@@ -890,6 +985,7 @@ export class DiscoverPage implements OnInit {
   async signOut() {
     const autoFillEmail = this.userProf?.email;
 
+    await this.setOnlinePresence(false);
     await this.authStore.signOut();
     this.authStore.setAutoFillEmail(autoFillEmail);
     this.profileStore.clearProfile();
@@ -907,6 +1003,7 @@ export class DiscoverPage implements OnInit {
     this.isShowMessages = false;
     this.possMatchDetLists = [];
     this.matchConversationPreviews = {};
+    this.clearMatchPreviewListeners();
     this.matchPreviewSignature = '';
     this.matchPreviewRequestId++;
     this.loadedDiscoverUid = null;

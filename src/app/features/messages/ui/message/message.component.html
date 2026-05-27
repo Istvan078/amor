@@ -19,13 +19,23 @@
               <span>
                 <strong>{{ getDisplayName(match) || match.firstName }}</strong>
                 <small>
-                  {{
-                    isMatchBlocked(match)
-                      ? t('messages.blockedListHint')
-                      : t('messages.openConversation')
-                  }}
+                  @if (isMatchBlocked(match)) {
+                    {{ t('messages.blockedListHint') }}
+                  } @else if (getConversationPreview(match).hasMessages) {
+                    @if (getConversationPreview(match).isLastMessageMine) {
+                      <b>{{ t('discover.sidebar.you') }}:</b>
+                    }
+                    {{ getConversationPreview(match).lastMessage }}
+                  } @else {
+                    {{ t('messages.openConversation') }}
+                  }
                 </small>
               </span>
+              @if (getConversationPreview(match).unreadCount) {
+                <em class="conversation-list-unread">
+                  {{ formatUnreadCount(getConversationPreview(match).unreadCount) }}
+                </em>
+              }
               <ion-icon name="chevron-forward-outline"></ion-icon>
             </button>
           } @empty {
@@ -165,7 +175,14 @@
           } @else {
             @for (mess of messagesStore.messages(); track mess.number) {
               <div class="message-row" [class.own-message]="isOwnMessage(mess)">
-                <span class="message-bubble">{{ mess.message || ' ' }}</span>
+                <span class="message-bubble">
+                  {{ mess.message || ' ' }}
+                  @if (isReadReceiptVisible(mess)) {
+                    <small class="message-read-state">
+                      {{ t('messages.readAt', { time: formatMessageTime(mess.readAt) }) }}
+                    </small>
+                  }
+                </span>
               </div>
             } @empty {
               <div class="messages-empty compact">

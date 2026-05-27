@@ -363,6 +363,15 @@
   box-shadow: 0 12px 28px rgba(255, 93, 143, 0.18);
 }
 
+.message-read-state {
+  display: block;
+  margin-top: 6px;
+  color: rgba(255, 255, 255, 0.72);
+  font-size: 0.72rem;
+  font-weight: 900;
+  text-align: right;
+}
+
 .message-composer {
   grid-row: 5;
   display: flex;
@@ -444,7 +453,7 @@
 
 .conversation-list-item {
   display: grid;
-  grid-template-columns: auto minmax(0, 1fr) auto;
+  grid-template-columns: auto minmax(0, 1fr) auto auto;
   gap: 12px;
   align-items: center;
   width: 100%;
@@ -478,6 +487,35 @@
   color: #ffffff;
   font-size: 1rem;
   font-weight: 900;
+}
+
+.conversation-list-item small {
+  display: block;
+  min-width: 0;
+  max-width: 100%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.conversation-list-item small b {
+  color: #ffffff;
+  font-weight: 900;
+}
+
+.conversation-list-unread {
+  display: inline-grid;
+  place-items: center;
+  min-width: 24px;
+  height: 24px;
+  padding: 0 7px;
+  border-radius: 999px;
+  background: linear-gradient(135deg, #ff5d8f, #ff7a59);
+  color: #ffffff;
+  font-size: 0.75rem;
+  font-style: normal;
+  font-weight: 900;
+  box-shadow: 0 10px 24px rgba(255, 93, 143, 0.24);
 }
 
 .conversation-list-item ion-icon {

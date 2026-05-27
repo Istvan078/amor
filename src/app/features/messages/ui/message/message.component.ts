@@ -64,6 +64,15 @@ export class MessageComponent implements AfterViewChecked, OnChanges {
   @Input() matches: UserClass[] = [];
   @Input() matchProfile?: UserClass;
   @Input() options?: Options;
+  @Input() conversationPreviews: Record<
+    string,
+    {
+      hasMessages: boolean;
+      isLastMessageMine: boolean;
+      lastMessage: string;
+      unreadCount: number;
+    }
+  > = {};
   @Output() messageSent = new EventEmitter<{
     matchProfile: UserClass;
     message: Message;
@@ -153,6 +162,21 @@ export class MessageComponent implements AfterViewChecked, OnChanges {
     return !!this.userProfile?.uid && message.senderUid === this.userProfile.uid;
   }
 
+  isReadReceiptVisible(message: Message) {
+    return this.isOwnMessage(message) && message.isRead === true;
+  }
+
+  formatMessageTime(date?: Date) {
+    if (!date) {
+      return '';
+    }
+
+    return new Intl.DateTimeFormat(undefined, {
+      hour: '2-digit',
+      minute: '2-digit',
+    }).format(date);
+  }
+
   get isCurrentMatchBlocked() {
     return !!(
       this.userProfile?.blockedUsers?.length &&
@@ -167,6 +191,30 @@ export class MessageComponent implements AfterViewChecked, OnChanges {
       match?.uid &&
       this.userProfile.blockedUsers.includes(match.uid)
     );
+  }
+
+  getConversationPreview(match: UserClass) {
+    if (!match.uid) {
+      return {
+        hasMessages: false,
+        isLastMessageMine: false,
+        lastMessage: '',
+        unreadCount: 0,
+      };
+    }
+
+    return (
+      this.conversationPreviews[match.uid] ?? {
+        hasMessages: false,
+        isLastMessageMine: false,
+        lastMessage: '',
+        unreadCount: 0,
+      }
+    );
+  }
+
+  formatUnreadCount(unreadCount: number) {
+    return unreadCount > 99 ? '99+' : String(unreadCount);
   }
 
   selectMatch(match: UserClass) {

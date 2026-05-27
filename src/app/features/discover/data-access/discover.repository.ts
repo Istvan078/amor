@@ -58,6 +58,17 @@ export class DiscoverRepository {
         });
     }
 
+    async updateUserOnlineStatus(uid: string, isOnline: boolean) {
+        await this.runInFirebaseContext(() => {
+            const profileRef = doc(this.firestore, `users/${uid}`);
+
+            return updateDoc(profileRef, {
+                isOnline,
+                lastSeenAt: new Date().toISOString(),
+            });
+        });
+    }
+
     private runInFirebaseContext<T>(callback: () => T): T {
         return runInInjectionContext(this.injector, callback);
     }

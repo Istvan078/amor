@@ -118,7 +118,7 @@ const withUniqueUid = (values: unknown, uid: string) => {
   return nextValues;
 };
 
-app.post('/setCustomClaims', verifyToken, (req: AuthenticatedRequest, res: express.Response) => {
+app.post('/setCustomClaims', verifyToken, async (req: AuthenticatedRequest, res: express.Response) => {
   const { uid, claims } = req.body;
 
   if (!uid || !canAccessUser(req, uid)) {
@@ -126,17 +126,31 @@ app.post('/setCustomClaims', verifyToken, (req: AuthenticatedRequest, res: expre
     return;
   }
 
-  admin
-    .auth()
-    .setCustomUserClaims(uid, sanitizeUserClaims(claims))
-    .then(() => {
-      console.log('Felhasználó claimsek sikeresen beállítva.');
-      res.json({ message: 'OK' });
-    })
-    .catch((error: unknown) => {
-      console.error('Hiba történt a felhasználó claimsek beállításakor:', error);
-      res.sendStatus(500);
+  try {
+    const userRecord = await admin.auth().getUser(uid);
+    const existingClaims = userRecord.customClaims ?? {};
+    const safeProfileClaims = sanitizeUserClaims(claims);
+
+    const preservedRoleClaims: Record<string, unknown> = {};
+
+    if (existingClaims.admin === true) {
+      preservedRoleClaims.admin = true;
+    }
+
+    if (existingClaims.moderator === true) {
+      preservedRoleClaims.moderator = true;
+    }
+
+    await admin.auth().setCustomUserClaims(uid, {
+      ...safeProfileClaims,
+      ...preservedRoleClaims,
     });
+
+    res.json({ message: 'OK' });
+  } catch (error) {
+    console.error('Hiba történt a felhasználó claimsek beállításakor:', error);
+    res.sendStatus(500);
+  }
 });
 
 app.post('/setUserProfile', verifyToken, (req: AuthenticatedRequest, res: express.Response) => {

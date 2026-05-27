@@ -123,6 +123,20 @@
   cursor: pointer;
 }
 
+.admin-tab-badge {
+  display: inline-grid;
+  place-items: center;
+  min-width: 23px;
+  height: 23px;
+  padding: 0 7px;
+  border-radius: 999px;
+  background: linear-gradient(135deg, #ff5b89, #ff7b5f);
+  color: #ffffff;
+  font-size: 0.75rem;
+  font-weight: 900;
+  box-shadow: 0 10px 22px rgba(255, 91, 137, 0.24);
+}
+
 .admin-tabs button.is-active {
   border-color: rgba(255, 91, 137, 0.9);
   background: rgba(255, 91, 137, 0.2);
@@ -155,6 +169,32 @@
   max-height: 70vh;
   overflow: auto;
   padding-right: 4px;
+}
+
+.admin-status-filter {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  padding: 8px;
+  border: 1px solid rgba(255, 255, 255, 0.09);
+  border-radius: 18px;
+  background: rgba(6, 10, 23, 0.32);
+}
+
+.admin-status-filter button {
+  border: 1px solid rgba(255, 255, 255, 0.11);
+  border-radius: 999px;
+  padding: 8px 11px;
+  background: rgba(255, 255, 255, 0.06);
+  color: rgba(255, 255, 255, 0.72);
+  font-weight: 900;
+  cursor: pointer;
+}
+
+.admin-status-filter button.is-active {
+  border-color: rgba(255, 91, 137, 0.75);
+  background: rgba(255, 91, 137, 0.18);
+  color: #ffffff;
 }
 
 .admin-report-card {
