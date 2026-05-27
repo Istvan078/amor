@@ -17,6 +17,11 @@ import { environment } from '../../../../environments/environment';
 
 export type BillingPlatform = 'ios' | 'android' | 'web';
 export type BillingProductKind = 'subscription' | 'consumable';
+export type BillingConsumables = {
+  superLikes?: number;
+  profileBoosts?: number;
+  [key: string]: number | undefined;
+};
 
 export type BillingPackage = {
   id: string;
@@ -40,8 +45,11 @@ export type BillingCurrent = {
   expiresAt: string | null;
   activeEntitlements: string[];
   activeSubscriptions: string[];
+  consumables: BillingConsumables;
   source: 'revenuecat' | 'cache' | 'local';
 };
+
+const SUPER_LIKE_PACK_SIZE = 5;
 
 @Injectable({
   providedIn: 'root',
@@ -136,7 +144,12 @@ export class BillingRepository {
       aPackage: packageToBuy,
     });
 
-    const current = await this.cacheCustomerInfo(uid, result.customerInfo);
+    const configuredPackage = this.getConfiguredPackage(packageId);
+    const cachedCurrent = await this.cacheCustomerInfo(uid, result.customerInfo);
+    const current =
+      configuredPackage?.kind === 'consumable'
+        ? await this.applyConsumablePurchase(uid, cachedCurrent, configuredPackage)
+        : cachedCurrent;
 
     return {
       customerInfo: result.customerInfo,
@@ -208,7 +221,11 @@ export class BillingRepository {
   }
 
   async cacheCustomerInfo(uid: string, customerInfo: CustomerInfo) {
-    const current = this.mapCustomerInfo(customerInfo);
+    const cached = await this.getCachedBilling(uid);
+    const current = {
+      ...this.mapCustomerInfo(customerInfo),
+      consumables: cached.consumables ?? {},
+    };
 
     await this.cacheBillingCurrent(uid, current);
 
@@ -230,6 +247,27 @@ export class BillingRepository {
     });
 
     return current;
+  }
+
+  async consumeSuperLike(uid: string) {
+    const current = await this.getCachedBilling(uid);
+    const superLikes = current.consumables.superLikes ?? 0;
+
+    if (superLikes <= 0) {
+      return {
+        current,
+        consumed: false,
+      };
+    }
+
+    const nextCurrent = await this.updateConsumables(uid, current, {
+      superLikes: superLikes - 1,
+    });
+
+    return {
+      current: nextCurrent,
+      consumed: true,
+    };
   }
 
   isPurchaseCancelled(error: unknown) {
@@ -286,6 +324,7 @@ export class BillingRepository {
       expiresAt: customerInfo.latestExpirationDate,
       activeEntitlements,
       activeSubscriptions: customerInfo.activeSubscriptions,
+      consumables: {},
       source: 'revenuecat',
     };
   }
@@ -299,6 +338,7 @@ export class BillingRepository {
       expiresAt: null,
       activeEntitlements: [],
       activeSubscriptions: [],
+      consumables: {},
       source,
     };
   }
@@ -324,23 +364,28 @@ export class BillingRepository {
   }
 
   private async createMockPurchase(uid: string, packageId: string) {
-    const billingPackage = this.getConfiguredPackages().find(
-      (configuredPackage) => configuredPackage.id === packageId
-    );
+    const billingPackage = this.getConfiguredPackage(packageId);
 
     if (!billingPackage) {
       throw new Error('billing.errors.packageUnavailable');
     }
 
+    const cached = await this.getCachedBilling(uid);
     const current = billingPackage.entitlementId
-      ? this.createMockPremiumCurrent(billingPackage)
-      : await this.getCachedBilling(uid);
+      ? {
+          ...this.createMockPremiumCurrent(billingPackage),
+          consumables: cached.consumables ?? {},
+        }
+      : cached;
 
-    await this.cacheBillingCurrent(uid, current);
+    const nextCurrent =
+      billingPackage.kind === 'consumable'
+        ? await this.applyConsumablePurchase(uid, current, billingPackage)
+        : await this.cacheBillingCurrent(uid, current);
 
     return {
       customerInfo: null,
-      current,
+      current: nextCurrent,
     };
   }
 
@@ -359,8 +404,53 @@ export class BillingRepository {
         : [],
       activeSubscriptions:
         billingPackage.kind === 'subscription' ? [billingPackage.productId] : [],
+      consumables: {},
       source: 'local',
     };
+  }
+
+  private getConfiguredPackage(packageId: string) {
+    return this.getConfiguredPackages().find(
+      (configuredPackage) => configuredPackage.id === packageId
+    );
+  }
+
+  private async applyConsumablePurchase(
+    uid: string,
+    current: BillingCurrent,
+    billingPackage: BillingPackage
+  ) {
+    if (billingPackage.id === 'superLikePack') {
+      return this.updateConsumables(uid, current, {
+        superLikes: (current.consumables.superLikes ?? 0) + SUPER_LIKE_PACK_SIZE,
+      });
+    }
+
+    if (billingPackage.id === 'profileBoost') {
+      return this.updateConsumables(uid, current, {
+        profileBoosts: (current.consumables.profileBoosts ?? 0) + 1,
+      });
+    }
+
+    return this.cacheBillingCurrent(uid, current);
+  }
+
+  private async updateConsumables(
+    uid: string,
+    current: BillingCurrent,
+    consumables: BillingConsumables
+  ) {
+    const nextCurrent: BillingCurrent = {
+      ...current,
+      consumables: {
+        ...(current.consumables ?? {}),
+        ...consumables,
+      },
+    };
+
+    await this.cacheBillingCurrent(uid, nextCurrent);
+
+    return nextCurrent;
   }
 
   private canUseWebMock() {

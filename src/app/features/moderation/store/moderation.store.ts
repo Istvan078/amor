@@ -128,7 +128,12 @@ export const ModerationStore = signalStore(
             patchState(store, { loading: true, error: null });
 
             try {
-                await profileStore.updateProfile(userProfile.uid, { matchParts });
+                const persistedMatchParts =
+                    await repository.removeMatchForBothUsers(
+                        userProfile.uid,
+                        matchUid
+                    );
+                Object.assign(matchParts, persistedMatchParts);
                 userProfile.matchParts = matchParts;
                 patchState(store, { loading: false });
                 return matchParts;

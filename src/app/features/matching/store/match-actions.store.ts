@@ -23,6 +23,8 @@ function ensureMatchParts(profile: UserClass) {
 type BillingAccess = {
     isPremium: () => boolean;
     hasEntitlement: (entitlementId: string) => boolean;
+    superLikesBalance?: () => number;
+    consumeSuperLike?: () => Promise<boolean>;
 };
 
 function isPremiumProfile(
@@ -132,6 +134,10 @@ export const MatchActionsStore = signalStore(
                 return true;
             }
 
+            if ((billingStore.superLikesBalance?.() ?? 0) > 0) {
+                return true;
+            }
+
             if (!uid) {
                 return false;
             }
@@ -151,6 +157,14 @@ export const MatchActionsStore = signalStore(
                 isPremiumProfile(profile, billingStore) ||
                 typeof window === 'undefined'
             ) {
+                return;
+            }
+
+            if (
+                action === 'super-like' &&
+                (billingStore.superLikesBalance?.() ?? 0) > 0
+            ) {
+                void billingStore.consumeSuperLike?.();
                 return;
             }
 

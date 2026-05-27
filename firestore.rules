@@ -1,0 +1,77 @@
+rules_version = '2';
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+    function signedIn() {
+      return request.auth != null;
+    }
+
+    function isOwner(uid) {
+      return signedIn() && request.auth.uid == uid;
+    }
+
+    function isAdminOrModerator() {
+      return signedIn()
+        && (
+          request.auth.token.admin == true
+          || request.auth.token.moderator == true
+        );
+    }
+
+    function isConversationParticipant() {
+      return signedIn() && request.auth.uid in resource.data.participants;
+    }
+
+    function isConversationParticipantOnCreate() {
+      return signedIn()
+        && request.auth.uid in request.resource.data.participants
+        && request.resource.data.participants.size() == 2;
+    }
+
+    match /users/{uid} {
+      allow read: if signedIn();
+      allow create, update, delete: if isOwner(uid) || isAdminOrModerator();
+
+      match /billing/{billingDocument} {
+        allow read: if isOwner(uid) || isAdminOrModerator();
+        allow write: if isAdminOrModerator();
+      }
+    }
+
+    match /reports/{reportId} {
+      allow create: if signedIn()
+        && request.resource.data.reporterUid == request.auth.uid;
+      allow read, update, delete: if isAdminOrModerator();
+    }
+
+    match /conversations/{conversationId} {
+      allow create: if isConversationParticipantOnCreate();
+      allow read, update: if isConversationParticipant();
+      allow delete: if isAdminOrModerator();
+
+      match /messages/{messageId} {
+        function conversation() {
+          return get(/databases/$(database)/documents/conversations/$(conversationId));
+        }
+
+        function isMessageParticipant() {
+          return signedIn() && request.auth.uid in conversation().data.participants;
+        }
+
+        allow read: if isMessageParticipant();
+        allow create: if isMessageParticipant()
+          && request.resource.data.senderUid == request.auth.uid;
+        allow update: if isMessageParticipant();
+        allow delete: if isAdminOrModerator();
+      }
+    }
+
+    match /matches/{legacyDocument=**} {
+      allow read, write: if signedIn();
+    }
+
+    match /{document=**} {
+      allow read, write: if false;
+    }
+  }
+}
