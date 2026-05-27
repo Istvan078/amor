@@ -1,6 +1,7 @@
 import { HttpClient } from '@angular/common/http';
 import { Injectable } from '@angular/core';
 import { Geolocation, Position } from '@capacitor/geolocation';
+import { catchError, firstValueFrom, of, timeout } from 'rxjs';
 
 @Injectable({
   providedIn: 'root',
@@ -46,16 +47,24 @@ export class LocationService {
     return R * c; // Eredmény km-ben
   };
 
-  getLocName(position: Position, isOpenSMap?: boolean) {
-    return new Promise((res, rej) => {
-      const url = !isOpenSMap
-        ? `https://geocode.xyz/${position.coords.latitude},${position.coords.longitude}?json=1&auth=469206953456508521936x26064`
-        : `https://nominatim.openstreetmap.org/reverse?format=json&lat=${position.coords.latitude}&lon=${position.coords.longitude}`;
+  async getLocName(position: Position, isOpenSMap?: boolean) {
+    const url = !isOpenSMap
+      ? `https://geocode.xyz/${position.coords.latitude},${position.coords.longitude}?json=1&auth=469206953456508521936x26064`
+      : `https://nominatim.openstreetmap.org/reverse?format=json&lat=${position.coords.latitude}&lon=${position.coords.longitude}`;
 
-      this.http.get(url).subscribe((location) => {
-        res(location);
-      });
-    });
+    return firstValueFrom(
+      this.http.get(url).pipe(
+        timeout(8000),
+        catchError((error) => {
+          console.warn('Reverse geocoding failed:', error);
+
+          return of({
+            error: true,
+            source: isOpenSMap ? 'osm' : 'geocode.xyz',
+          });
+        })
+      )
+    );
   }
 
   getCoordsGeocodeXYZ = async (address: string) => {

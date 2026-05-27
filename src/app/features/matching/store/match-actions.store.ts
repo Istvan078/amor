@@ -8,6 +8,8 @@ import { ProfileStore } from '../../profile/store/profile.store';
 type DailyAction = 'rewind' | 'super-like';
 
 const initialState = {};
+const FREE_DAILY_SUPER_LIKES = 1;
+const PREMIUM_DAILY_SUPER_LIKES = 5;
 
 function ensureMatchParts(profile: UserClass) {
     profile.matchParts ??= new MatchParts();
@@ -75,6 +77,14 @@ function readDailyActionCount(uid: string, action: DailyAction) {
     }
 }
 
+function incrementDailyActionCount(uid: string, action: DailyAction) {
+    const count = readDailyActionCount(uid, action);
+    window.localStorage.setItem(
+        dailyActionStorageKey(uid, action),
+        String(count + 1)
+    );
+}
+
 function getFreeRewindsRemainingForProfile(
     profile?: UserClass | null,
     fallbackUid?: string,
@@ -130,8 +140,9 @@ export const MatchActionsStore = signalStore(
         canSuperLike(profile?: UserClass | null, fallbackUid?: string) {
             const uid = profile?.uid ?? fallbackUid;
 
-            if (isPremiumProfile(profile, billingStore)) {
-                return true;
+            if (isPremiumProfile(profile, billingStore) && uid) {
+                if (readDailyActionCount(uid, 'super-like') < PREMIUM_DAILY_SUPER_LIKES)
+                    return true;
             }
 
             if ((billingStore.superLikesBalance?.() ?? 0) > 0) {
@@ -142,7 +153,7 @@ export const MatchActionsStore = signalStore(
                 return false;
             }
 
-            return readDailyActionCount(uid, 'super-like') < 1;
+            return readDailyActionCount(uid, 'super-like') < FREE_DAILY_SUPER_LIKES;
         },
 
         consumeDailyAction(
@@ -152,28 +163,37 @@ export const MatchActionsStore = signalStore(
         ) {
             const uid = profile?.uid ?? fallbackUid;
 
-            if (
-                !uid ||
-                isPremiumProfile(profile, billingStore) ||
-                typeof window === 'undefined'
-            ) {
+            if (!uid || typeof window === 'undefined') {
                 return;
             }
 
-            if (
-                action === 'super-like' &&
-                (billingStore.superLikesBalance?.() ?? 0) > 0
-            ) {
-                void billingStore.consumeSuperLike?.();
+            const isPremium = isPremiumProfile(profile, billingStore);
+
+            if (action === 'rewind' && isPremium) {
                 return;
+            }
+
+            if (action === 'super-like') {
+                if (
+                    isPremium &&
+                    readDailyActionCount(uid, 'super-like') < PREMIUM_DAILY_SUPER_LIKES
+                ) {
+                    incrementDailyActionCount(uid, action);
+                    return;
+                }
+
+                if ((billingStore.superLikesBalance?.() ?? 0) > 0) {
+                    void billingStore.consumeSuperLike?.();
+                    return;
+                }
+
+                if (isPremium) {
+                    return;
+                }
             }
 
             try {
-                const count = readDailyActionCount(uid, action);
-                window.localStorage.setItem(
-                    dailyActionStorageKey(uid, action),
-                    String(count + 1)
-                );
+                incrementDailyActionCount(uid, action);
             } catch (error) {
                 console.error(error);
             }

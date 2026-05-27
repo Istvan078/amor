@@ -98,6 +98,12 @@ export class DiscoverPage implements OnInit {
   promoBottomSheetActiveIndex = 0;
   rewindStack: UserClass[] = [];
 
+  hasPremiumAccess = false;
+  hasRewindCandidate = false;
+  freeRewindsRemaining = 0;
+  isRewindLocked = false;
+  canSuperLike = false;
+
   private loadedDiscoverUid: string | null = null;
   private loadingDiscoverUid: string | null = null;
   private matchPreviewRequestId = 0;
@@ -145,6 +151,7 @@ export class DiscoverPage implements OnInit {
       this.userProf = this.profileStore.profile() ?? undefined;
       void this.loadMatchConversationPreviews();
       this.schedulePromoBottomSheetCheck();
+      this.syncMatchActionState();
     });
 
     effect(() => {
@@ -256,6 +263,7 @@ export class DiscoverPage implements OnInit {
     this.promoBottomSheetOpen = false;
     this.promoBottomSheetPromotions = [];
     this.rewindStack = [];
+    this.syncMatchActionState();
   }
 
   private syncDiscoverState() {
@@ -265,6 +273,7 @@ export class DiscoverPage implements OnInit {
     this.matches = this.discoverStore.matches();
     void this.loadMatchConversationPreviews();
     this.schedulePromoBottomSheetCheck();
+    this.syncMatchActionState();
   }
 
   private async loadMatchConversationPreviews() {
@@ -340,6 +349,35 @@ export class DiscoverPage implements OnInit {
     }
 
     this.matchConversationPreviews = Object.fromEntries(previewEntries);
+  }
+
+  private syncMatchActionState() {
+    this.hasPremiumAccess =
+      this.matchActionsStore.hasPremiumAccess(this.userProf);
+
+    this.hasRewindCandidate = this.rewindStack.length > 0;
+
+    this.canSuperLike =
+      this.matchActionsStore.canSuperLike(this.userProf, this.user?.uid);
+
+    if (this.hasPremiumAccess) {
+      this.freeRewindsRemaining = 0;
+      this.isRewindLocked = false;
+      return;
+    }
+
+    this.freeRewindsRemaining =
+      this.matchActionsStore.getFreeRewindsRemaining(
+        this.userProf,
+        this.user?.uid
+      );
+
+    this.isRewindLocked =
+      this.matchActionsStore.isRewindLocked(
+        this.userProf,
+        this.hasRewindCandidate,
+        this.user?.uid
+      );
   }
 
   setPromotion() {
@@ -442,33 +480,6 @@ export class DiscoverPage implements OnInit {
     });
 
     await modal.present();
-  }
-
-  get hasPremiumAccess() {
-    return this.matchActionsStore.hasPremiumAccess(this.userProf);
-  }
-
-  get hasRewindCandidate() {
-    return this.rewindStack.length > 0;
-  }
-
-  get freeRewindsRemaining() {
-    return this.matchActionsStore.getFreeRewindsRemaining(
-      this.userProf,
-      this.user?.uid
-    );
-  }
-
-  get isRewindLocked() {
-    return this.matchActionsStore.isRewindLocked(
-      this.userProf,
-      this.hasRewindCandidate,
-      this.user?.uid
-    );
-  }
-
-  get canSuperLike() {
-    return this.matchActionsStore.canSuperLike(this.userProf, this.user?.uid);
   }
 
   setUProfLabels() {
@@ -604,6 +615,7 @@ export class DiscoverPage implements OnInit {
 
     await this.likeOrDontUser(this.matchProf, false, true);
     this.changeMatchProf();
+    this.syncMatchActionState();
   }
 
   async rewindCurrentMatch() {
@@ -641,6 +653,7 @@ export class DiscoverPage implements OnInit {
     this.isMatchPlaceHolder = false;
     this.isMatchDetailsOpen = false;
     this.setUProfLabels();
+    this.syncMatchActionState();
   }
 
   async superLikeCurrentMatch() {
@@ -660,6 +673,7 @@ export class DiscoverPage implements OnInit {
     );
     await this.matchActionsStore.superLikeUser(this.userProf, this.matchProf);
     this.changeMatchProf();
+    this.syncMatchActionState();
   }
 
   async showProfPics(i: number) {

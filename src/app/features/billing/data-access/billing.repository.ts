@@ -373,9 +373,9 @@ export class BillingRepository {
     const cached = await this.getCachedBilling(uid);
     const current = billingPackage.entitlementId
       ? {
-          ...this.createMockPremiumCurrent(billingPackage),
-          consumables: cached.consumables ?? {},
-        }
+        ...this.createMockPremiumCurrent(billingPackage),
+        consumables: cached.consumables ?? {},
+      }
       : cached;
 
     const nextCurrent =

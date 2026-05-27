@@ -44,7 +44,7 @@ const verifyToken = (
       req.user = decodedToken;
       next();
     })
-    .catch((error) => {
+    .catch((error: unknown) => {
       console.error('Hiba történt a token ellenőrzésekor:', error);
       res.sendStatus(401);
     });
@@ -118,7 +118,7 @@ const withUniqueUid = (values: unknown, uid: string) => {
   return nextValues;
 };
 
-app.post('/setCustomClaims', verifyToken, (req: any, res) => {
+app.post('/setCustomClaims', verifyToken, (req: AuthenticatedRequest, res: express.Response) => {
   const { uid, claims } = req.body;
 
   if (!uid || !canAccessUser(req, uid)) {
@@ -133,13 +133,13 @@ app.post('/setCustomClaims', verifyToken, (req: any, res) => {
       console.log('Felhasználó claimsek sikeresen beállítva.');
       res.json({ message: 'OK' });
     })
-    .catch((error) => {
+    .catch((error: unknown) => {
       console.error('Hiba történt a felhasználó claimsek beállításakor:', error);
       res.sendStatus(500);
     });
 });
 
-app.post('/setUserProfile', verifyToken, (req: any, res) => {
+app.post('/setUserProfile', verifyToken, (req: AuthenticatedRequest, res: express.Response) => {
   const { uid, displayName, profilePicture, phoneNumber, email } = req.body;
 
   if (!uid || !canAccessUser(req, uid)) {
@@ -158,10 +158,13 @@ app.post('/setUserProfile', verifyToken, (req: any, res) => {
     .then(() => {
       res.json({ message: 'Sikeres profil módosítás!', uid: uid });
     })
-    .catch((err) => console.error(err));
+    .catch((error: unknown) => {
+      console.error('Hiba tortent a profil modositasakor:', error);
+      res.sendStatus(500);
+    });
 });
 
-app.post('/deleteUser', verifyToken, (req: any, res) => {
+app.post('/deleteUser', verifyToken, (req: AuthenticatedRequest, res: express.Response) => {
   const { uid } = req.body;
 
   if (!uid || !canAccessUser(req, uid)) {
@@ -173,10 +176,13 @@ app.post('/deleteUser', verifyToken, (req: any, res) => {
     .auth()
     .deleteUser(uid)
     .then(() => res.json({ message: 'Felhasználó sikeresen törölve!' }))
-    .catch((err) => console.error(err));
+    .catch((error: unknown) => {
+      console.error('Hiba tortent a felhasznalo torlesekor:', error);
+      res.sendStatus(500);
+    });
 });
 
-app.post('/removeMatch', verifyToken, async (req: any, res) => {
+app.post('/removeMatch', verifyToken, async (req: AuthenticatedRequest, res: express.Response) => {
   const { uid, otherUid } = req.body;
   const myUid = uid ?? req.user?.uid;
 
@@ -229,7 +235,7 @@ app.post('/removeMatch', verifyToken, async (req: any, res) => {
   }
 });
 
-app.get('/users', verifyToken, (req: any, res) => {
+app.get('/users', verifyToken, (req: AuthenticatedRequest, res: express.Response) => {
   admin
     .auth()
     .listUsers()
@@ -253,7 +259,7 @@ app.get('/users', verifyToken, (req: any, res) => {
     });
 });
 
-app.get('/legacy-users', verifyToken, (req: any, res) => {
+app.get('/legacy-users', verifyToken, (req: AuthenticatedRequest, res: express.Response) => {
   if (!isPrivilegedUser(req)) {
     res.sendStatus(403);
     return;
@@ -274,13 +280,13 @@ app.get('/legacy-users', verifyToken, (req: any, res) => {
       }));
       res.json(users);
     })
-    .catch((error) => {
+    .catch((error: unknown) => {
       console.error('Hiba történt a felhasználók lekérésekor:', error);
       res.sendStatus(500);
     });
 });
 
-app.get('/users/:uid/claims', verifyToken, (req: any, res) => {
+app.get('/users/:uid/claims', verifyToken, (req: AuthenticatedRequest, res: express.Response) => {
   const { uid } = req.params;
 
   if (!canAccessUser(req, uid)) {
@@ -294,13 +300,13 @@ app.get('/users/:uid/claims', verifyToken, (req: any, res) => {
     .then((userRecord) => {
       res.json(sanitizeUserClaims(userRecord.customClaims ?? {}));
     })
-    .catch((error) => {
+    .catch((error: unknown) => {
       console.error('Hiba tÃ¶rtÃ©nt a felhasznÃ¡lÃ³ lekÃ©rdezÃ©sekor:', error);
       res.sendStatus(500);
     });
 });
 
-app.get('/legacy-users/:uid/claims', verifyToken, (req: any, res) => {
+app.get('/legacy-users/:uid/claims', verifyToken, (req: AuthenticatedRequest, res: express.Response) => {
   const { uid } = req.params;
 
   if (!canAccessUser(req, uid)) {
@@ -314,7 +320,7 @@ app.get('/legacy-users/:uid/claims', verifyToken, (req: any, res) => {
     .then((userRecord) => {
       res.json(userRecord.customClaims);
     })
-    .catch((error) => {
+    .catch((error: unknown) => {
       console.error('Hiba történt a felhasználó lekérdezésekor:', error);
       res.sendStatus(500);
     });
