@@ -146,11 +146,18 @@ export class AdminPage implements OnInit {
     this.selectedReport.set(report);
     this.activePanel.set('conversations');
     this.loading.set(true);
+    this.error.set(null);
 
     try {
       this.selectedConversation.set(
         await this.adminRepository.loadConversationForReport(report)
       );
+      if (!this.selectedConversation()) {
+        this.error.set('Conversation could not be found for this report.');
+      }
+    } catch (error) {
+      console.error(error);
+      this.error.set('Conversation could not be loaded.');
     } finally {
       this.loading.set(false);
     }

@@ -118,7 +118,8 @@
       "aboutMe": "About me",
       "lookingForType": "What I am looking for",
       "interests": "Interests",
-      "freeTime": "Free time"
+      "freeTime": "Free time",
+      "adminPanel": "Admin panel"
     }
   },
   "privacy": {

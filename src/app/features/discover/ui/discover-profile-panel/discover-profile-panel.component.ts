@@ -1,5 +1,6 @@
 import { Component, EventEmitter, Input, Output } from '@angular/core';
 import { FormsModule } from '@angular/forms';
+import { RouterLink } from '@angular/router';
 import {
   IonButton,
   IonCard,
@@ -33,7 +34,12 @@ import {
 import { Options } from '../../../../shared/models/options.model';
 import { UserClass } from '../../../../shared/models/user.model';
 import { addIcons } from 'ionicons';
-import { diamondOutline, sparklesOutline, trashOutline } from 'ionicons/icons';
+import {
+  diamondOutline,
+  shieldCheckmarkOutline,
+  sparklesOutline,
+  trashOutline,
+} from 'ionicons/icons';
 import { BillingCurrent } from '../../../billing/data-access/billing.repository';
 
 export type ProfileChoiceSelectedEvent = {
@@ -47,6 +53,7 @@ export type ProfileChoiceSelectedEvent = {
   standalone: true,
   imports: [
     FormsModule,
+    RouterLink,
     TranslocoDirective,
     IonButton,
     IonCard,
@@ -88,6 +95,7 @@ export class DiscoverProfilePanelComponent {
   @Input() isPremium = false;
   @Input() activeEntitlements: string[] = [];
   @Input() superLikesBalance = 0;
+  @Input() canOpenAdmin = false;
 
   @Output() startUpdateRequested = new EventEmitter<void>();
   @Output() profilePictureOpened = new EventEmitter<number>();
@@ -98,7 +106,12 @@ export class DiscoverProfilePanelComponent {
   @Output() choicesSelected = new EventEmitter<ProfileChoiceSelectedEvent>();
 
   constructor() {
-    addIcons({ diamondOutline, sparklesOutline, trashOutline })
+    addIcons({
+      diamondOutline,
+      shieldCheckmarkOutline,
+      sparklesOutline,
+      trashOutline,
+    })
   }
 
   dateTriggerId(key: string) {

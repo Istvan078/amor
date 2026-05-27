@@ -48,9 +48,15 @@
               <ion-icon name="exit-outline" slot="start"></ion-icon>
               {{ t('common.signOut') }}
             </ion-button>
+            @if (canOpenAdmin) {
+              <ion-button class="profile-admin-button" routerLink="/admin" fill="outline">
+                <ion-icon name="shield-checkmark-outline" slot="start"></ion-icon>
+                {{ t('discover.profile.adminPanel') }}
+              </ion-button>
+            }
           </div>
 
-          @if (hasBillingSummary()) {
+          @if (hasBillingSummary() && options.phoneView) {
             <section class="profile-billing-summary">
               <div class="profile-billing-icon">
                 <ion-icon name="diamond-outline"></ion-icon>

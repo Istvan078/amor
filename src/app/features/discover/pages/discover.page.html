@@ -18,11 +18,7 @@
       (promotionSelected)="openPaywall($event)"
     ></app-discover-sidebar>
 
-    <div
-      id="main-view-container"
-      class="m-0 p-0"
-      [class.is-message-view]="isShowMessages"
-    >
+    <div id="main-view-container" class="m-0 p-0" [class.is-message-view]="isShowMessages">
       @if(!isUserCardOpen) {
       <ion-grid class="m-0 p-0">
         <ion-row class="m-0 p-0 ion-justify-content-center">
@@ -76,6 +72,7 @@
         [isPremium]="billingStore.isPremium()"
         [activeEntitlements]="billingStore.activeEntitlements()"
         [superLikesBalance]="billingStore.superLikesBalance()"
+        [canOpenAdmin]="canOpenAdminPanelResult"
         (startUpdateRequested)="startUpdateUserProf()"
         (profilePictureOpened)="showProfPics($event)"
         (picturesSaved)="savePictures()"

@@ -51,6 +51,7 @@ import { MatchActionsStore } from '../../matching/store/match-actions.store';
 import { PromoStore } from '../../promotions/store/promo.store';
 import { PaywallComponent } from '../../billing/ui/paywall/paywall.component';
 import { BillingStore } from '../../billing/store/billing.store';
+import { Auth } from '@angular/fire/auth';
 
 @Component({
   selector: 'app-discover',
@@ -105,6 +106,8 @@ export class DiscoverPage implements OnInit {
   isRewindLocked = false;
   canSuperLike = false;
 
+  canOpenAdminPanelResult = false;
+
   private loadedDiscoverUid: string | null = null;
   private loadingDiscoverUid: string | null = null;
   private matchPreviewRequestId = 0;
@@ -113,6 +116,7 @@ export class DiscoverPage implements OnInit {
   private promoBottomSheetShownForUid: string | null = null;
 
   private authStore = inject(AuthStore);
+  private auth = inject(Auth);
   private profileStore = inject(ProfileStore);
   readonly discoverStore = inject(DiscoverStore);
   private discoverUiStore = inject(DiscoverUiStore);
@@ -128,6 +132,11 @@ export class DiscoverPage implements OnInit {
   private alertCtrl = inject(AlertController);
   private discoverRepository = inject(DiscoverRepository);
   private profilePicturesRepository = inject(ProfilePicturesRepository);
+
+  async canOpenAdminPanel() {
+    const claims = await this.auth.currentUser?.getIdTokenResult(true);
+    this.canOpenAdminPanelResult = claims?.claims?.['admin'] === true || claims?.claims?.['moderator'] === true;
+  }
 
   constructor() {
     effect(() => {
@@ -205,6 +214,7 @@ export class DiscoverPage implements OnInit {
   async ngOnInit() {
     this.updatePhoneView();
     this.setPromotion();
+    void this.canOpenAdminPanel();
 
     await this.ensureDiscoverData(this.authStore.user()?.uid);
   }

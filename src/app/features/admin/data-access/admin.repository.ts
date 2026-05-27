@@ -49,10 +49,14 @@ export type AdminConversationMessage = {
   number: number;
 };
 
-export type AdminConversation = {
+export type AdminConversationSummary = {
   id: string;
   participants: string[];
   lastMessage: unknown;
+  updatedAt: unknown;
+};
+
+export type AdminConversation = AdminConversationSummary & {
   messages: AdminConversationMessage[];
 };
 
@@ -153,6 +157,35 @@ export class AdminRepository {
     });
   }
 
+  async loadConversationSummaries(): Promise<AdminConversationSummary[]> {
+    return this.runInFirebaseContext(async () => {
+      const conversationsSnapshot = await getDocs(
+        collection(this.firestore, 'conversations')
+      );
+
+      return conversationsSnapshot.docs
+        .map((conversationSnapshot) => {
+          const data = conversationSnapshot.data() as {
+            participants?: unknown;
+            lastMessage?: unknown;
+            updatedAt?: unknown;
+          };
+
+          return {
+            id: conversationSnapshot.id,
+            participants: this.toStringArray(data.participants),
+            lastMessage: data.lastMessage ?? null,
+            updatedAt: data.updatedAt ?? null,
+          };
+        })
+        .sort(
+          (a, b) =>
+            this.toMillis(b.updatedAt) -
+            this.toMillis(a.updatedAt)
+        );
+    });
+  }
+
   async updateReportStatus(
     report: AdminReport,
     status: ModerationReportStatus
@@ -249,12 +282,34 @@ export class AdminRepository {
       report.reporterUid,
       report.reportedUid
     );
+    const directConversation = await this.loadConversation(conversationId);
 
+    if (directConversation) {
+      return directConversation;
+    }
+
+    const participants = [report.reporterUid, report.reportedUid].sort((a, b) =>
+      a.localeCompare(b)
+    );
+    const matchingConversation = (await this.loadConversationSummaries()).find(
+      (conversation) =>
+        conversation.participants.length === participants.length &&
+        conversation.participants
+          .slice()
+          .sort((a, b) => a.localeCompare(b))
+          .every((participant, index) => participant === participants[index])
+    );
+
+    return matchingConversation
+      ? this.loadConversation(matchingConversation.id)
+      : null;
+  }
+
+  async loadConversation(
+    conversationId: string
+  ): Promise<AdminConversation | null> {
     return this.runInFirebaseContext(async () => {
-      const conversationRef = doc(
-        this.firestore,
-        `conversations/${conversationId}`
-      );
+      const conversationRef = doc(this.firestore, `conversations/${conversationId}`);
       const conversationSnapshot = await getDoc(conversationRef);
 
       if (!conversationSnapshot.exists()) {
@@ -262,18 +317,14 @@ export class AdminRepository {
       }
 
       const conversationData = conversationSnapshot.data() as {
-        participants?: string[];
+        participants?: unknown;
         lastMessage?: unknown;
+        updatedAt?: unknown;
       };
       const messagesRef = collection(conversationRef, 'messages');
-      const messagesQuery = query(messagesRef, orderBy('number', 'asc'));
-      const messagesSnapshot = await getDocs(messagesQuery);
-
-      return {
-        id: conversationSnapshot.id,
-        participants: this.toStringArray(conversationData.participants),
-        lastMessage: conversationData.lastMessage ?? null,
-        messages: messagesSnapshot.docs.map((messageSnapshot) => {
+      const messagesSnapshot = await getDocs(messagesRef);
+      const messages = messagesSnapshot.docs
+        .map((messageSnapshot) => {
           const data = messageSnapshot.data();
 
           return {
@@ -283,7 +334,19 @@ export class AdminRepository {
             sentAt: data['sentAt'] ?? null,
             number: Number(data['number'] ?? 0),
           };
-        }),
+        })
+        .sort(
+          (a, b) =>
+            a.number - b.number ||
+            this.toMillis(a.sentAt) - this.toMillis(b.sentAt)
+      );
+
+      return {
+        id: conversationSnapshot.id,
+        participants: this.toStringArray(conversationData.participants),
+        lastMessage: conversationData.lastMessage ?? null,
+        updatedAt: conversationData.updatedAt ?? null,
+        messages,
       };
     });
   }
@@ -362,6 +425,32 @@ export class AdminRepository {
     return Array.isArray(values)
       ? values.filter((value): value is string => typeof value === 'string')
       : [];
+  }
+
+  private toMillis(value: unknown) {
+    if (!value) {
+      return 0;
+    }
+
+    if (value instanceof Date) {
+      return value.getTime();
+    }
+
+    if (typeof value === 'object') {
+      const maybeTimestamp = value as { toDate?: () => Date };
+
+      if (typeof maybeTimestamp.toDate === 'function') {
+        return maybeTimestamp.toDate().getTime();
+      }
+    }
+
+    if (typeof value === 'string' || typeof value === 'number') {
+      const date = new Date(value);
+
+      return Number.isNaN(date.getTime()) ? 0 : date.getTime();
+    }
+
+    return 0;
   }
 
   private runInFirebaseContext<T>(callback: () => T): T {

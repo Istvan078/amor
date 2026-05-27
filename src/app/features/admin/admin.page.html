@@ -189,11 +189,14 @@
           <button
             type="button"
             class="admin-report-card"
+            [class.is-active]="selectedReport()?.id === report.id"
             (click)="openConversation(report)"
           >
             <strong>{{ getUserName(report.reporterUid) }}</strong>
             <small>with {{ getUserName(report.reportedUid) }}</small>
           </button>
+        } @empty {
+          <p class="admin-empty">There are no report conversations yet.</p>
         }
       </div>
 

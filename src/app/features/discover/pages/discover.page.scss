@@ -1154,6 +1154,22 @@ app-discover {
     --background: rgba(255, 255, 255, 0.04);
   }
 
+  .profile-admin-button {
+    --border-color: rgba(242, 199, 110, 0.32);
+    --background: linear-gradient(
+      135deg,
+      rgba(242, 199, 110, 0.13),
+      rgba(53, 198, 189, 0.1)
+    );
+    --background-hover: linear-gradient(
+      135deg,
+      rgba(242, 199, 110, 0.2),
+      rgba(53, 198, 189, 0.16)
+    );
+    --color: var(--amor-text);
+    filter: drop-shadow(0 12px 24px rgba(242, 199, 110, 0.1));
+  }
+
   .profile-info-panel,
   .profile-editor-panel {
     padding: 22px;

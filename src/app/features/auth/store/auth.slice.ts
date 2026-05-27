@@ -10,6 +10,8 @@ export type AuthUser = {
 };
 
 export type UserClaims = {
+    admin?: boolean;
+    moderator?: boolean;
     gender?: 'No' | 'Ferfi' | 'Egyeb' | string;
     lookingForGender?: 'No' | 'Ferfi' | 'Egyeb' | string;
     lookingForDistance?: number;
