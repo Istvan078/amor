@@ -17,7 +17,7 @@ import { firstValueFrom } from 'rxjs';
 import { environment } from '../../../../environments/environment';
 import { AuthUser } from '../../auth/store/auth.slice';
 import { BillingCurrent } from '../../billing/data-access/billing.repository';
-import { ModerationReportStatus } from '../../moderation/data-access/moderation.repository';
+import { ModerationReportStatus } from '../../moderation/models/moderation.model';
 
 export type AdminReport = {
   id: string;
@@ -339,7 +339,7 @@ export class AdminRepository {
           (a, b) =>
             a.number - b.number ||
             this.toMillis(a.sentAt) - this.toMillis(b.sentAt)
-      );
+        );
 
       return {
         id: conversationSnapshot.id,

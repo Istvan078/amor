@@ -24,7 +24,7 @@ import {
   AdminRepository,
   AdminUser,
 } from './data-access/admin.repository';
-import { ModerationReportStatus } from '../moderation/data-access/moderation.repository';
+import { ModerationReportStatus } from '../moderation/models/moderation.model';
 
 type AdminPanel = 'reports' | 'users' | 'conversations' | 'billing';
 type ReportStatusFilter = ModerationReportStatus | 'all';
@@ -120,8 +120,8 @@ export class AdminPage implements OnInit {
       this.conversations.set(conversations);
       this.selectedReport.set(
         reports.find((report) => report.id === previousSelectedReportId) ??
-          reports[0] ??
-          null
+        reports[0] ??
+        null
       );
       this.selectedUser.set(users[0] ?? null);
 

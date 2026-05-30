@@ -12,28 +12,7 @@ import {
 import { firstValueFrom } from 'rxjs';
 
 import { environment } from '../../../../environments/environment';
-export type ModerationReportStatus =
-    | 'open'
-    | 'reviewed'
-    | 'dismissed'
-    | 'action_taken';
-
-export type ModerationReport = {
-    reportId: string;
-    reporterUid: string;
-    reportedUid: string;
-    reason: string;
-    description: string;
-    createdAt: unknown;
-    status: ModerationReportStatus;
-};
-
-export type CreateModerationReportInput = {
-    reporterUid: string;
-    reportedUid: string;
-    reason: string;
-    description: string;
-};
+import { CreateModerationReportInput, ModerationReport } from '../models/moderation.model';
 
 @Injectable({
     providedIn: 'root',

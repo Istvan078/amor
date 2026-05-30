@@ -194,8 +194,6 @@ export const DiscoverStore = signalStore(
                     );
                 }
 
-                await locationService.delay(1000);
-
                 const matchLat = Number(matchLocation?.lat ?? matchLocation?.latt);
                 const matchLon = Number(matchLocation?.lon ?? matchLocation?.longt);
 

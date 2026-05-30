@@ -9,21 +9,12 @@ import {
 import { MatchParts, UserClass } from '../../../shared/models/user.model';
 import { ProfileStore } from '../../profile/store/profile.store';
 import {
-    ModerationReport,
     ModerationRepository,
 } from '../data-access/moderation.repository';
+import { initialModerationState } from './moderation.slice';
+import { setModerationError, setModerationLastReport, setModerationLoaded, setModerationLoading } from './moderation.updaters';
 
-type ModerationState = {
-    loading: boolean;
-    error: string | null;
-    lastReport: ModerationReport | null;
-};
 
-const initialState: ModerationState = {
-    loading: false,
-    error: null,
-    lastReport: null,
-};
 
 function ensureMatchParts(profile: UserClass) {
     profile.matchParts ??= new MatchParts();
@@ -48,7 +39,7 @@ export const ModerationStore = signalStore(
     {
         providedIn: 'root',
     },
-    withState(initialState),
+    withState(initialModerationState),
     withMethods((
         store,
         repository = inject(ModerationRepository),
@@ -64,19 +55,15 @@ export const ModerationStore = signalStore(
                 matchProfile.uid
             );
 
-            patchState(store, { loading: true, error: null });
+            patchState(store, setModerationLoading());
 
             try {
                 await profileStore.updateProfile(userProfile.uid, { blockedUsers });
                 userProfile.blockedUsers = blockedUsers;
-                patchState(store, { loading: false });
+                patchState(store, setModerationLoaded());
                 return blockedUsers;
             } catch (error) {
-                console.error(error);
-                patchState(store, {
-                    loading: false,
-                    error: 'Failed to block user.',
-                });
+                patchState(store, setModerationError('Failed to block user.'));
                 throw error;
             }
         },
@@ -90,19 +77,15 @@ export const ModerationStore = signalStore(
                 (uid) => uid !== matchProfile.uid
             );
 
-            patchState(store, { loading: true, error: null });
+            patchState(store, setModerationLoading());
 
             try {
                 await profileStore.updateProfile(userProfile.uid, { blockedUsers });
                 userProfile.blockedUsers = blockedUsers;
-                patchState(store, { loading: false });
+                patchState(store, setModerationLoaded());
                 return blockedUsers;
             } catch (error) {
-                console.error(error);
-                patchState(store, {
-                    loading: false,
-                    error: 'Failed to unblock user.',
-                });
+                patchState(store, setModerationError('Failed to unblock user.'));
                 throw error;
             }
         },
@@ -125,7 +108,7 @@ export const ModerationStore = signalStore(
                 matchParts.notLiked.push(matchUid);
             }
 
-            patchState(store, { loading: true, error: null });
+            patchState(store, setModerationLoading());
 
             try {
                 const persistedMatchParts =
@@ -135,14 +118,10 @@ export const ModerationStore = signalStore(
                     );
                 Object.assign(matchParts, persistedMatchParts);
                 userProfile.matchParts = matchParts;
-                patchState(store, { loading: false });
+                patchState(store, setModerationLoaded());
                 return matchParts;
             } catch (error) {
-                console.error(error);
-                patchState(store, {
-                    loading: false,
-                    error: 'Failed to remove match.',
-                });
+                patchState(store, setModerationError('Failed to remove match.'));
                 throw error;
             }
         },
@@ -170,7 +149,7 @@ export const ModerationStore = signalStore(
                     .filter(Boolean)
                     .join(' ') || matchProfile.uid}`;
 
-            patchState(store, { loading: true, error: null });
+            patchState(store, setModerationLoading());
 
             try {
                 const report = await repository.createReport({
@@ -185,20 +164,14 @@ export const ModerationStore = signalStore(
                 });
 
                 userProfile.reportedUsers = reportedUsers;
-                patchState(store, {
-                    loading: false,
-                    lastReport: report,
-                });
+                patchState(store, setModerationLastReport(report));
 
                 return report;
             } catch (error) {
-                console.error(error);
-                patchState(store, {
-                    loading: false,
-                    error: 'Failed to report user.',
-                });
+                patchState(store, setModerationError('Failed to report user.'));
                 throw error;
             }
         },
-    }))
+    }
+    )),
 );
