@@ -24,6 +24,7 @@ import { ConfigService } from '../../../services/config.service';
 import { LocationService } from '../../../services/location.service';
 import { MessageComponent } from '../../messages/ui/message/message.component';
 import { AuthStore } from '../../auth/store/auth.store';
+import { AnalyticsService } from '../../analytics/data-access/analytics.service';
 import { DiscoverRepository } from '../data-access/discover.repository';
 import { DiscoverStore } from '../store/discover.store';
 import { DiscoverUiStore } from '../store/discover-ui.store';
@@ -52,7 +53,6 @@ import { DailyUsageStore } from '../../usage/store/daily-usage.store';
 import { PaywallComponent } from '../../billing/ui/paywall/paywall.component';
 import { BillingStore } from '../../billing/store/billing.store';
 import { UserClaims } from '../../auth/store/auth.slice';
-import { Auth } from '@angular/fire/auth';
 
 @Component({
   selector: 'app-discover',
@@ -114,7 +114,7 @@ export class DiscoverPage implements OnInit, OnDestroy {
   private promoBottomSheetShownForUid: string | null = null;
 
   private authStore = inject(AuthStore);
-  private auth = inject(Auth);
+  private analytics = inject(AnalyticsService);
   private profileStore = inject(ProfileStore);
   readonly discoverStore = inject(DiscoverStore);
   private discoverUiStore = inject(DiscoverUiStore);
@@ -133,14 +133,10 @@ export class DiscoverPage implements OnInit, OnDestroy {
   private discoverRepository = inject(DiscoverRepository);
   private profilePicturesRepository = inject(ProfilePicturesRepository);
 
-  async canOpenAdminPanel() {
-    const claims = await this.auth.currentUser?.getIdTokenResult();
-    this.canOpenAdminPanelResult = claims?.claims?.['admin'] === true || claims?.claims?.['moderator'] === true;
-  }
-
   constructor() {
     effect(() => {
       this.user = this.authStore.user();
+      this.canOpenAdminPanelResult = this.authStore.canModerate();
 
       const uid = this.user?.uid ?? null;
 
@@ -223,7 +219,6 @@ export class DiscoverPage implements OnInit, OnDestroy {
   async ngOnInit() {
     this.updatePhoneView();
     this.setPromotion();
-    void this.canOpenAdminPanel();
 
     await this.ensureDiscoverData(this.authStore.user()?.uid);
   }
@@ -421,6 +416,10 @@ export class DiscoverPage implements OnInit, OnDestroy {
   }
 
   async openPaywall(promotion?: Promotions) {
+    void this.analytics.track(this.userProf?.uid ?? this.user?.uid, 'paywall_opened', {
+      promotionId: promotion?.['id'] ?? null,
+    });
+
     const modal = await this.modalCtrl.create({
       component: PaywallComponent,
       componentProps: {
@@ -714,6 +713,16 @@ export class DiscoverPage implements OnInit, OnDestroy {
       return;
     }
 
+    void this.analytics.track(uid, 'profile_updated', {
+      completionPercent: this.getProfileCompletionPercent(userProf),
+    });
+
+    if (this.getProfileCompletionPercent(userProf) >= 80) {
+      void this.analytics.track(uid, 'profile_completed', {
+        completionPercent: this.getProfileCompletionPercent(userProf),
+      });
+    }
+
     this.startUpdUserProf = false;
     this.discoverUiStore.showMatchesCard();
     this.loadedDiscoverUid = null;
@@ -728,6 +737,22 @@ export class DiscoverPage implements OnInit, OnDestroy {
     }
 
     await this.ensureDiscoverData(uid);
+  }
+
+  private getProfileCompletionPercent(profile: Partial<UserClass>) {
+    const checks = [
+      !!profile.firstName,
+      !!profile.lastName,
+      !!profile.gender,
+      !!profile.lookingForGender,
+      !!profile.birthDate,
+      !!profile.currentPlace,
+      !!profile.aboutMe,
+      !!profile.profilePicture || !!profile.pictures?.length,
+    ];
+    const complete = checks.filter(Boolean).length;
+
+    return Math.round((complete / checks.length) * 100);
   }
 
   private async buildClaimsFromProfile(

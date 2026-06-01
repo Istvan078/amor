@@ -17,6 +17,13 @@ import {
 
 import { Message } from '../../../shared/models/message.model';
 
+export type ConversationPreviewData = {
+    hasMessages: boolean;
+    isLastMessageMine: boolean;
+    lastMessage: string;
+    unreadCount: number;
+};
+
 @Injectable({
     providedIn: 'root',
 })
@@ -31,6 +38,44 @@ export class MessagesRepository {
         _matchEmail: string
     ) {
         return this.getConversationMessages(myUid, matchUid);
+    }
+
+    listenToConversationPreview(
+        myUid: string,
+        matchUid: string,
+        onPreview: (preview: ConversationPreviewData) => void,
+        onError?: (error: unknown) => void
+    ) {
+        const conversationId = this.getConversationId(myUid, matchUid);
+
+        return this.runInFirebaseContext(() => {
+            const conversationRef = doc(
+                this.firestore,
+                `conversations/${conversationId}`
+            );
+
+            return onSnapshot(
+                conversationRef,
+                (snapshot) => {
+                    if (!snapshot.exists()) {
+                        onPreview(this.emptyConversationPreview());
+                        return;
+                    }
+
+                    const data = snapshot.data() as Record<string, unknown>;
+                    const lastMessage = this.mapLastMessage(data['lastMessage']);
+                    const unreadCounts = this.toRecord(data['unreadCounts']);
+
+                    onPreview({
+                        hasMessages: !!lastMessage?.text,
+                        isLastMessageMine: lastMessage?.senderUid === myUid,
+                        lastMessage: lastMessage?.text ?? '',
+                        unreadCount: Number(unreadCounts[myUid] ?? 0),
+                    });
+                },
+                (error) => onError?.(error)
+            );
+        });
     }
 
     listenToMessages(
@@ -285,6 +330,37 @@ export class MessagesRepository {
         message.isEdited = data['isEdited'] === true;
 
         return message;
+    }
+
+    private emptyConversationPreview(): ConversationPreviewData {
+        return {
+            hasMessages: false,
+            isLastMessageMine: false,
+            lastMessage: '',
+            unreadCount: 0,
+        };
+    }
+
+    private mapLastMessage(value: unknown) {
+        if (!value || typeof value !== 'object') {
+            return null;
+        }
+
+        const lastMessage = value as {
+            senderUid?: unknown;
+            text?: unknown;
+        };
+
+        return {
+            senderUid: String(lastMessage.senderUid ?? ''),
+            text: String(lastMessage.text ?? ''),
+        };
+    }
+
+    private toRecord(value: unknown): Record<string, unknown> {
+        return value && typeof value === 'object'
+            ? (value as Record<string, unknown>)
+            : {};
     }
 
     private toDate(value: unknown) {

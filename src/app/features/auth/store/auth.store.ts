@@ -24,6 +24,11 @@ export const AuthStore = signalStore(
         hasClaims: computed(() => !!store.claims()),
         uid: computed(() => store.user()?.uid ?? null),
         email: computed(() => store.user()?.email ?? null),
+        canModerate: computed(() => {
+            const claims = store.claims() ?? store.user()?.claims;
+
+            return claims?.admin === true || claims?.moderator === true;
+        }),
     })),
 
     withMethods((store, repository = inject(AuthRepository)) => {

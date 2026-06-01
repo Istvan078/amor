@@ -2,6 +2,7 @@ import { inject } from '@angular/core';
 import { signalStore, withMethods, withState } from '@ngrx/signals';
 
 import { MatchParts, UserClass } from '../../../shared/models/user.model';
+import { AnalyticsService } from '../../analytics/data-access/analytics.service';
 import { BillingStore } from '../../billing/store/billing.store';
 import { ProfileStore } from '../../profile/store/profile.store';
 import { DailyUsageStore } from '../../usage/store/daily-usage.store';
@@ -78,7 +79,8 @@ export const MatchActionsStore = signalStore(
         store,
         profileStore = inject(ProfileStore),
         billingStore = inject(BillingStore),
-        dailyUsageStore = inject(DailyUsageStore)
+        dailyUsageStore = inject(DailyUsageStore),
+        analytics = inject(AnalyticsService)
     ) => ({
         hasPremiumAccess(profile?: UserClass | null) {
             return isPremiumProfile(profile, billingStore);
@@ -209,6 +211,11 @@ export const MatchActionsStore = signalStore(
                 userProfile.setDataForFireStore()
             );
             profileStore.setProfile(userProfile);
+            void analytics.track(
+                userProfile.uid,
+                isDontLike ? 'match_passed' : 'match_liked',
+                { matchUid: matchProfile.uid }
+            );
 
             return true;
         },
@@ -239,6 +246,9 @@ export const MatchActionsStore = signalStore(
                 userProfile.setDataForFireStore()
             );
             profileStore.setProfile(userProfile);
+            void analytics.track(userProfile.uid, 'match_rewind_used', {
+                matchUid: previousMatch.uid,
+            });
 
             return true;
         },
@@ -272,6 +282,9 @@ export const MatchActionsStore = signalStore(
                 userProfile.setDataForFireStore()
             );
             profileStore.setProfile(userProfile);
+            void analytics.track(userProfile.uid, 'match_super_liked', {
+                matchUid: matchProfile.uid,
+            });
 
             return true;
         },

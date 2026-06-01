@@ -92,6 +92,28 @@ service cloud.firestore {
         allow create, update: if isOwner(uid);
         allow delete: if false;
       }
+
+      match /analytics/{eventId} {
+        allow read: if isOwner(uid) || isAdminOrModerator();
+        allow create: if isOwner(uid)
+          && request.resource.data.keys().hasOnly([
+            'eventName',
+            'properties',
+            'clientCreatedAt',
+            'createdAt'
+          ])
+          && request.resource.data.keys().hasAll([
+            'eventName',
+            'properties',
+            'clientCreatedAt',
+            'createdAt'
+          ])
+          && request.resource.data.eventName is string
+          && request.resource.data.properties is map
+          && request.resource.data.clientCreatedAt is string
+          && request.resource.data.createdAt is timestamp;
+        allow update, delete: if false;
+      }
     }
 
     match /matchIndex/{uid} {

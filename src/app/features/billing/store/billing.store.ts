@@ -12,6 +12,7 @@ import {
   BillingPackage,
   BillingRepository,
 } from '../data-access/billing.repository';
+import { AnalyticsService } from '../../analytics/data-access/analytics.service';
 
 type BillingState = {
   uid: string | null;
@@ -70,7 +71,11 @@ export const BillingStore = signalStore(
     hasSuperLikes: computed(() => store.superLikesBalance() > 0),
   })),
 
-  withMethods((store, repository = inject(BillingRepository)) => {
+  withMethods((
+    store,
+    repository = inject(BillingRepository),
+    analytics = inject(AnalyticsService)
+  ) => {
     let initializedUid: string | null = null;
 
     return {
@@ -165,6 +170,7 @@ export const BillingStore = signalStore(
           purchasing: true,
           error: null,
         });
+        void analytics.track(uid, 'purchase_started', { packageId });
 
         try {
           const result = await repository.purchasePackage(uid, packageId);
@@ -174,16 +180,21 @@ export const BillingStore = signalStore(
             error: null,
           });
           patchBillingCurrent(store, result.current);
+          void analytics.track(uid, 'purchase_completed', { packageId });
 
           return true;
         } catch (error) {
           console.error(error);
+          const isCancelled = repository.isPurchaseCancelled(error);
+          void analytics.track(
+            uid,
+            isCancelled ? 'purchase_cancelled' : 'purchase_failed',
+            { packageId }
+          );
 
           patchState(store, {
             purchasing: false,
-            error: repository.isPurchaseCancelled(error)
-              ? null
-              : 'billing.errors.purchaseFailed',
+            error: isCancelled ? null : 'billing.errors.purchaseFailed',
           });
 
           return false;
@@ -204,6 +215,7 @@ export const BillingStore = signalStore(
           restoring: true,
           error: null,
         });
+        void analytics.track(uid, 'restore_purchases_started');
 
         try {
           const result = await repository.restorePurchases(uid);
@@ -213,10 +225,14 @@ export const BillingStore = signalStore(
             error: null,
           });
           patchBillingCurrent(store, result.current);
+          void analytics.track(uid, 'restore_purchases_completed', {
+            isPremium: result.current?.isPremium ?? false,
+          });
 
           return true;
         } catch (error) {
           console.error(error);
+          void analytics.track(uid, 'restore_purchases_failed');
 
           patchState(store, {
             restoring: false,

@@ -8,6 +8,7 @@ import {
 
 import { Message } from '../../../shared/models/message.model';
 import { UserClass } from '../../../shared/models/user.model';
+import { AnalyticsService } from '../../analytics/data-access/analytics.service';
 import { MessagesRepository } from '../data-access/messages.repository';
 
 type MessagesState = {
@@ -29,7 +30,11 @@ export const MessagesStore = signalStore(
 
     withState(initialState),
 
-    withMethods((store, repository = inject(MessagesRepository)) => {
+    withMethods((
+        store,
+        repository = inject(MessagesRepository),
+        analytics = inject(AnalyticsService)
+    ) => {
         let unsubscribeMessages: (() => void) | null = null;
         let activeConversationId: string | null = null;
 
@@ -120,6 +125,12 @@ export const MessagesStore = signalStore(
                     matchProfile.uid,
                     message
                 );
+
+                void analytics.track(userProfile.uid, 'message_sent', {
+                    matchUid: matchProfile.uid,
+                    characterCount: message.message.trim().length,
+                    hasAttachments: !!message.attachments?.length,
+                });
             },
 
             clearMessages() {

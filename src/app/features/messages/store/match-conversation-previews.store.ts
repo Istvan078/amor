@@ -6,7 +6,6 @@ import {
     withState,
 } from '@ngrx/signals';
 
-import { Message } from '../../../shared/models/message.model';
 import { UserClass } from '../../../shared/models/user.model';
 import { MessagesRepository } from '../data-access/messages.repository';
 
@@ -31,27 +30,6 @@ function emptyConversationPreview(): MatchConversationPreview {
         isLastMessageMine: false,
         lastMessage: '',
         unreadCount: 0,
-    };
-}
-
-function buildConversationPreview(
-    messages: Message[],
-    userUid: string,
-    matchUid: string
-): MatchConversationPreview {
-    const lastMessage = messages.at(-1);
-    const unreadCount = messages.filter(
-        (message) =>
-            message.senderUid === matchUid &&
-            message.sentToUid === userUid &&
-            message.isRead !== true
-    ).length;
-
-    return {
-        hasMessages: messages.length > 0,
-        isLastMessageMine: lastMessage?.senderUid === userUid,
-        lastMessage: lastMessage?.message?.trim() ?? '',
-        unreadCount,
     };
 }
 
@@ -108,10 +86,10 @@ export const MatchConversationPreviewsStore = signalStore(
 
                 for (const match of matchProfiles) {
                     try {
-                        const unsubscribe = repository.listenToMessages(
+                        const unsubscribe = repository.listenToConversationPreview(
                             userProfile.uid,
                             match.uid,
-                            (messages) => {
+                            (preview) => {
                                 if (activeRequestId !== requestId) {
                                     return;
                                 }
@@ -119,11 +97,7 @@ export const MatchConversationPreviewsStore = signalStore(
                                 patchState(store, {
                                     previews: {
                                         ...store.previews(),
-                                        [match.uid]: buildConversationPreview(
-                                            messages,
-                                            userProfile.uid!,
-                                            match.uid
-                                        ),
+                                        [match.uid]: preview,
                                     },
                                 });
                             },
