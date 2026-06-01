@@ -1,9 +1,12 @@
 import { Injectable, Injector, inject, runInInjectionContext } from '@angular/core';
 import {
     Firestore,
+    addDoc,
     collection,
     doc,
     getDocs,
+    increment,
+    limit,
     onSnapshot,
     orderBy,
     query,
@@ -43,15 +46,21 @@ export class MessagesRepository {
                 this.firestore,
                 `conversations/${conversationId}/messages`
             );
-            const messagesQuery = query(messagesCollection, orderBy('number', 'asc'));
+            const messagesQuery = query(
+                messagesCollection,
+                orderBy('sentAt', 'desc'),
+                limit(30)
+            );
 
             return onSnapshot(
                 messagesQuery,
                 (snapshot) => {
                     onMessages(
-                        snapshot.docs.map((messageSnapshot) =>
-                            this.mapConversationMessage(messageSnapshot.data())
-                        )
+                        snapshot.docs
+                            .map((messageSnapshot) =>
+                                this.mapConversationMessage(messageSnapshot.data())
+                            )
+                            .reverse()
                     );
                 },
                 (error) => onError?.(error)
@@ -112,6 +121,49 @@ export class MessagesRepository {
         });
     }
 
+    async sendMessageWithMatch(
+        myUid: string,
+        matchUid: string,
+        message: Message
+    ) {
+        const conversationId = this.getConversationId(myUid, matchUid);
+        const participants = this.getConversationParticipants(myUid, matchUid);
+
+        await this.runInFirebaseContext(async () => {
+            const conversationRef = doc(
+                this.firestore,
+                `conversations/${conversationId}`
+            );
+            const messagesCollection = collection(conversationRef, 'messages');
+            const sentAt = serverTimestamp();
+
+            await setDoc(
+                conversationRef,
+                {
+                    participants,
+                    lastMessage: {
+                        senderUid: message.senderUid,
+                        sentToUid: message.sentToUid,
+                        text: message.message,
+                        number: message.number,
+                        sentAt,
+                    },
+                    unreadCounts: {
+                        [myUid]: 0,
+                        [matchUid]: increment(1),
+                    },
+                    updatedAt: sentAt,
+                },
+                { merge: true }
+            );
+
+            await addDoc(messagesCollection, {
+                ...this.mapMessageForConversation(message),
+                sentAt,
+            });
+        });
+    }
+
     async markConversationMessagesRead(myUid: string, matchUid: string) {
         const conversationId = this.getConversationId(myUid, matchUid);
 
@@ -145,6 +197,21 @@ export class MessagesRepository {
             if (hasUnreadMessages) {
                 await batch.commit();
             }
+
+            const conversationRef = doc(
+                this.firestore,
+                `conversations/${conversationId}`
+            );
+
+            await setDoc(
+                conversationRef,
+                {
+                    unreadCounts: {
+                        [myUid]: 0,
+                    },
+                },
+                { merge: true }
+            );
         });
     }
 
@@ -156,14 +223,20 @@ export class MessagesRepository {
                 this.firestore,
                 `conversations/${conversationId}/messages`
             );
-            const messagesQuery = query(messagesCollection, orderBy('number', 'asc'));
+            const messagesQuery = query(
+                messagesCollection,
+                orderBy('sentAt', 'desc'),
+                limit(30)
+            );
 
             return getDocs(messagesQuery);
         });
 
-        return snapshot.docs.map((messageSnapshot) =>
-            this.mapConversationMessage(messageSnapshot.data())
-        );
+        return snapshot.docs
+            .map((messageSnapshot) =>
+                this.mapConversationMessage(messageSnapshot.data())
+            )
+            .reverse();
     }
 
     getConversationId(uidA: string, uidB: string) {

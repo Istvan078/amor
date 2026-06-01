@@ -111,17 +111,14 @@ export const MessagesStore = signalStore(
                     return;
                 }
 
-                const messages = [...store.messages(), message];
-
                 patchState(store, {
-                    messages,
+                    messages: [...store.messages(), message],
                 });
 
-                await repository.saveMessagesWithMatch(
+                await repository.sendMessageWithMatch(
                     userProfile.uid,
-                    userProfile.email ?? '',
                     matchProfile.uid,
-                    messages
+                    message
                 );
             },
 

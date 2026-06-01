@@ -109,11 +109,11 @@ export class AdminPage implements OnInit {
     try {
       const previousSelectedReportId = this.selectedReport()?.id;
       const previousSelectedConversationId = this.selectedConversation()?.id;
-      const [reports, conversations] = await Promise.all([
-        this.adminRepository.loadReports(),
-        this.adminRepository.loadConversationSummaries(),
+      const reports = await this.adminRepository.loadReports();
+      const [users, conversations] = await Promise.all([
+        this.adminRepository.loadUsers(reports),
+        this.adminRepository.loadReportedConversationSummaries(reports),
       ]);
-      const users = await this.adminRepository.loadUsers(reports);
 
       this.reports.set(reports);
       this.users.set(users);
@@ -127,7 +127,13 @@ export class AdminPage implements OnInit {
 
       if (previousSelectedConversationId) {
         this.selectedConversation.set(
-          await this.adminRepository.loadConversation(previousSelectedConversationId)
+          conversations.some(
+            (conversation) => conversation.id === previousSelectedConversationId
+          )
+            ? await this.adminRepository.loadConversation(
+                previousSelectedConversationId
+              )
+            : null
         );
       }
 

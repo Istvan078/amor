@@ -8,6 +8,7 @@ import {
 } from '@ngrx/signals';
 
 import { UserClass } from '../../../shared/models/user.model';
+import { MatchIndexRepository } from '../../matching/data-access/match-index.repository';
 import { ProfileRepository } from '../data-access/profile.repository';
 
 type ProfileState = {
@@ -47,7 +48,11 @@ export const ProfileStore = signalStore(
         uid: computed(() => store.profile()?.uid ?? null),
     })),
 
-    withMethods((store, repository = inject(ProfileRepository)) => ({
+    withMethods((
+        store,
+        repository = inject(ProfileRepository),
+        matchIndexRepository = inject(MatchIndexRepository)
+    ) => ({
         setProfile(profile: UserClass | null) {
             patchState(store, {
                 profile: toUserClass(profile),
@@ -102,6 +107,10 @@ export const ProfileStore = signalStore(
 
             try {
                 await repository.createProfile(uid, profile);
+                await matchIndexRepository.upsertProfileIndex({
+                    uid,
+                    ...profile,
+                });
 
                 const createdProfile = toUserClass({
                     uid,
@@ -131,6 +140,11 @@ export const ProfileStore = signalStore(
 
             try {
                 await repository.updateProfile(uid, profile);
+                await matchIndexRepository.upsertProfileIndex({
+                    ...(store.profile() ?? {}),
+                    ...profile,
+                    uid,
+                });
 
                 const updatedProfile = toUserClass({
                     ...(store.profile() ?? {}),
@@ -164,6 +178,7 @@ export const ProfileStore = signalStore(
 
             try {
                 await repository.deleteProfile(uid);
+                await matchIndexRepository.deleteProfileIndex(uid);
             } catch (error) {
                 console.error(error)
                 patchState(store, {

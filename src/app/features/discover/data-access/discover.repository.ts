@@ -7,6 +7,7 @@ import {
 } from '@angular/fire/firestore';
 
 import { UserClass } from '../../../shared/models/user.model';
+import { MatchIndexRepository } from '../../matching/data-access/match-index.repository';
 
 @Injectable({
     providedIn: 'root',
@@ -14,6 +15,7 @@ import { UserClass } from '../../../shared/models/user.model';
 export class DiscoverRepository {
     private injector = inject(Injector);
     private firestore = inject(Firestore);
+    private matchIndexRepository = inject(MatchIndexRepository);
 
     async getUserProfile(uid: string): Promise<UserClass | undefined> {
         const snapshot = await this.runInFirebaseContext(() => {
@@ -55,6 +57,11 @@ export class DiscoverRepository {
             const profileRef = doc(this.firestore, `users/${uid}`);
 
             return updateDoc(profileRef, profile);
+        });
+
+        await this.matchIndexRepository.upsertProfileIndex({
+            uid,
+            ...profile,
         });
     }
 

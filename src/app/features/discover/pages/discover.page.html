@@ -5,7 +5,7 @@
       [userProfile]="userProf"
       [promotions]="promotions"
       [matches]="matches"
-      [conversationPreviews]="matchConversationPreviews"
+      [conversationPreviews]="matchConversationPreviewsStore.previews()"
       [selectedMatchUid]="selectedMessProf?.uid"
       [billingCurrent]="billingStore.current()"
       [isPremium]="billingStore.isPremium()"
@@ -29,7 +29,7 @@
                 [matches]="matches"
                 [options]="options"
                 [matchProfile]="selectedMessProf"
-                [conversationPreviews]="matchConversationPreviews"
+                [conversationPreviews]="matchConversationPreviewsStore.previews()"
                 (messageSent)="handleMessageSent($event)"
                 (matchRemoved)="handleMatchRemoved($event)"
               ></app-message>

@@ -86,6 +86,17 @@ service cloud.firestore {
         allow read: if isOwner(uid) || isAdminOrModerator();
         allow write: if isAdminOrModerator();
       }
+
+      match /usage/{date} {
+        allow read: if isOwner(uid) || isAdminOrModerator();
+        allow create, update: if isOwner(uid);
+        allow delete: if false;
+      }
+    }
+
+    match /matchIndex/{uid} {
+      allow read: if signedIn();
+      allow create, update, delete: if isOwner(uid) || isAdminOrModerator();
     }
 
     match /reports/{reportId} {

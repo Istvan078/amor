@@ -1,0 +1,126 @@
+import { inject } from '@angular/core';
+import {
+  patchState,
+  signalStore,
+  withMethods,
+  withState,
+} from '@ngrx/signals';
+
+import {
+  DailyUsageAction,
+  DailyUsageRepository,
+  getDailyUsageDateKey,
+} from '../data-access/daily-usage.repository';
+
+type DailyUsageState = {
+  uid: string | null;
+  date: string;
+  superLikesUsed: number;
+  rewindsUsed: number;
+  boostsUsed: number;
+  loading: boolean;
+  error: string | null;
+};
+
+const initialState: DailyUsageState = {
+  uid: null,
+  date: getDailyUsageDateKey(),
+  superLikesUsed: 0,
+  rewindsUsed: 0,
+  boostsUsed: 0,
+  loading: false,
+  error: null,
+};
+
+export const DailyUsageStore = signalStore(
+  {
+    providedIn: 'root',
+  },
+  withState(initialState),
+  withMethods((store, repository = inject(DailyUsageRepository)) => ({
+    async loadDailyUsage(uid: string) {
+      const date = getDailyUsageDateKey();
+
+      if (store.uid() === uid && store.date() === date) {
+        return;
+      }
+
+      patchState(store, {
+        uid,
+        date,
+        loading: true,
+        error: null,
+      });
+
+      try {
+        const usage = await repository.getDailyUsage(uid, date);
+
+        patchState(store, {
+          uid,
+          date,
+          superLikesUsed: usage.superLikesUsed,
+          rewindsUsed: usage.rewindsUsed,
+          boostsUsed: usage.boostsUsed,
+          loading: false,
+        });
+      } catch (error) {
+        console.error(error);
+
+        patchState(store, {
+          loading: false,
+          error: 'Failed to load daily usage.',
+        });
+      }
+    },
+
+    async incrementDailyUsage(uid: string, action: DailyUsageAction) {
+      const date = getDailyUsageDateKey();
+
+      try {
+        const usage = await repository.incrementDailyUsage(uid, action, date);
+
+        patchState(store, {
+          uid,
+          date,
+          superLikesUsed: usage.superLikesUsed,
+          rewindsUsed: usage.rewindsUsed,
+          boostsUsed: usage.boostsUsed,
+          loading: false,
+          error: null,
+        });
+      } catch (error) {
+        console.error(error);
+
+        patchState(store, {
+          loading: false,
+          error: 'Failed to update daily usage.',
+        });
+
+        throw error;
+      }
+    },
+
+    getActionCount(uid: string | undefined, action: DailyUsageAction) {
+      if (!uid || store.uid() !== uid || store.date() !== getDailyUsageDateKey()) {
+        return 0;
+      }
+
+      if (action === 'super-like') {
+        return Number(store.superLikesUsed() ?? 0);
+      }
+
+      if (action === 'boost') {
+        return Number(store.boostsUsed() ?? 0);
+      }
+
+      return Number(store.rewindsUsed() ?? 0);
+    },
+
+    clearDailyUsage() {
+      patchState(store, {
+        ...initialState,
+        date: getDailyUsageDateKey(),
+      });
+    },
+  }))
+);

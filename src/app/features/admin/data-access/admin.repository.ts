@@ -52,7 +52,12 @@ export type AdminConversationMessage = {
 export type AdminConversationSummary = {
   id: string;
   participants: string[];
-  lastMessage: unknown;
+  lastMessage: {
+    number: number;
+    senderUid: string;
+    sentToUid: string;
+    text: string;
+  } | null;
   updatedAt: unknown;
 };
 
@@ -157,14 +162,49 @@ export class AdminRepository {
     });
   }
 
-  async loadConversationSummaries(): Promise<AdminConversationSummary[]> {
+  async loadReportedConversationSummaries(
+    reports?: AdminReport[]
+  ): Promise<AdminConversationSummary[]> {
     return this.runInFirebaseContext(async () => {
-      const conversationsSnapshot = await getDocs(
-        collection(this.firestore, 'conversations')
-      );
+      const sourceReports =
+        reports ??
+        (await getDocs(collection(this.firestore, 'reports'))).docs.map(
+          (reportSnapshot) => {
+            const data = reportSnapshot.data() as Partial<AdminReport>;
 
-      return conversationsSnapshot.docs
-        .map((conversationSnapshot) => {
+            return {
+              id: reportSnapshot.id,
+              reportId: data.reportId ?? reportSnapshot.id,
+              reporterUid: data.reporterUid ?? '',
+              reportedUid: data.reportedUid ?? '',
+              reason: data.reason ?? 'other',
+              description: data.description ?? '',
+              createdAt: data.createdAt ?? null,
+              status: data.status ?? 'open',
+            };
+          }
+        );
+
+      const reportedConversationIds = [
+        ...new Set(
+          sourceReports
+            .filter((report) => report.reporterUid && report.reportedUid)
+            .map((report) =>
+              this.getConversationId(report.reporterUid, report.reportedUid)
+            )
+        ),
+      ];
+
+      const conversationPromises: Array<Promise<AdminConversationSummary | null>> =
+        reportedConversationIds.map(async (conversationId) => {
+          const conversationSnapshot = await getDoc(
+            doc(this.firestore, `conversations/${conversationId}`)
+          );
+
+          if (!conversationSnapshot.exists()) {
+            return null;
+          }
+
           const data = conversationSnapshot.data() as {
             participants?: unknown;
             lastMessage?: unknown;
@@ -174,15 +214,45 @@ export class AdminRepository {
           return {
             id: conversationSnapshot.id,
             participants: this.toStringArray(data.participants),
-            lastMessage: data.lastMessage ?? null,
+            lastMessage: this.mapLastMessage(data.lastMessage),
             updatedAt: data.updatedAt ?? null,
           };
-        })
-        .sort(
-          (a, b) =>
-            this.toMillis(b.updatedAt) -
-            this.toMillis(a.updatedAt)
-        );
+        });
+      const conversations = await Promise.all(conversationPromises);
+      const existingConversations = conversations.filter(
+        (conversation): conversation is AdminConversationSummary =>
+          conversation !== null
+      );
+
+      return existingConversations.sort(
+        (a, b) => this.toMillis(b.updatedAt) - this.toMillis(a.updatedAt)
+      );
+    });
+  }
+
+  async loadConversationSummaries(): Promise<AdminConversationSummary[]> {
+    return this.runInFirebaseContext(async () => {
+      const conversationsRef = collection(this.firestore, 'conversations');
+      const conversationsQuery = query(
+        conversationsRef,
+        orderBy('updatedAt', 'desc')
+      );
+      const snapshot = await getDocs(conversationsQuery);
+
+      return snapshot.docs.map((conversationSnapshot) => {
+        const data = conversationSnapshot.data() as {
+          participants?: unknown;
+          lastMessage?: unknown;
+          updatedAt?: unknown;
+        };
+
+        return {
+          id: conversationSnapshot.id,
+          participants: this.toStringArray(data.participants),
+          lastMessage: this.mapLastMessage(data.lastMessage),
+          updatedAt: data.updatedAt ?? null,
+        };
+      });
     });
   }
 
@@ -291,13 +361,18 @@ export class AdminRepository {
     const participants = [report.reporterUid, report.reportedUid].sort((a, b) =>
       a.localeCompare(b)
     );
-    const matchingConversation = (await this.loadConversationSummaries()).find(
-      (conversation) =>
+    const matchingConversation = (
+      await this.loadReportedConversationSummaries([report])
+    ).find(
+      (conversation: AdminConversationSummary) =>
         conversation.participants.length === participants.length &&
         conversation.participants
           .slice()
-          .sort((a, b) => a.localeCompare(b))
-          .every((participant, index) => participant === participants[index])
+          .sort((a: string, b: string) => a.localeCompare(b))
+          .every(
+            (participant: string, index: number) =>
+              participant === participants[index]
+          )
     );
 
     return matchingConversation
@@ -344,7 +419,7 @@ export class AdminRepository {
       return {
         id: conversationSnapshot.id,
         participants: this.toStringArray(conversationData.participants),
-        lastMessage: conversationData.lastMessage ?? null,
+        lastMessage: this.mapLastMessage(conversationData.lastMessage),
         updatedAt: conversationData.updatedAt ?? null,
         messages,
       };
@@ -425,6 +500,26 @@ export class AdminRepository {
     return Array.isArray(values)
       ? values.filter((value): value is string => typeof value === 'string')
       : [];
+  }
+
+  private mapLastMessage(value: unknown): AdminConversationSummary['lastMessage'] {
+    if (!value || typeof value !== 'object') {
+      return null;
+    }
+
+    const lastMessage = value as {
+      number?: unknown;
+      senderUid?: unknown;
+      sentToUid?: unknown;
+      text?: unknown;
+    };
+
+    return {
+      number: Number(lastMessage?.number ?? 0),
+      senderUid: String(lastMessage?.senderUid ?? ''),
+      sentToUid: String(lastMessage?.sentToUid ?? ''),
+      text: String(lastMessage?.text ?? ''),
+    };
   }
 
   private toMillis(value: unknown) {

@@ -12,6 +12,7 @@ import { LocationService } from '../../../services/location.service';
 import { MatchParts, UserClass } from '../../../shared/models/user.model';
 import { DiscoverRepository } from '../data-access/discover.repository';
 import { AuthUser, UserClaims } from '../../auth/store/auth.slice';
+import { MatchIndexRepository } from '../../matching/data-access/match-index.repository';
 
 type DiscoverState = {
     loggedUser: any | null;
@@ -47,6 +48,7 @@ export const DiscoverStore = signalStore(
         const profileStore = inject(ProfileStore);
         const locationService = inject(LocationService);
         const repository = inject(DiscoverRepository);
+        const matchIndexRepository = inject(MatchIndexRepository);
 
         async function getLoggedUser(): Promise<AuthUser | null> {
             await authStore.waitForAuthReady();
@@ -58,7 +60,18 @@ export const DiscoverStore = signalStore(
             return null;
         }
 
-        async function getUsers() {
+        async function getUsers(userProfile: UserClass) {
+            try {
+                const indexedCandidates =
+                    await matchIndexRepository.loadCandidates(userProfile);
+
+                if (indexedCandidates.length) {
+                    return indexedCandidates;
+                }
+            } catch (error) {
+                console.warn('Match index lookup failed, using auth fallback.', error);
+            }
+
             if (authStore.users().length) {
                 return authStore.users();
             }
@@ -161,14 +174,24 @@ export const DiscoverStore = signalStore(
                     50
                 );
 
+            const preferredAge = userProfile.lookingForAge;
+
             const filteredUsers = users.filter((user: any) => {
                 if (!user?.uid || user.uid === userProfile.uid) {
                     return false;
                 }
 
+                const candidateAge = Number(user?.claims?.age);
+                const matchesAgeRange =
+                    !preferredAge ||
+                    !Number.isFinite(candidateAge) ||
+                    (candidateAge >= Number(preferredAge.lower ?? 18) &&
+                        candidateAge <= Number(preferredAge.upper ?? 100));
+
                 return (
                     user?.claims?.gender === lookingForGender &&
-                    user?.claims?.currentPlace &&
+                    (user?.claims?.currentPlace || user?.claims?.currentLocCoords) &&
+                    matchesAgeRange &&
                     !userProfile.matchParts?.liked?.includes(user.uid) &&
                     !userProfile.matchParts?.notLiked?.includes(user.uid) &&
                     !userProfile.matchParts?.matches?.includes(user.uid)
@@ -184,18 +207,23 @@ export const DiscoverStore = signalStore(
             }
 
             for (const user of filteredUsers) {
-                let matchLocation: any = await locationService.getCoordsGeocodeXYZ(
-                    user.claims.currentPlace
-                );
+                let matchLat = Number(user.claims.currentLocCoords?.lat);
+                let matchLon = Number(user.claims.currentLocCoords?.lon);
 
-                if (matchLocation?.message) {
-                    matchLocation = await locationService.getCoordinatesOSM(
+                if (!Number.isFinite(matchLat) || !Number.isFinite(matchLon)) {
+                    let matchLocation: any = await locationService.getCoordsGeocodeXYZ(
                         user.claims.currentPlace
                     );
-                }
 
-                const matchLat = Number(matchLocation?.lat ?? matchLocation?.latt);
-                const matchLon = Number(matchLocation?.lon ?? matchLocation?.longt);
+                    if (matchLocation?.message) {
+                        matchLocation = await locationService.getCoordinatesOSM(
+                            user.claims.currentPlace
+                        );
+                    }
+
+                    matchLat = Number(matchLocation?.lat ?? matchLocation?.latt);
+                    matchLon = Number(matchLocation?.lon ?? matchLocation?.longt);
+                }
 
                 if (!Number.isFinite(matchLat) || !Number.isFinite(matchLon)) {
                     checkedUsers.push(user.uid);
@@ -384,7 +412,7 @@ export const DiscoverStore = signalStore(
                         progress: 55,
                     });
 
-                    const users = await getUsers();
+                    const users = await getUsers(userProfile);
                     const hasPossibleMatches = !!possibleMatchIds.length;
                     const shouldRebuildPossibleMatches =
                         !hasPossibleMatches ||

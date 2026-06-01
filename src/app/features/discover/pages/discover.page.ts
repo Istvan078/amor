@@ -33,10 +33,7 @@ import {
   DiscoverProfilePanelComponent,
   type ProfileChoiceSelectedEvent,
 } from '../ui/discover-profile-panel/discover-profile-panel.component';
-import {
-  DiscoverSidebarComponent,
-  type MatchConversationPreview,
-} from '../ui/discover-sidebar/discover-sidebar.component';
+import { DiscoverSidebarComponent } from '../ui/discover-sidebar/discover-sidebar.component';
 import {
   PromoBottomSheetComponent,
   type PromoBottomSheetDismissEvent,
@@ -46,10 +43,12 @@ import { ProfileStore } from '../../profile/store/profile.store';
 import { Options } from '../../../shared/models/options.model';
 import { Promotions } from '../../../shared/models/promotions.model';
 import { UserClass } from '../../../shared/models/user.model';
-import { MessagesRepository } from '../../messages/data-access/messages.repository';
 import { Message } from '../../../shared/models/message.model';
+import { MatchConversationPreviewsStore } from '../../messages/store/match-conversation-previews.store';
 import { MatchActionsStore } from '../../matching/store/match-actions.store';
+import { OnlinePresenceService } from '../../presence/data-access/online-presence.service';
 import { PromoStore } from '../../promotions/store/promo.store';
+import { DailyUsageStore } from '../../usage/store/daily-usage.store';
 import { PaywallComponent } from '../../billing/ui/paywall/paywall.component';
 import { BillingStore } from '../../billing/store/billing.store';
 import { UserClaims } from '../../auth/store/auth.slice';
@@ -96,7 +95,6 @@ export class DiscoverPage implements OnInit, OnDestroy {
   selectedFiles: File[] = [];
   selectedMessProf?: UserClass;
   options: Options = new Options();
-  matchConversationPreviews: Record<string, MatchConversationPreview> = {};
   promoBottomSheetOpen = false;
   promoBottomSheetPromotions: Promotions[] = [];
   promoBottomSheetActiveIndex = 0;
@@ -112,23 +110,21 @@ export class DiscoverPage implements OnInit, OnDestroy {
 
   private loadedDiscoverUid: string | null = null;
   private loadingDiscoverUid: string | null = null;
-  private matchPreviewRequestId = 0;
-  private matchPreviewSignature = '';
-  private matchPreviewUnsubscribers: Array<() => void> = [];
   private promoBottomSheetQueued = false;
   private promoBottomSheetShownForUid: string | null = null;
-  private onlinePresenceUid: string | null = null;
 
   private authStore = inject(AuthStore);
   private auth = inject(Auth);
   private profileStore = inject(ProfileStore);
   readonly discoverStore = inject(DiscoverStore);
   private discoverUiStore = inject(DiscoverUiStore);
+  readonly matchConversationPreviewsStore = inject(MatchConversationPreviewsStore);
   private matchActionsStore = inject(MatchActionsStore);
+  private onlinePresenceService = inject(OnlinePresenceService);
   private promoStore = inject(PromoStore);
+  private dailyUsageStore = inject(DailyUsageStore);
   readonly billingStore = inject(BillingStore);
   private transloco = inject(TranslocoService);
-  private messagesRepository = inject(MessagesRepository);
   private modalCtrl = inject(ModalController);
   private config = inject(ConfigService);
   private router = inject(Router);
@@ -149,7 +145,8 @@ export class DiscoverPage implements OnInit, OnDestroy {
       const uid = this.user?.uid ?? null;
 
       if (!uid) {
-        void this.setOnlinePresence(false);
+        void this.onlinePresenceService.setOffline();
+        this.dailyUsageStore.clearDailyUsage();
         this.loadedDiscoverUid = null;
         this.loadingDiscoverUid = null;
         this.promoBottomSheetShownForUid = null;
@@ -158,7 +155,8 @@ export class DiscoverPage implements OnInit, OnDestroy {
 
       queueMicrotask(() => {
         if (this.authStore.user()?.uid === uid) {
-          void this.setOnlinePresence(true);
+          void this.onlinePresenceService.setOnline(uid);
+          void this.dailyUsageStore.loadDailyUsage(uid);
           void this.ensureDiscoverData(uid);
         }
       });
@@ -166,7 +164,7 @@ export class DiscoverPage implements OnInit, OnDestroy {
 
     effect(() => {
       this.userProf = this.profileStore.profile() ?? undefined;
-      void this.loadMatchConversationPreviews();
+      this.matchConversationPreviewsStore.start(this.userProf, this.matches);
       this.schedulePromoBottomSheetCheck();
       this.syncMatchActionState();
     });
@@ -219,7 +217,7 @@ export class DiscoverPage implements OnInit, OnDestroy {
 
   @HostListener('window:pagehide')
   handlePageHide() {
-    void this.setOnlinePresence(false);
+    void this.onlinePresenceService.setOffline(this.user?.uid ?? this.authStore.user()?.uid);
   }
 
   async ngOnInit() {
@@ -231,27 +229,9 @@ export class DiscoverPage implements OnInit, OnDestroy {
   }
 
   ngOnDestroy() {
-    this.clearMatchPreviewListeners();
-    void this.setOnlinePresence(false);
-  }
-
-  private async setOnlinePresence(isOnline: boolean) {
-    const uid = this.user?.uid ?? this.authStore.user()?.uid ?? this.onlinePresenceUid;
-
-    if (!uid) {
-      return;
-    }
-
-    if (isOnline && this.onlinePresenceUid === uid) {
-      return;
-    }
-
-    try {
-      await this.discoverRepository.updateUserOnlineStatus(uid, isOnline);
-      this.onlinePresenceUid = isOnline ? uid : null;
-    } catch (error) {
-      console.warn('Online presence update failed.', error);
-    }
+    this.matchConversationPreviewsStore.stop();
+    this.dailyUsageStore.clearDailyUsage();
+    void this.onlinePresenceService.setOffline(this.user?.uid ?? this.authStore.user()?.uid);
   }
 
   private updatePhoneView() {
@@ -294,7 +274,7 @@ export class DiscoverPage implements OnInit, OnDestroy {
   }
 
   private resetActiveDiscoverView() {
-    this.clearMatchPreviewListeners();
+    this.matchConversationPreviewsStore.stop();
     this.matchProf = undefined;
     this.selectedMessProf = undefined;
     this.matches = [];
@@ -305,9 +285,6 @@ export class DiscoverPage implements OnInit, OnDestroy {
     this.isMatchPlaceHolder = false;
     this.progress = 0;
     this.buffer = 0;
-    this.matchConversationPreviews = {};
-    this.matchPreviewSignature = '';
-    this.matchPreviewRequestId++;
     this.promoBottomSheetOpen = false;
     this.promoBottomSheetPromotions = [];
     this.rewindStack = [];
@@ -319,103 +296,9 @@ export class DiscoverPage implements OnInit, OnDestroy {
     this.progress = this.discoverStore.progress();
     this.buffer = this.discoverStore.buffer();
     this.matches = this.discoverStore.matches();
-    void this.loadMatchConversationPreviews();
+    this.matchConversationPreviewsStore.start(this.userProf, this.matches);
     this.schedulePromoBottomSheetCheck();
     this.syncMatchActionState();
-  }
-
-  private loadMatchConversationPreviews() {
-    const userProfile = this.userProf;
-    const matches = this.matches.filter(
-      (match): match is UserClass & { uid: string } => !!match.uid
-    );
-
-    if (!userProfile?.uid || !matches.length) {
-      this.clearMatchPreviewListeners();
-      this.matchConversationPreviews = {};
-      this.matchPreviewSignature = '';
-      this.matchPreviewRequestId++;
-      return;
-    }
-
-    const signature = [
-      userProfile.uid,
-      ...matches.map((match) => match.uid),
-    ].join('|');
-
-    if (signature === this.matchPreviewSignature) {
-      return;
-    }
-
-    this.clearMatchPreviewListeners();
-    this.matchPreviewSignature = signature;
-    const requestId = ++this.matchPreviewRequestId;
-    this.matchConversationPreviews = Object.fromEntries(
-      matches.map((match) => [match.uid, this.emptyConversationPreview()])
-    );
-
-    for (const match of matches) {
-      try {
-        const unsubscribe = this.messagesRepository.listenToMessages(
-          userProfile.uid,
-          match.uid,
-          (messages) => {
-            if (requestId !== this.matchPreviewRequestId) {
-              return;
-            }
-
-            this.matchConversationPreviews = {
-              ...this.matchConversationPreviews,
-              [match.uid]: this.buildConversationPreview(
-                messages,
-                userProfile.uid!,
-                match.uid
-              ),
-            };
-          },
-          (error) => console.error(error)
-        );
-
-        this.matchPreviewUnsubscribers.push(unsubscribe);
-      } catch (error) {
-        console.error(error);
-      }
-    }
-  }
-
-  private buildConversationPreview(
-    messages: Message[],
-    userUid: string,
-    matchUid: string
-  ): MatchConversationPreview {
-    const lastMessage = messages.at(-1);
-    const unreadCount = messages.filter(
-      (message) =>
-        message.senderUid === matchUid &&
-        message.sentToUid === userUid &&
-        message.isRead !== true
-    ).length;
-
-    return {
-      hasMessages: messages.length > 0,
-      isLastMessageMine: lastMessage?.senderUid === userUid,
-      lastMessage: lastMessage?.message?.trim() ?? '',
-      unreadCount,
-    };
-  }
-
-  private emptyConversationPreview(): MatchConversationPreview {
-    return {
-      hasMessages: false,
-      isLastMessageMine: false,
-      lastMessage: '',
-      unreadCount: 0,
-    };
-  }
-
-  private clearMatchPreviewListeners() {
-    this.matchPreviewUnsubscribers.forEach((unsubscribe) => unsubscribe());
-    this.matchPreviewUnsubscribers = [];
   }
 
   private syncMatchActionState() {
@@ -705,7 +588,7 @@ export class DiscoverPage implements OnInit, OnDestroy {
       return;
     }
 
-    this.matchActionsStore.consumeDailyAction(
+    await this.matchActionsStore.consumeDailyAction(
       this.userProf,
       'rewind',
       this.user?.uid
@@ -733,7 +616,7 @@ export class DiscoverPage implements OnInit, OnDestroy {
       return;
     }
 
-    this.matchActionsStore.consumeDailyAction(
+    await this.matchActionsStore.consumeDailyAction(
       this.userProf,
       'super-like',
       this.user?.uid
@@ -764,17 +647,15 @@ export class DiscoverPage implements OnInit, OnDestroy {
       return;
     }
 
-    const existingPreview = this.matchConversationPreviews[matchUid];
+    const existingPreview =
+      this.matchConversationPreviewsStore.previews()[matchUid];
 
-    this.matchConversationPreviews = {
-      ...this.matchConversationPreviews,
-      [matchUid]: {
-        hasMessages: true,
-        isLastMessageMine: event.message.senderUid === this.userProf?.uid,
-        lastMessage: event.message.message.trim(),
-        unreadCount: existingPreview?.unreadCount ?? 0,
-      },
-    };
+    this.matchConversationPreviewsStore.upsertPreview(matchUid, {
+      hasMessages: true,
+      isLastMessageMine: event.message.senderUid === this.userProf?.uid,
+      lastMessage: event.message.message.trim(),
+      unreadCount: existingPreview?.unreadCount ?? 0,
+    });
   }
 
   handleMatchRemoved(matchProfile: UserClass) {
@@ -791,11 +672,7 @@ export class DiscoverPage implements OnInit, OnDestroy {
     this.matches = remainingMatches;
     this.discoverStore.removeMatch(matchUid);
 
-    const { [matchUid]: _removedPreview, ...remainingPreviews } =
-      this.matchConversationPreviews;
-    this.matchConversationPreviews = remainingPreviews;
-    this.matchPreviewSignature = '';
-    this.matchPreviewRequestId++;
+    this.matchConversationPreviewsStore.removePreview(matchUid);
 
     if (this.selectedMessProf?.uid !== matchUid) {
       return;
@@ -860,6 +737,8 @@ export class DiscoverPage implements OnInit, OnDestroy {
 
     try {
       const currentPosition = await this.locationService.getLocation();
+
+      await this.locationService.delay(1000);
 
       currentLocCoords = {
         lat: currentPosition.coords.latitude,
@@ -985,7 +864,7 @@ export class DiscoverPage implements OnInit, OnDestroy {
   async signOut() {
     const autoFillEmail = this.userProf?.email;
 
-    await this.setOnlinePresence(false);
+    await this.onlinePresenceService.setOffline(this.user?.uid ?? this.authStore.user()?.uid);
     await this.authStore.signOut();
     this.authStore.setAutoFillEmail(autoFillEmail);
     this.profileStore.clearProfile();
@@ -1002,10 +881,7 @@ export class DiscoverPage implements OnInit, OnDestroy {
     this.isMatchPlaceHolder = false;
     this.isShowMessages = false;
     this.possMatchDetLists = [];
-    this.matchConversationPreviews = {};
-    this.clearMatchPreviewListeners();
-    this.matchPreviewSignature = '';
-    this.matchPreviewRequestId++;
+    this.matchConversationPreviewsStore.stop();
     this.loadedDiscoverUid = null;
     this.loadingDiscoverUid = null;
     this.promoBottomSheetShownForUid = null;

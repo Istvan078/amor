@@ -40,13 +40,7 @@ import {
 import { Promotions } from '../../../../shared/models/promotions.model';
 import { UserClass } from '../../../../shared/models/user.model';
 import { BillingCurrent } from '../../../billing/data-access/billing.repository';
-
-export type MatchConversationPreview = {
-  hasMessages: boolean;
-  isLastMessageMine: boolean;
-  lastMessage: string;
-  unreadCount: number;
-};
+import { MatchConversationPreview } from '../../../messages/store/match-conversation-previews.store';
 
 type PromoSwiperElement = HTMLElement & {
   autoplay?: boolean | Record<string, unknown>;
