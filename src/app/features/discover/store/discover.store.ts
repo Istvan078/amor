@@ -491,6 +491,21 @@ export const DiscoverStore = signalStore(
                     matches: store.matches().filter((match) => match.uid !== matchUid),
                 });
             },
+
+            addMatch(matchProfile: UserClass) {
+                if (!matchProfile.uid) {
+                    return;
+                }
+
+                patchState(store, {
+                    matches: [
+                        ...store
+                            .matches()
+                            .filter((match) => match.uid !== matchProfile.uid),
+                        matchProfile,
+                    ],
+                });
+            },
         };
     })
 );

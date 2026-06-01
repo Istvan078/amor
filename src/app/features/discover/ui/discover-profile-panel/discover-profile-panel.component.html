@@ -54,6 +54,10 @@
                 {{ t('discover.profile.adminPanel') }}
               </ion-button>
             }
+            <ion-button class="profile-safety-button" routerLink="/amor/safety" fill="outline">
+              <ion-icon name="shield-checkmark-outline" slot="start"></ion-icon>
+              {{ t('discover.profile.safetyCenter') }}
+            </ion-button>
           </div>
 
           @if (hasBillingSummary() && options.phoneView) {

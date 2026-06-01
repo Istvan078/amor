@@ -7,6 +7,7 @@ import {
 } from '@angular/fire/firestore';
 
 export type AnalyticsEventName =
+    | 'match_created'
     | 'match_liked'
     | 'match_passed'
     | 'match_rewind_used'

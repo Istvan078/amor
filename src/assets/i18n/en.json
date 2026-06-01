@@ -121,6 +121,7 @@
       "myProfile": "My profile",
       "edit": "Edit details",
       "adminPanel": "Admin panel",
+      "safetyCenter": "Safety center",
       "details": "Profile details",
       "editing": "Edit profile",
       "gender": "Gender",
@@ -131,6 +132,13 @@
       "lookingForType": "What I am looking for",
       "interests": "Interests",
       "freeTime": "Free time"
+    },
+    "matchModal": {
+      "eyebrow": "New match",
+      "title": "It's a match!",
+      "subtitle": "You and {{name}} liked each other. Start with a thoughtful hello.",
+      "message": "Send a message",
+      "keepDiscovering": "Keep discovering"
     }
   },
   "privacy": {
@@ -154,6 +162,35 @@
       "personalisedMatches": "Used for safer, more relevant discovery",
       "accept": "Accept and continue",
       "later": "Back to Login"
+    }
+  },
+  "safety": {
+    "eyebrow": "Safety center",
+    "title": "Date with clarity and confidence",
+    "subtitle": "Review Amor's community rules, learn how reports work and manage your privacy consent anytime.",
+    "backToApp": "Back to Amor",
+    "rules": {
+      "title": "Community rules",
+      "realProfile": "Use your real identity and photos that represent you honestly.",
+      "respect": "Respect boundaries, identities and personal decisions.",
+      "consent": "Consent matters in every conversation and every meeting.",
+      "noSpam": "No harassment, spam, threats, scams or explicit pressure."
+    },
+    "reporting": {
+      "title": "How reporting works",
+      "copy": "Reports help Amor review unsafe or suspicious behavior. Blocking and reporting are separate controls, so you can immediately stop contact and still send a case for review.",
+      "stepOne": "Choose a reason from the conversation menu.",
+      "stepTwo": "Amor stores the report for moderation review.",
+      "stepThree": "Moderators can review, dismiss or take action."
+    },
+    "privacy": {
+      "title": "Privacy and consent",
+      "copy": "Your required consent, optional analytics and personalization choices can be changed from the privacy page.",
+      "cta": "Manage privacy consent"
+    },
+    "help": {
+      "title": "Need a safer next step?",
+      "copy": "Open a conversation menu to block, report or remove a match. If something feels urgent, step away and use local emergency or support services."
     }
   },
   "profile": {

@@ -120,6 +120,7 @@
     "profile": {
       "myProfile": "Profilom",
       "adminPanel": "Admin felulet",
+      "safetyCenter": "Biztonsági központ",
       "edit": "Adatszerkesztés",
       "details": "Profiladatok",
       "editing": "Adatok szerkesztése",
@@ -131,6 +132,13 @@
       "lookingForType": "Milyen társat keresek?",
       "interests": "Érdeklődési körök",
       "freeTime": "Szabadidő"
+    },
+    "matchModal": {
+      "eyebrow": "Új match",
+      "title": "It's a match!",
+      "subtitle": "Te és {{name}} kölcsönösen kedveltétek egymást. Kezdd egy figyelmes üzenettel.",
+      "message": "Üzenet küldése",
+      "keepDiscovering": "További profilok"
     }
   },
   "privacy": {
@@ -154,6 +162,35 @@
       "personalisedMatches": "Biztonságosabb és relevánsabb felfedezéshez használjuk",
       "accept": "Elfogadom és folytatom",
       "later": "Vissza a belépéshez"
+    }
+  },
+  "safety": {
+    "eyebrow": "Biztonsági központ",
+    "title": "Ismerkedj tisztán és magabiztosan",
+    "subtitle": "Nézd át az Amor közösségi szabályait, a jelentések működését, és módosítsd az adatvédelmi hozzájárulásod bármikor.",
+    "backToApp": "Vissza az Amorba",
+    "rules": {
+      "title": "Közösségi szabályok",
+      "realProfile": "Valós személyazonosságot és őszinte profilképeket használj.",
+      "respect": "Tartsd tiszteletben mások határait, identitását és döntéseit.",
+      "consent": "A beleegyezés minden beszélgetésben és találkozásban alap.",
+      "noSpam": "Nincs zaklatás, spam, fenyegetés, átverés vagy nyomásgyakorlás."
+    },
+    "reporting": {
+      "title": "Hogyan működik a jelentés?",
+      "copy": "A jelentés segít az Amor moderátorainak átnézni a gyanús vagy veszélyes viselkedést. A blokkolás és a jelentés külön funkció, így azonnal megállíthatod a kapcsolatot és küldhetsz esetet is.",
+      "stepOne": "Válassz okot a beszélgetés menüjéből.",
+      "stepTwo": "Az Amor elmenti az esetet moderációs áttekintésre.",
+      "stepThree": "A moderátor átnézheti, elutasíthatja vagy intézkedhet."
+    },
+    "privacy": {
+      "title": "Adatvédelem és hozzájárulás",
+      "copy": "A kötelező hozzájárulás, az opcionális analitika és a személyre szabás bármikor módosítható az adatvédelmi oldalon.",
+      "cta": "Adatvédelmi hozzájárulás kezelése"
+    },
+    "help": {
+      "title": "Biztonságosabb következő lépés kell?",
+      "copy": "A beszélgetés menüjéből blokkolhatsz, jelenthetsz vagy törölhetsz matchet. Ha sürgősnek érzed a helyzetet, lépj ki és használj helyi segélyszolgálatot."
     }
   },
   "profile": {

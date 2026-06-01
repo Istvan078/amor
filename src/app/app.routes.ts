@@ -32,7 +32,7 @@ export const routes: Routes = [
             },
             {
                 path: 'discover',
-                canMatch: [privacyConsentGuard, emailVerifiedGuard],
+                canMatch: [privacyConsentGuard],
                 loadComponent: () =>
                     import('./features/discover/pages/discover.page').then(
                         (m) => m.DiscoverPage
@@ -52,6 +52,14 @@ export const routes: Routes = [
                 loadComponent: () =>
                     import('./features/privacy/privacy-preferences/privacy-preferences.page').then(
                         (m) => m.PrivacyPreferencesPage
+                    ),
+            },
+            {
+                path: 'safety',
+                canMatch: [authGuard],
+                loadComponent: () =>
+                    import('./features/safety/safety-center.page').then(
+                        (m) => m.SafetyCenterPage
                     ),
             },
             {

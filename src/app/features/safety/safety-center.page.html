@@ -1,0 +1,68 @@
+<ng-container *transloco="let t">
+  <ion-content [fullscreen]="true" class="safety-center-content">
+    <main class="safety-center-shell">
+      <section class="safety-hero">
+        <div>
+          <span class="safety-eyebrow">{{ t('safety.eyebrow') }}</span>
+          <h1>{{ t('safety.title') }}</h1>
+          <p>{{ t('safety.subtitle') }}</p>
+        </div>
+        <div class="safety-hero-icon" aria-hidden="true">
+          <ion-icon name="shield-checkmark-outline"></ion-icon>
+        </div>
+      </section>
+
+      <section class="safety-grid">
+        <article class="safety-card">
+          <div class="safety-card-icon">
+            <ion-icon name="heart-outline"></ion-icon>
+          </div>
+          <h2>{{ t('safety.rules.title') }}</h2>
+          <ul>
+            <li>{{ t('safety.rules.realProfile') }}</li>
+            <li>{{ t('safety.rules.respect') }}</li>
+            <li>{{ t('safety.rules.consent') }}</li>
+            <li>{{ t('safety.rules.noSpam') }}</li>
+          </ul>
+        </article>
+
+        <article class="safety-card">
+          <div class="safety-card-icon">
+            <ion-icon name="flag-outline"></ion-icon>
+          </div>
+          <h2>{{ t('safety.reporting.title') }}</h2>
+          <p>{{ t('safety.reporting.copy') }}</p>
+          <div class="safety-steps">
+            <span>{{ t('safety.reporting.stepOne') }}</span>
+            <span>{{ t('safety.reporting.stepTwo') }}</span>
+            <span>{{ t('safety.reporting.stepThree') }}</span>
+          </div>
+        </article>
+
+        <article class="safety-card">
+          <div class="safety-card-icon">
+            <ion-icon name="lock-closed-outline"></ion-icon>
+          </div>
+          <h2>{{ t('safety.privacy.title') }}</h2>
+          <p>{{ t('safety.privacy.copy') }}</p>
+          <ion-button class="safety-secondary-button" routerLink="/amor/privacy">
+            <ion-icon name="document-text-outline" slot="start"></ion-icon>
+            {{ t('safety.privacy.cta') }}
+          </ion-button>
+        </article>
+
+        <article class="safety-card safety-card-highlight">
+          <div class="safety-card-icon">
+            <ion-icon name="chatbubble-ellipses-outline"></ion-icon>
+          </div>
+          <h2>{{ t('safety.help.title') }}</h2>
+          <p>{{ t('safety.help.copy') }}</p>
+          <ion-button class="safety-primary-button" routerLink="/amor/discover">
+            <ion-icon name="arrow-back-outline" slot="start"></ion-icon>
+            {{ t('safety.backToApp') }}
+          </ion-button>
+        </article>
+      </section>
+    </main>
+  </ion-content>
+</ng-container>

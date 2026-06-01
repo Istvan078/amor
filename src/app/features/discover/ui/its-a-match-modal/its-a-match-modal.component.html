@@ -1,0 +1,42 @@
+<ng-container *transloco="let t">
+  <section class="match-modal-shell">
+    <button
+      type="button"
+      class="match-modal-close"
+      [attr.aria-label]="t('common.close')"
+      (click)="keepDiscovering()"
+    >
+      <ion-icon name="close-outline"></ion-icon>
+    </button>
+
+    <div class="match-modal-glow" aria-hidden="true"></div>
+
+    <div class="match-modal-badge">
+      <ion-icon name="sparkles-outline"></ion-icon>
+      <span>{{ t('discover.matchModal.eyebrow') }}</span>
+    </div>
+
+    <div class="match-modal-photos">
+      <img class="match-modal-photo is-user" [src]="userPhoto" alt="Your profile photo" />
+      <div class="match-modal-heart">
+        <ion-icon name="heart"></ion-icon>
+      </div>
+      <img class="match-modal-photo is-match" [src]="matchPhoto" alt="Match profile photo" />
+    </div>
+
+    <ion-text>
+      <h2>{{ t('discover.matchModal.title') }}</h2>
+      <p>{{ t('discover.matchModal.subtitle', { name: matchName }) }}</p>
+    </ion-text>
+
+    <div class="match-modal-actions">
+      <ion-button class="match-modal-primary" (click)="startChat()">
+        <ion-icon name="chatbubble-ellipses-outline" slot="start"></ion-icon>
+        {{ t('discover.matchModal.message') }}
+      </ion-button>
+      <ion-button class="match-modal-secondary" fill="clear" (click)="keepDiscovering()">
+        {{ t('discover.matchModal.keepDiscovering') }}
+      </ion-button>
+    </div>
+  </section>
+</ng-container>

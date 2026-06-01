@@ -54,6 +54,8 @@ import { PaywallComponent } from '../../billing/ui/paywall/paywall.component';
 import { BillingStore } from '../../billing/store/billing.store';
 import { UserClaims } from '../../auth/store/auth.slice';
 import { getProfileCompleteness } from '../../profile/utils/profile-completeness';
+import { NotificationsRepository } from '../../notifications/data-access/notifications.repository';
+import { ItsAMatchModalComponent } from '../ui/its-a-match-modal/its-a-match-modal.component';
 
 @Component({
   selector: 'app-discover',
@@ -133,6 +135,7 @@ export class DiscoverPage implements OnInit, OnDestroy {
   private alertCtrl = inject(AlertController);
   private discoverRepository = inject(DiscoverRepository);
   private profilePicturesRepository = inject(ProfilePicturesRepository);
+  private notificationsRepository = inject(NotificationsRepository);
 
   constructor() {
     effect(() => {
@@ -549,8 +552,16 @@ export class DiscoverPage implements OnInit, OnDestroy {
   }
 
   async likeCurrentMatch() {
-    await this.likeOrDontUser(this.matchProf, true);
+    const likedProfile = this.matchProf;
+
+    await this.likeOrDontUser(likedProfile, true);
+    const newMatch = await this.completeMutualMatchIfNeeded(likedProfile);
+
     this.changeMatchProf();
+
+    if (newMatch) {
+      await this.openItsAMatchModal(newMatch);
+    }
   }
 
   async dislikeCurrentMatch() {
@@ -621,9 +632,153 @@ export class DiscoverPage implements OnInit, OnDestroy {
       'super-like',
       this.user?.uid
     );
-    await this.matchActionsStore.superLikeUser(this.userProf, this.matchProf);
+    const superLikedProfile = this.matchProf;
+
+    await this.matchActionsStore.superLikeUser(this.userProf, superLikedProfile);
+    const newMatch = await this.completeMutualMatchIfNeeded(superLikedProfile);
+
     this.changeMatchProf();
     this.syncMatchActionState();
+
+    if (newMatch) {
+      await this.openItsAMatchModal(newMatch);
+    }
+  }
+
+  private async completeMutualMatchIfNeeded(
+    likedProfile?: UserClass
+  ): Promise<UserClass | null> {
+    if (!this.userProf?.uid || !likedProfile?.uid) {
+      return null;
+    }
+
+    const latestLikedProfile = await this.discoverRepository.getUserProfile(
+      likedProfile.uid
+    );
+
+    if (!latestLikedProfile?.uid) {
+      return null;
+    }
+
+    const myMatchParts = this.ensureMatchParts(this.userProf);
+    const likedMatchParts = this.ensureMatchParts(latestLikedProfile);
+    const likedBack = likedMatchParts.liked.includes(this.userProf.uid);
+    const alreadyMatched =
+      myMatchParts.matches.includes(latestLikedProfile.uid) ||
+      likedMatchParts.matches.includes(this.userProf.uid);
+
+    if (!likedBack || alreadyMatched) {
+      return null;
+    }
+
+    myMatchParts.matches = this.addUnique(
+      myMatchParts.matches,
+      latestLikedProfile.uid
+    );
+    myMatchParts.liked = myMatchParts.liked.filter(
+      (uid) => uid !== latestLikedProfile.uid
+    );
+    myMatchParts.possMatches = myMatchParts.possMatches.filter(
+      (uid) => uid !== latestLikedProfile.uid
+    );
+
+    likedMatchParts.matches = this.addUnique(
+      likedMatchParts.matches,
+      this.userProf.uid
+    );
+    likedMatchParts.liked = likedMatchParts.liked.filter(
+      (uid) => uid !== this.userProf?.uid
+    );
+    likedMatchParts.possMatches = likedMatchParts.possMatches.filter(
+      (uid) => uid !== this.userProf?.uid
+    );
+
+    await Promise.all([
+      this.discoverRepository.updateUserProfile(
+        this.userProf.uid,
+        this.toPlainProfile(this.userProf)
+      ),
+      this.discoverRepository.updateUserProfile(
+        latestLikedProfile.uid,
+        this.toPlainProfile(latestLikedProfile)
+      ),
+    ]);
+
+    this.profileStore.setProfile(this.userProf);
+    this.discoverStore.addMatch(latestLikedProfile);
+    this.matches = this.addMatchLocally(this.matches, latestLikedProfile);
+
+    void this.notificationsRepository.notifyNewMatch(
+      this.userProf.uid,
+      latestLikedProfile.uid
+    );
+    void this.notificationsRepository.notifyNewMatch(
+      latestLikedProfile.uid,
+      this.userProf.uid
+    );
+    void this.analytics.track(this.userProf.uid, 'match_created', {
+      matchUid: latestLikedProfile.uid,
+    });
+
+    return latestLikedProfile;
+  }
+
+  private async openItsAMatchModal(matchProfile: UserClass) {
+    const modal = await this.modalCtrl.create({
+      component: ItsAMatchModalComponent,
+      componentProps: {
+        userProfile: this.userProf,
+        matchProfile,
+      },
+      cssClass: 'its-a-match-modal',
+    });
+
+    await modal.present();
+
+    const { data } = await modal.onDidDismiss<{ action?: string }>();
+
+    if (data?.action === 'message') {
+      this.openMessWithMatch(matchProfile);
+    }
+  }
+
+  private ensureMatchParts(profile: UserClass) {
+    profile.matchParts ??= {
+      matches: [],
+      possMatches: [],
+      liked: [],
+      notLiked: [],
+      superLiked: [],
+    };
+    profile.matchParts.matches ??= [];
+    profile.matchParts.possMatches ??= [];
+    profile.matchParts.liked ??= [];
+    profile.matchParts.notLiked ??= [];
+    profile.matchParts.superLiked ??= [];
+
+    return profile.matchParts;
+  }
+
+  private addUnique(values: string[], value: string) {
+    return values.includes(value) ? values : [...values, value];
+  }
+
+  private addMatchLocally(matches: UserClass[], matchProfile: UserClass) {
+    if (!matchProfile.uid) {
+      return matches;
+    }
+
+    return [
+      ...matches.filter((match) => match.uid !== matchProfile.uid),
+      matchProfile,
+    ];
+  }
+
+  private toPlainProfile(profile: UserClass): Partial<UserClass> {
+    return {
+      ...profile,
+      matchParts: profile.matchParts ? { ...profile.matchParts } : undefined,
+    };
   }
 
   async showProfPics(i: number) {
