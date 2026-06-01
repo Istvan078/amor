@@ -131,8 +131,8 @@ export class AdminPage implements OnInit {
             (conversation) => conversation.id === previousSelectedConversationId
           )
             ? await this.adminRepository.loadConversation(
-                previousSelectedConversationId
-              )
+              previousSelectedConversationId
+            )
             : null
         );
       }

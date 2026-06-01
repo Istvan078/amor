@@ -24,6 +24,7 @@ export const AuthStore = signalStore(
         hasClaims: computed(() => !!store.claims()),
         uid: computed(() => store.user()?.uid ?? null),
         email: computed(() => store.user()?.email ?? null),
+        emailVerified: computed(() => store.user()?.emailVerified === true),
         canModerate: computed(() => {
             const claims = store.claims() ?? store.user()?.claims;
 
@@ -149,6 +150,15 @@ export const AuthStore = signalStore(
                     const userCredentials = await repository.registerWithEmail(data);
                     const user = await setFirebaseUser(userCredentials.user);
 
+                    try {
+                        await repository.sendVerificationEmail();
+                    } catch (verificationError) {
+                        console.warn(
+                            'Registration completed, but verification email failed.',
+                            verificationError
+                        );
+                    }
+
                     return {
                         ...userCredentials,
                         user: userCredentials.user,
@@ -198,6 +208,29 @@ export const AuthStore = signalStore(
                     loading: false,
                     error: null,
                 });
+            },
+
+            sendVerificationEmail() {
+                return repository.sendVerificationEmail();
+            },
+
+            async refreshCurrentUser() {
+                const refreshedUser = await repository.refreshCurrentUser();
+
+                if (!refreshedUser) {
+                    return null;
+                }
+
+                const nextUser = {
+                    ...refreshedUser,
+                    claims: store.claims(),
+                };
+
+                patchState(store, {
+                    user: nextUser,
+                });
+
+                return nextUser;
             },
 
             async loadUsersForLoggedUser() {

@@ -1,0 +1,27 @@
+{
+  "indexes": [
+    {
+      "collectionGroup": "matchIndex",
+      "queryScope": "COLLECTION",
+      "fields": [
+        { "fieldPath": "isVisible", "order": "ASCENDING" },
+        { "fieldPath": "isBanned", "order": "ASCENDING" },
+        { "fieldPath": "profileCompleted", "order": "ASCENDING" },
+        { "fieldPath": "hasPhoto", "order": "ASCENDING" },
+        { "fieldPath": "gender", "order": "ASCENDING" },
+        { "fieldPath": "lookingForGender", "order": "ASCENDING" },
+        { "fieldPath": "age", "order": "ASCENDING" }
+      ]
+    },
+    {
+      "collectionGroup": "messages",
+      "queryScope": "COLLECTION",
+      "fields": [
+        { "fieldPath": "sentToUid", "order": "ASCENDING" },
+        { "fieldPath": "senderUid", "order": "ASCENDING" },
+        { "fieldPath": "isRead", "order": "ASCENDING" }
+      ]
+    }
+  ],
+  "fieldOverrides": []
+}

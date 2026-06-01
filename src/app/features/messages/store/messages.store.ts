@@ -9,6 +9,7 @@ import {
 import { Message } from '../../../shared/models/message.model';
 import { UserClass } from '../../../shared/models/user.model';
 import { AnalyticsService } from '../../analytics/data-access/analytics.service';
+import { NotificationsRepository } from '../../notifications/data-access/notifications.repository';
 import { MessagesRepository } from '../data-access/messages.repository';
 
 type MessagesState = {
@@ -33,7 +34,8 @@ export const MessagesStore = signalStore(
     withMethods((
         store,
         repository = inject(MessagesRepository),
-        analytics = inject(AnalyticsService)
+        analytics = inject(AnalyticsService),
+        notifications = inject(NotificationsRepository)
     ) => {
         let unsubscribeMessages: (() => void) | null = null;
         let activeConversationId: string | null = null;
@@ -124,6 +126,13 @@ export const MessagesStore = signalStore(
                     userProfile.uid,
                     matchProfile.uid,
                     message
+                );
+
+                void notifications.notifyNewMessage(
+                    matchProfile.uid,
+                    userProfile.uid,
+                    repository.getConversationId(userProfile.uid, matchProfile.uid),
+                    message.message.trim()
                 );
 
                 void analytics.track(userProfile.uid, 'message_sent', {

@@ -1,0 +1,38 @@
+<ng-container *transloco="let t">
+  <ion-content class="verify-email-page" [fullscreen]="true">
+    <section class="verify-email-shell">
+      <article class="verify-email-card">
+        <div class="verify-email-icon">
+          <ion-icon name="mail-outline"></ion-icon>
+        </div>
+
+        <span class="verify-email-eyebrow">{{ t('auth.verify.eyebrow') }}</span>
+        <h1>{{ t('auth.verify.title') }}</h1>
+        <p>
+          {{ t('auth.verify.subtitle', { email: authStore.email() || t('auth.verify.yourEmail') }) }}
+        </p>
+
+        @if (resendSent) {
+          <div class="verify-email-status">
+            {{ t('auth.verify.sent') }}
+          </div>
+        }
+
+        <div class="verify-email-actions">
+          <ion-button class="verify-email-primary" (click)="refreshVerificationState()" [disabled]="checking">
+            {{ checking ? t('auth.verify.checking') : t('auth.verify.refresh') }}
+            <ion-icon name="refresh-outline" slot="end"></ion-icon>
+          </ion-button>
+
+          <ion-button class="verify-email-secondary" fill="clear" (click)="resendVerificationEmail()">
+            {{ t('auth.verify.resend') }}
+          </ion-button>
+        </div>
+
+        <ion-button class="verify-email-link" fill="clear" (click)="backToLogin()">
+          {{ t('auth.verify.backToLogin') }}
+        </ion-button>
+      </article>
+    </section>
+  </ion-content>
+</ng-container>

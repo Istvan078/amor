@@ -1,0 +1,119 @@
+:host {
+  display: block;
+}
+
+ion-content.verify-email-page {
+  --background: #0d1224;
+}
+
+.verify-email-shell {
+  min-height: 100%;
+  display: grid;
+  place-items: center;
+  padding: clamp(24px, 5vw, 56px);
+  color: #fff;
+  background:
+    radial-gradient(circle at 18% 18%, rgba(255, 93, 143, 0.26), transparent 34%),
+    radial-gradient(circle at 82% 20%, rgba(255, 122, 89, 0.22), transparent 28%),
+    linear-gradient(135deg, #101528 0%, #171d35 52%, #0f1427 100%);
+}
+
+.verify-email-card {
+  width: min(100%, 520px);
+  padding: clamp(26px, 5vw, 44px);
+  border: 1px solid rgba(255, 255, 255, 0.14);
+  border-radius: 30px;
+  background:
+    linear-gradient(145deg, rgba(255, 93, 143, 0.12), rgba(20, 27, 48, 0.9)),
+    rgba(18, 23, 42, 0.9);
+  box-shadow: 0 28px 72px rgba(0, 0, 0, 0.36);
+  backdrop-filter: blur(22px);
+  text-align: center;
+}
+
+.verify-email-icon {
+  width: 76px;
+  height: 76px;
+  display: grid;
+  place-items: center;
+  margin: 0 auto 22px;
+  border-radius: 24px;
+  background: linear-gradient(135deg, #ff5d8f, #ff7a59);
+  box-shadow: 0 18px 36px rgba(255, 93, 143, 0.34);
+
+  ion-icon {
+    font-size: 36px;
+  }
+}
+
+.verify-email-eyebrow {
+  color: #ffd36d;
+  font-size: 12px;
+  font-weight: 900;
+  letter-spacing: 0;
+  text-transform: uppercase;
+}
+
+h1 {
+  margin: 12px 0;
+  font-size: clamp(34px, 6vw, 56px);
+  line-height: 0.98;
+  letter-spacing: 0;
+}
+
+p {
+  margin: 0 auto;
+  max-width: 420px;
+  color: rgba(255, 255, 255, 0.72);
+  line-height: 1.55;
+}
+
+.verify-email-status {
+  margin-top: 22px;
+  padding: 13px 16px;
+  border: 1px solid rgba(255, 211, 109, 0.22);
+  border-radius: 16px;
+  background: rgba(255, 211, 109, 0.1);
+  color: #ffe6a3;
+  font-weight: 800;
+}
+
+.verify-email-actions {
+  display: grid;
+  gap: 12px;
+  margin-top: 28px;
+}
+
+.verify-email-primary {
+  --background: linear-gradient(135deg, #ff5d8f, #ff7a59);
+  --border-radius: 18px;
+  --box-shadow: 0 16px 34px rgba(255, 93, 143, 0.3);
+  height: 56px;
+  margin: 0;
+  font-weight: 900;
+  letter-spacing: 0;
+  text-transform: none;
+}
+
+.verify-email-secondary,
+.verify-email-link {
+  --color: #ffd1dc;
+  margin: 0;
+  font-weight: 800;
+  letter-spacing: 0;
+  text-transform: none;
+}
+
+.verify-email-link {
+  margin-top: 14px;
+}
+
+@media screen and (max-width: 520px) {
+  .verify-email-shell {
+    padding: 32px 16px 110px;
+  }
+
+  .verify-email-card {
+    border-radius: 24px;
+  }
+}

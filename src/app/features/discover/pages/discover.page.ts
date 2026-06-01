@@ -53,6 +53,7 @@ import { DailyUsageStore } from '../../usage/store/daily-usage.store';
 import { PaywallComponent } from '../../billing/ui/paywall/paywall.component';
 import { BillingStore } from '../../billing/store/billing.store';
 import { UserClaims } from '../../auth/store/auth.slice';
+import { getProfileCompleteness } from '../../profile/utils/profile-completeness';
 
 @Component({
   selector: 'app-discover',
@@ -740,19 +741,7 @@ export class DiscoverPage implements OnInit, OnDestroy {
   }
 
   private getProfileCompletionPercent(profile: Partial<UserClass>) {
-    const checks = [
-      !!profile.firstName,
-      !!profile.lastName,
-      !!profile.gender,
-      !!profile.lookingForGender,
-      !!profile.birthDate,
-      !!profile.currentPlace,
-      !!profile.aboutMe,
-      !!profile.profilePicture || !!profile.pictures?.length,
-    ];
-    const complete = checks.filter(Boolean).length;
-
-    return Math.round((complete / checks.length) * 100);
+    return getProfileCompleteness(profile);
   }
 
   private async buildClaimsFromProfile(

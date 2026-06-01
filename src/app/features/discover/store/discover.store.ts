@@ -13,6 +13,8 @@ import { MatchParts, UserClass } from '../../../shared/models/user.model';
 import { DiscoverRepository } from '../data-access/discover.repository';
 import { AuthUser, UserClaims } from '../../auth/store/auth.slice';
 import { MatchIndexRepository } from '../../matching/data-access/match-index.repository';
+import { NotificationsRepository } from '../../notifications/data-access/notifications.repository';
+import { isProfileCompleteForDiscovery } from '../../profile/utils/profile-completeness';
 
 type DiscoverState = {
     loggedUser: any | null;
@@ -49,6 +51,7 @@ export const DiscoverStore = signalStore(
         const locationService = inject(LocationService);
         const repository = inject(DiscoverRepository);
         const matchIndexRepository = inject(MatchIndexRepository);
+        const notificationsRepository = inject(NotificationsRepository);
 
         async function getLoggedUser(): Promise<AuthUser | null> {
             await authStore.waitForAuthReady();
@@ -148,6 +151,15 @@ export const DiscoverStore = signalStore(
                         userProfile.uid,
                         userProfile.setDataForFireStore()
                     );
+
+                    void notificationsRepository.notifyNewMatch(
+                        likedUid,
+                        userProfile.uid
+                    );
+                    void notificationsRepository.notifyNewMatch(
+                        userProfile.uid,
+                        likedUid
+                    );
                 }
             }
         }
@@ -194,7 +206,9 @@ export const DiscoverStore = signalStore(
                     matchesAgeRange &&
                     !userProfile.matchParts?.liked?.includes(user.uid) &&
                     !userProfile.matchParts?.notLiked?.includes(user.uid) &&
-                    !userProfile.matchParts?.matches?.includes(user.uid)
+                    !userProfile.matchParts?.matches?.includes(user.uid) &&
+                    !userProfile.blockedUsers?.includes(user.uid) &&
+                    !userProfile.reportedUsers?.includes(user.uid)
                 );
             });
 
@@ -348,6 +362,20 @@ export const DiscoverStore = signalStore(
                         progress: 35,
                         error: null,
                     });
+
+                    if (!isProfileCompleteForDiscovery(userProfile)) {
+                        patchState(store, {
+                            loggedUser: authStore.user(),
+                            userProfile,
+                            possibleMatchIds: [],
+                            matches,
+                            progress: 100,
+                            loading: false,
+                            error: null,
+                        });
+
+                        return;
+                    }
 
                     let userPosition: Awaited<
                         ReturnType<LocationService['getLocation']>

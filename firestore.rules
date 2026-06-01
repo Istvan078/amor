@@ -114,6 +114,39 @@ service cloud.firestore {
           && request.resource.data.createdAt is timestamp;
         allow update, delete: if false;
       }
+
+      match /notifications/{notificationId} {
+        allow read: if isOwner(uid) || isAdminOrModerator();
+        allow create: if signedIn()
+          && request.auth.uid != uid
+          && request.resource.data.keys().hasOnly([
+            'type',
+            'actorUid',
+            'conversationId',
+            'title',
+            'body',
+            'isRead',
+            'createdAt'
+          ])
+          && request.resource.data.keys().hasAll([
+            'type',
+            'actorUid',
+            'title',
+            'body',
+            'isRead',
+            'createdAt'
+          ])
+          && request.resource.data.type in ['new_message', 'new_match']
+          && request.resource.data.actorUid == request.auth.uid
+          && request.resource.data.title is string
+          && request.resource.data.body is string
+          && request.resource.data.isRead == false
+          && request.resource.data.createdAt is timestamp;
+        allow update: if isOwner(uid)
+          && request.resource.data.diff(resource.data).changedKeys().hasOnly(['isRead'])
+          && request.resource.data.isRead is bool;
+        allow delete: if isOwner(uid) || isAdminOrModerator();
+      }
     }
 
     match /matchIndex/{uid} {

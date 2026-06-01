@@ -75,6 +75,10 @@ export class UserClass {
   public matchParts?: MatchParts;
   public subscriptions?: UserSubscription;
   public isOnline?: boolean;
+  public isVisible?: boolean;
+  public isBanned?: boolean;
+  public profileCompleted?: boolean;
+  public profileCompleteness?: number;
   public blockedUsers?: string[];
   public reportedUsers?: string[];
 

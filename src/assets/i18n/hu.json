@@ -75,6 +75,17 @@
       "selectDate": "Válassz dátumot",
       "next": "Tovább"
     },
+    "verify": {
+      "eyebrow": "Email ellenőrzés",
+      "title": "Kérlek, erősítsd meg az emailed",
+      "subtitle": "Biztonságos megerősítő linket küldtünk ide: {{email}}. Erősítsd meg, mielőtt belépsz a felfedezésbe.",
+      "yourEmail": "az emailed",
+      "sent": "A megerősítő email elküldve. Nézd meg a postaládádat.",
+      "checking": "Ellenőrzés...",
+      "refresh": "Megerősítettem az emailt",
+      "resend": "Email újraküldése",
+      "backToLogin": "Vissza a belépéshez"
+    },
     "signOut": {
       "title": "Kilépés",
       "message": "Biztosan ki szeretnél lépni?",

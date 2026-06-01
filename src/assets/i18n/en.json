@@ -75,6 +75,17 @@
       "selectDate": "Select date",
       "next": "Next"
     },
+    "verify": {
+      "eyebrow": "Email verification",
+      "title": "Please verify your email",
+      "subtitle": "We sent a secure verification link to {{email}}. Confirm it before entering discovery.",
+      "yourEmail": "your email",
+      "sent": "Verification email sent. Check your inbox.",
+      "checking": "Checking...",
+      "refresh": "I have verified my email",
+      "resend": "Send email again",
+      "backToLogin": "Back to login"
+    },
     "signOut": {
       "title": "Sign out",
       "message": "Are you sure you want to sign out?",

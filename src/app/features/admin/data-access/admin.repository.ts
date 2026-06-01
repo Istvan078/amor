@@ -189,8 +189,10 @@ export class AdminRepository {
         ...new Set(
           sourceReports
             .filter((report) => report.reporterUid && report.reportedUid)
-            .map((report) =>
-              this.getConversationId(report.reporterUid, report.reportedUid)
+            .map((report) => {
+              if (report.status === 'open')
+                this.getConversationId(report.reporterUid, report.reportedUid)
+            }
             )
         ),
       ];
@@ -396,33 +398,34 @@ export class AdminRepository {
         lastMessage?: unknown;
         updatedAt?: unknown;
       };
-      const messagesRef = collection(conversationRef, 'messages');
-      const messagesSnapshot = await getDocs(messagesRef);
-      const messages = messagesSnapshot.docs
-        .map((messageSnapshot) => {
-          const data = messageSnapshot.data();
+      return this.runInFirebaseContext(async () => {
+        const messagesRef = collection(conversationRef, 'messages');
+        const messagesSnapshot = await getDocs(messagesRef);
+        const messages = messagesSnapshot.docs
+          .map((messageSnapshot) => {
+            const data = messageSnapshot.data();
 
-          return {
-            id: messageSnapshot.id,
-            senderUid: String(data['senderUid'] ?? ''),
-            text: String(data['text'] ?? data['message'] ?? ''),
-            sentAt: data['sentAt'] ?? null,
-            number: Number(data['number'] ?? 0),
-          };
-        })
-        .sort(
-          (a, b) =>
-            a.number - b.number ||
-            this.toMillis(a.sentAt) - this.toMillis(b.sentAt)
-        );
-
-      return {
-        id: conversationSnapshot.id,
-        participants: this.toStringArray(conversationData.participants),
-        lastMessage: this.mapLastMessage(conversationData.lastMessage),
-        updatedAt: conversationData.updatedAt ?? null,
-        messages,
-      };
+            return {
+              id: messageSnapshot.id,
+              senderUid: String(data['senderUid'] ?? ''),
+              text: String(data['text'] ?? data['message'] ?? ''),
+              sentAt: data['sentAt'] ?? null,
+              number: Number(data['number'] ?? 0),
+            };
+          })
+          .sort(
+            (a, b) =>
+              a.number - b.number ||
+              this.toMillis(a.sentAt) - this.toMillis(b.sentAt)
+          );
+        return {
+          id: conversationSnapshot.id,
+          participants: this.toStringArray(conversationData.participants),
+          lastMessage: this.mapLastMessage(conversationData.lastMessage),
+          updatedAt: conversationData.updatedAt ?? null,
+          messages,
+        };
+      });
     });
   }
 

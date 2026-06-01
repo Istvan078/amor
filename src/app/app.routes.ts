@@ -1,6 +1,7 @@
 import { Routes } from '@angular/router';
 import { publicOnlyGuard } from './features/auth/guards/public-only.guard';
 import { authGuard } from './features/auth/guards/auth.guard';
+import { emailVerifiedGuard } from './features/auth/guards/email-verified.guard';
 import { privacyConsentGuard } from './features/privacy/guards/privacy-consent.guard';
 import { adminGuard } from './features/admin/guards/admin.guard';
 
@@ -31,10 +32,18 @@ export const routes: Routes = [
             },
             {
                 path: 'discover',
-                canMatch: [privacyConsentGuard],
+                canMatch: [privacyConsentGuard, emailVerifiedGuard],
                 loadComponent: () =>
                     import('./features/discover/pages/discover.page').then(
                         (m) => m.DiscoverPage
+                    ),
+            },
+            {
+                path: 'verify-email',
+                canMatch: [authGuard],
+                loadComponent: () =>
+                    import('./features/auth/verify-email/verify-email.page').then(
+                        (m) => m.VerifyEmailPage
                     ),
             },
             {

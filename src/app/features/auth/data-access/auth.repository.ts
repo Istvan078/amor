@@ -5,6 +5,8 @@ import {
     User,
     authState,
     createUserWithEmailAndPassword,
+    reload,
+    sendEmailVerification,
     signInWithEmailAndPassword,
     signOut,
 } from '@angular/fire/auth';
@@ -46,6 +48,28 @@ export class AuthRepository {
 
     signOut() {
         return this.runInFirebaseContext(() => signOut(this.auth));
+    }
+
+    async sendVerificationEmail() {
+        const user = this.auth.currentUser;
+
+        if (!user) {
+            return;
+        }
+
+        await this.runInFirebaseContext(() => sendEmailVerification(user));
+    }
+
+    async refreshCurrentUser(): Promise<AuthUser | null> {
+        const user = this.auth.currentUser;
+
+        if (!user) {
+            return null;
+        }
+
+        await this.runInFirebaseContext(() => reload(user));
+
+        return this.createAuthUser(user);
     }
 
     async createAuthUser(user: User): Promise<AuthUser> {

@@ -12,6 +12,7 @@ import {
     query,
     serverTimestamp,
     setDoc,
+    where,
     writeBatch,
 } from '@angular/fire/firestore';
 
@@ -136,11 +137,11 @@ export class MessagesRepository {
                     participants,
                     lastMessage: lastMessage
                         ? {
-                              senderUid: lastMessage.senderUid,
-                              sentToUid: lastMessage.sentToUid,
-                              text: lastMessage.message,
-                              number: lastMessage.number,
-                          }
+                            senderUid: lastMessage.senderUid,
+                            sentToUid: lastMessage.sentToUid,
+                            text: lastMessage.message,
+                            number: lastMessage.number,
+                        }
                         : null,
                     updatedAt: serverTimestamp(),
                 },
@@ -217,21 +218,18 @@ export class MessagesRepository {
                 this.firestore,
                 `conversations/${conversationId}/messages`
             );
-            const snapshot = await getDocs(messagesCollection);
+            const unreadMessagesQuery = query(
+                messagesCollection,
+                where('sentToUid', '==', myUid),
+                where('senderUid', '==', matchUid),
+                where('isRead', '==', false),
+                limit(100)
+            );
+            const snapshot = await getDocs(unreadMessagesQuery);
             const batch = writeBatch(this.firestore);
             let hasUnreadMessages = false;
 
             snapshot.docs.forEach((messageSnapshot) => {
-                const data = messageSnapshot.data();
-                const isUnreadForCurrentUser =
-                    data['senderUid'] === matchUid &&
-                    data['sentToUid'] === myUid &&
-                    data['isRead'] !== true;
-
-                if (!isUnreadForCurrentUser) {
-                    return;
-                }
-
                 hasUnreadMessages = true;
                 batch.update(messageSnapshot.ref, {
                     isRead: true,
@@ -257,6 +255,7 @@ export class MessagesRepository {
                 },
                 { merge: true }
             );
+
         });
     }
 
