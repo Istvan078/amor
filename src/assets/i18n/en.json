@@ -191,6 +191,42 @@
     "help": {
       "title": "Need a safer next step?",
       "copy": "Open a conversation menu to block, report or remove a match. If something feels urgent, step away and use local emergency or support services."
+    },
+    "actions": {
+      "eyebrow": "Practical safety",
+      "title": "Know what each action does",
+      "subtitle": "These controls are designed to help you slow down, stop contact and send serious issues for review.",
+      "report": {
+        "title": "Report a user",
+        "copy": "Use report when a profile, message or behavior feels unsafe, fake, abusive or suspicious.",
+        "reason": "Choose the closest reason before sending the report.",
+        "review": "The report is stored for admin or moderator review.",
+        "after": "Reporting does not automatically keep the person from messaging you, so block them too if needed."
+      },
+      "block": {
+        "title": "Block a user",
+        "copy": "Blocking immediately pauses the conversation from your side and marks the match as blocked.",
+        "pause": "The message input is disabled while the match is blocked.",
+        "visible": "You can still see that the match exists, with a clear blocked state.",
+        "unblock": "Use unblock if you decide to allow messages again."
+      },
+      "tips": {
+        "title": "Dating safety tips",
+        "publicMeet": "Meet in a public place first.",
+        "tellFriend": "Tell someone you trust where you are going.",
+        "noPressure": "Leave any date or chat that feels pressuring.",
+        "money": "Never send money or sensitive codes to a match."
+      },
+      "emergency": {
+        "title": "Emergency or immediate danger",
+        "copy": "If you feel in immediate danger, leave the situation and contact local emergency services. Amor reports are not an emergency response channel."
+      }
+    },
+    "links": {
+      "eyebrow": "Support and privacy",
+      "title": "Keep control of your Amor experience",
+      "privacy": "Privacy settings",
+      "support": "Contact support"
     }
   },
   "profile": {

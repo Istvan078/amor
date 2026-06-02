@@ -54,7 +54,6 @@ import { PaywallComponent } from '../../billing/ui/paywall/paywall.component';
 import { BillingStore } from '../../billing/store/billing.store';
 import { UserClaims } from '../../auth/store/auth.slice';
 import { getProfileCompleteness } from '../../profile/utils/profile-completeness';
-import { NotificationsRepository } from '../../notifications/data-access/notifications.repository';
 import { ItsAMatchModalComponent } from '../ui/its-a-match-modal/its-a-match-modal.component';
 
 @Component({
@@ -135,7 +134,6 @@ export class DiscoverPage implements OnInit, OnDestroy {
   private alertCtrl = inject(AlertController);
   private discoverRepository = inject(DiscoverRepository);
   private profilePicturesRepository = inject(ProfilePicturesRepository);
-  private notificationsRepository = inject(NotificationsRepository);
 
   constructor() {
     effect(() => {
@@ -671,51 +669,22 @@ export class DiscoverPage implements OnInit, OnDestroy {
       return null;
     }
 
-    myMatchParts.matches = this.addUnique(
-      myMatchParts.matches,
+    const matchResult = await this.discoverRepository.createMutualMatch(
       latestLikedProfile.uid
     );
-    myMatchParts.liked = myMatchParts.liked.filter(
-      (uid) => uid !== latestLikedProfile.uid
-    );
-    myMatchParts.possMatches = myMatchParts.possMatches.filter(
-      (uid) => uid !== latestLikedProfile.uid
-    );
 
-    likedMatchParts.matches = this.addUnique(
-      likedMatchParts.matches,
-      this.userProf.uid
-    );
-    likedMatchParts.liked = likedMatchParts.liked.filter(
-      (uid) => uid !== this.userProf?.uid
-    );
-    likedMatchParts.possMatches = likedMatchParts.possMatches.filter(
-      (uid) => uid !== this.userProf?.uid
-    );
+    if (!matchResult.created) {
+      return null;
+    }
 
-    await Promise.all([
-      this.discoverRepository.updateUserProfile(
-        this.userProf.uid,
-        this.toPlainProfile(this.userProf)
-      ),
-      this.discoverRepository.updateUserProfile(
-        latestLikedProfile.uid,
-        this.toPlainProfile(latestLikedProfile)
-      ),
-    ]);
+    if (matchResult.matchParts) {
+      this.userProf.matchParts = matchResult.matchParts;
+    }
 
     this.profileStore.setProfile(this.userProf);
     this.discoverStore.addMatch(latestLikedProfile);
     this.matches = this.addMatchLocally(this.matches, latestLikedProfile);
 
-    void this.notificationsRepository.notifyNewMatch(
-      this.userProf.uid,
-      latestLikedProfile.uid
-    );
-    void this.notificationsRepository.notifyNewMatch(
-      latestLikedProfile.uid,
-      this.userProf.uid
-    );
     void this.analytics.track(this.userProf.uid, 'match_created', {
       matchUid: latestLikedProfile.uid,
     });
@@ -759,10 +728,6 @@ export class DiscoverPage implements OnInit, OnDestroy {
     return profile.matchParts;
   }
 
-  private addUnique(values: string[], value: string) {
-    return values.includes(value) ? values : [...values, value];
-  }
-
   private addMatchLocally(matches: UserClass[], matchProfile: UserClass) {
     if (!matchProfile.uid) {
       return matches;
@@ -772,13 +737,6 @@ export class DiscoverPage implements OnInit, OnDestroy {
       ...matches.filter((match) => match.uid !== matchProfile.uid),
       matchProfile,
     ];
-  }
-
-  private toPlainProfile(profile: UserClass): Partial<UserClass> {
-    return {
-      ...profile,
-      matchParts: profile.matchParts ? { ...profile.matchParts } : undefined,
-    };
   }
 
   async showProfPics(i: number) {

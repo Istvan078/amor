@@ -1,3 +1,4 @@
+import { HttpClient, HttpHeaders } from '@angular/common/http';
 import { Injectable, Injector, inject, runInInjectionContext } from '@angular/core';
 import {
     Firestore,
@@ -5,9 +6,18 @@ import {
     getDoc,
     updateDoc,
 } from '@angular/fire/firestore';
+import { firstValueFrom } from 'rxjs';
 
+import { environment } from '../../../../environments/environment';
 import { UserClass } from '../../../shared/models/user.model';
+import { AuthStore } from '../../auth/store/auth.store';
 import { MatchIndexRepository } from '../../matching/data-access/match-index.repository';
+
+export type CreateMutualMatchResponse = {
+    matched: boolean;
+    created: boolean;
+    matchParts?: UserClass['matchParts'];
+};
 
 @Injectable({
     providedIn: 'root',
@@ -15,6 +25,8 @@ import { MatchIndexRepository } from '../../matching/data-access/match-index.rep
 export class DiscoverRepository {
     private injector = inject(Injector);
     private firestore = inject(Firestore);
+    private http = inject(HttpClient);
+    private authStore = inject(AuthStore);
     private matchIndexRepository = inject(MatchIndexRepository);
 
     async getUserProfile(uid: string): Promise<UserClass | undefined> {
@@ -76,7 +88,47 @@ export class DiscoverRepository {
         });
     }
 
+    async createMutualMatch(
+        otherUid: string
+    ): Promise<CreateMutualMatchResponse> {
+        const user = this.authStore.user();
+        const idToken = await this.getIdToken();
+
+        if (!user?.uid || !idToken) {
+            return {
+                matched: false,
+                created: false,
+            };
+        }
+
+        return firstValueFrom(
+            this.http.post<CreateMutualMatchResponse>(
+                `${environment.API_URL}createMutualMatch`,
+                {
+                    uid: user.uid,
+                    otherUid,
+                },
+                {
+                    headers: new HttpHeaders().set('Authorization', idToken),
+                }
+            )
+        );
+    }
+
     private runInFirebaseContext<T>(callback: () => T): T {
         return runInInjectionContext(this.injector, callback);
+    }
+
+    private async getIdToken() {
+        const user = this.authStore.user();
+        const rawUser = user?.raw as
+            | { getIdToken?: (forceRefresh?: boolean) => Promise<string> }
+            | undefined;
+
+        if (rawUser?.getIdToken) {
+            return rawUser.getIdToken();
+        }
+
+        return user?.idToken;
     }
 }

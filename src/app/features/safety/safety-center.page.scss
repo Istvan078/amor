@@ -171,6 +171,122 @@
   --box-shadow: none;
 }
 
+.safety-action-section,
+.safety-link-strip {
+  margin-top: 22px;
+}
+
+.safety-section-heading {
+  max-width: 760px;
+  padding: 8px 4px 4px;
+}
+
+.safety-section-heading h2,
+.safety-link-strip h2 {
+  margin: 8px 0 10px;
+  color: #fff;
+  font-size: clamp(1.75rem, 4vw, 3.2rem);
+  font-weight: 950;
+  letter-spacing: 0;
+}
+
+.safety-section-heading p {
+  margin: 0;
+  color: rgba(248, 245, 239, 0.72);
+  line-height: 1.55;
+}
+
+.safety-action-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 18px;
+  margin-top: 18px;
+}
+
+.safety-action-card,
+.safety-link-strip {
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  background:
+    radial-gradient(circle at 100% 0%, rgba(255, 93, 143, 0.12), transparent 36%),
+    rgba(26, 31, 51, 0.9);
+  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.2);
+}
+
+.safety-action-card {
+  display: grid;
+  grid-template-columns: auto 1fr;
+  gap: 18px;
+  min-height: 260px;
+  padding: 24px;
+  border-radius: 24px;
+}
+
+.safety-action-card-wide {
+  grid-column: span 2;
+  min-height: 0;
+}
+
+.safety-danger-card {
+  background:
+    radial-gradient(circle at 0% 0%, rgba(255, 93, 143, 0.22), transparent 40%),
+    linear-gradient(135deg, rgba(74, 34, 58, 0.9), rgba(26, 31, 51, 0.92));
+}
+
+.safety-action-card h3 {
+  margin: 0 0 10px;
+  color: #fff;
+  font-size: 1.22rem;
+  font-weight: 950;
+}
+
+.safety-action-card p,
+.safety-action-card li {
+  color: rgba(248, 245, 239, 0.74);
+  line-height: 1.55;
+}
+
+.safety-action-card p {
+  margin: 0 0 14px;
+}
+
+.safety-action-card ul {
+  display: grid;
+  gap: 9px;
+  margin: 0;
+  padding-left: 18px;
+}
+
+.safety-tip-list {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 10px;
+}
+
+.safety-tip-list span {
+  padding: 13px 14px;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 16px;
+  background: rgba(255, 255, 255, 0.06);
+  color: rgba(248, 245, 239, 0.82);
+  font-weight: 800;
+}
+
+.safety-link-strip {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 20px;
+  align-items: center;
+  padding: 28px;
+  border-radius: 26px;
+}
+
+.safety-link-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  justify-content: flex-end;
+}
+
 @media screen and (max-width: 760px) {
   .safety-center-shell {
     width: min(430px, calc(100% - 28px));
@@ -195,5 +311,30 @@
   .safety-card {
     min-height: 0;
     padding: 22px;
+  }
+
+  .safety-action-grid,
+  .safety-link-strip,
+  .safety-tip-list {
+    grid-template-columns: 1fr;
+  }
+
+  .safety-action-card,
+  .safety-action-card-wide {
+    grid-column: auto;
+  }
+
+  .safety-action-card {
+    grid-template-columns: 1fr;
+    min-height: 0;
+    padding: 22px;
+  }
+
+  .safety-link-actions {
+    justify-content: stretch;
+  }
+
+  .safety-link-actions ion-button {
+    width: 100%;
   }
 }

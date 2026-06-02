@@ -147,6 +147,21 @@ service cloud.firestore {
           && request.resource.data.isRead is bool;
         allow delete: if isOwner(uid) || isAdminOrModerator();
       }
+
+      match /pushTokens/{tokenId} {
+        allow read: if isOwner(uid) || isAdminOrModerator();
+        allow create, update: if isOwner(uid)
+          && request.resource.data.keys().hasOnly([
+            'token',
+            'platform',
+            'createdAt',
+            'updatedAt'
+          ])
+          && request.resource.data.token is string
+          && request.resource.data.platform is string
+          && request.resource.data.updatedAt is timestamp;
+        allow delete: if isOwner(uid) || isAdminOrModerator();
+      }
     }
 
     match /matchIndex/{uid} {

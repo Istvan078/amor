@@ -13,7 +13,6 @@ import { MatchParts, UserClass } from '../../../shared/models/user.model';
 import { DiscoverRepository } from '../data-access/discover.repository';
 import { AuthUser, UserClaims } from '../../auth/store/auth.slice';
 import { MatchIndexRepository } from '../../matching/data-access/match-index.repository';
-import { NotificationsRepository } from '../../notifications/data-access/notifications.repository';
 import { isProfileCompleteForDiscovery } from '../../profile/utils/profile-completeness';
 
 type DiscoverState = {
@@ -51,7 +50,6 @@ export const DiscoverStore = signalStore(
         const locationService = inject(LocationService);
         const repository = inject(DiscoverRepository);
         const matchIndexRepository = inject(MatchIndexRepository);
-        const notificationsRepository = inject(NotificationsRepository);
 
         async function getLoggedUser(): Promise<AuthUser | null> {
             await authStore.waitForAuthReady();
@@ -136,30 +134,13 @@ export const DiscoverStore = signalStore(
                     userProfile.matchParts.matches?.includes(likedUid);
 
                 if (likedBack && !alreadyMatched) {
-                    userProfile.matchParts.matches.push(likedUid);
+                    const matchResult =
+                        await repository.createMutualMatch(likedUid);
 
-                    userProfile.matchParts.liked =
-                        userProfile.matchParts.liked.filter((uid) => uid !== likedUid);
-
-                    likedProfile.matchParts.liked =
-                        likedProfile.matchParts.liked.filter((uid) => uid !== userProfile.uid);
-
-                    likedProfile.matchParts.matches.push(userProfile.uid);
-
-                    await repository.updateUserProfile(likedUid, likedProfile);
-                    await repository.updateUserProfile(
-                        userProfile.uid,
-                        userProfile.setDataForFireStore()
-                    );
-
-                    void notificationsRepository.notifyNewMatch(
-                        likedUid,
-                        userProfile.uid
-                    );
-                    void notificationsRepository.notifyNewMatch(
-                        userProfile.uid,
-                        likedUid
-                    );
+                    if (matchResult.matchParts) {
+                        userProfile.matchParts = matchResult.matchParts;
+                        profileStore.setProfile(userProfile);
+                    }
                 }
             }
         }

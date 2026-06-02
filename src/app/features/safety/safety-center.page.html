@@ -63,6 +63,92 @@
           </ion-button>
         </article>
       </section>
+
+      <section class="safety-action-section">
+        <div class="safety-section-heading">
+          <span class="safety-eyebrow">{{ t('safety.actions.eyebrow') }}</span>
+          <h2>{{ t('safety.actions.title') }}</h2>
+          <p>{{ t('safety.actions.subtitle') }}</p>
+        </div>
+
+        <div class="safety-action-grid">
+          <article class="safety-action-card">
+            <div class="safety-card-icon">
+              <ion-icon name="flag-outline"></ion-icon>
+            </div>
+            <div>
+              <h3>{{ t('safety.actions.report.title') }}</h3>
+              <p>{{ t('safety.actions.report.copy') }}</p>
+              <ul>
+                <li>{{ t('safety.actions.report.reason') }}</li>
+                <li>{{ t('safety.actions.report.review') }}</li>
+                <li>{{ t('safety.actions.report.after') }}</li>
+              </ul>
+            </div>
+          </article>
+
+          <article class="safety-action-card">
+            <div class="safety-card-icon">
+              <ion-icon name="ban-outline"></ion-icon>
+            </div>
+            <div>
+              <h3>{{ t('safety.actions.block.title') }}</h3>
+              <p>{{ t('safety.actions.block.copy') }}</p>
+              <ul>
+                <li>{{ t('safety.actions.block.pause') }}</li>
+                <li>{{ t('safety.actions.block.visible') }}</li>
+                <li>{{ t('safety.actions.block.unblock') }}</li>
+              </ul>
+            </div>
+          </article>
+
+          <article class="safety-action-card safety-action-card-wide">
+            <div class="safety-card-icon">
+              <ion-icon name="checkmark-circle-outline"></ion-icon>
+            </div>
+            <div>
+              <h3>{{ t('safety.actions.tips.title') }}</h3>
+              <div class="safety-tip-list">
+                <span>{{ t('safety.actions.tips.publicMeet') }}</span>
+                <span>{{ t('safety.actions.tips.tellFriend') }}</span>
+                <span>{{ t('safety.actions.tips.noPressure') }}</span>
+                <span>{{ t('safety.actions.tips.money') }}</span>
+              </div>
+            </div>
+          </article>
+
+          <article class="safety-action-card safety-danger-card">
+            <div class="safety-card-icon">
+              <ion-icon name="warning-outline"></ion-icon>
+            </div>
+            <div>
+              <h3>{{ t('safety.actions.emergency.title') }}</h3>
+              <p>{{ t('safety.actions.emergency.copy') }}</p>
+            </div>
+          </article>
+        </div>
+      </section>
+
+      <section class="safety-link-strip">
+        <div>
+          <span class="safety-eyebrow">{{ t('safety.links.eyebrow') }}</span>
+          <h2>{{ t('safety.links.title') }}</h2>
+        </div>
+        <div class="safety-link-actions">
+          <ion-button class="safety-secondary-button" routerLink="/amor/privacy">
+            <ion-icon name="lock-closed-outline" slot="start"></ion-icon>
+            {{ t('safety.links.privacy') }}
+          </ion-button>
+          <ion-button class="safety-secondary-button" href="mailto:support@amor.app">
+            <ion-icon name="mail-outline" slot="start"></ion-icon>
+            {{ t('safety.links.support') }}
+          </ion-button>
+          <ion-button class="safety-primary-button" routerLink="/amor/discover">
+            <ion-icon name="arrow-back-outline" slot="start"></ion-icon>
+            {{ t('safety.backToApp') }}
+          </ion-button>
+        </div>
+      </section>
     </main>
   </ion-content>
 </ng-container>

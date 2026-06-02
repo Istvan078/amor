@@ -191,6 +191,42 @@
     "help": {
       "title": "Biztonságosabb következő lépés kell?",
       "copy": "A beszélgetés menüjéből blokkolhatsz, jelenthetsz vagy törölhetsz matchet. Ha sürgősnek érzed a helyzetet, lépj ki és használj helyi segélyszolgálatot."
+    },
+    "actions": {
+      "eyebrow": "Gyakorlati biztonság",
+      "title": "Tudd, mit csinálnak a biztonsági műveletek",
+      "subtitle": "Ezek az eszközök segítenek lelassítani, megszakítani a kapcsolatot, és a komoly eseteket moderációra küldeni.",
+      "report": {
+        "title": "Felhasználó jelentése",
+        "copy": "A jelentést akkor használd, ha egy profil, üzenet vagy viselkedés veszélyesnek, hamisnak, zaklatónak vagy gyanúsnak tűnik.",
+        "reason": "Válaszd ki a legközelebbi indokot a jelentés elküldése előtt.",
+        "review": "A jelentés admin vagy moderátori átnézésre kerül.",
+        "after": "A jelentés önmagában nem feltétlenül állítja meg az üzeneteket, ezért szükség esetén blokkolj is."
+      },
+      "block": {
+        "title": "Felhasználó blokkolása",
+        "copy": "A blokkolás azonnal megállítja a beszélgetést a te oldaladon, és blokkolt állapotba teszi a matchet.",
+        "pause": "A blokkolt matchnél az üzenetküldő mező letiltásra kerül.",
+        "visible": "A match továbbra is látható marad, egyértelmű blokkolt jelzéssel.",
+        "unblock": "A feloldással újra engedélyezheted az üzenetküldést."
+      },
+      "tips": {
+        "title": "Társkeresési biztonsági tippek",
+        "publicMeet": "Az első találkozó legyen nyilvános helyen.",
+        "tellFriend": "Mondd el egy megbízható embernek, hová mész.",
+        "noPressure": "Lépj ki minden randiból vagy chatből, ahol nyomást érzel.",
+        "money": "Soha ne küldj pénzt vagy érzékeny kódokat egy matchnek."
+      },
+      "emergency": {
+        "title": "Vészhelyzet vagy közvetlen veszély",
+        "copy": "Ha közvetlen veszélyben érzed magad, hagyd el a helyzetet és hívd a helyi segélyhívót. Az Amor jelentési rendszere nem vészhelyzeti csatorna."
+      }
+    },
+    "links": {
+      "eyebrow": "Támogatás és adatvédelem",
+      "title": "Tartsd kézben az Amor élményt",
+      "privacy": "Adatvédelmi beállítások",
+      "support": "Kapcsolat a támogatással"
     }
   },
   "profile": {

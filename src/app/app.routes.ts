@@ -32,7 +32,7 @@ export const routes: Routes = [
             },
             {
                 path: 'discover',
-                canMatch: [privacyConsentGuard],
+                canMatch: [privacyConsentGuard, emailVerifiedGuard],
                 loadComponent: () =>
                     import('./features/discover/pages/discover.page').then(
                         (m) => m.DiscoverPage

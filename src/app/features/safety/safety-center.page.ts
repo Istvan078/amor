@@ -4,13 +4,18 @@ import { IonButton, IonContent, IonIcon } from '@ionic/angular/standalone';
 import { TranslocoDirective } from '@jsverse/transloco';
 import { addIcons } from 'ionicons';
 import {
+  alertCircleOutline,
   arrowBackOutline,
+  banOutline,
   chatbubbleEllipsesOutline,
+  checkmarkCircleOutline,
   documentTextOutline,
   flagOutline,
   heartOutline,
   lockClosedOutline,
+  mailOutline,
   shieldCheckmarkOutline,
+  warningOutline,
 } from 'ionicons/icons';
 
 @Component({
@@ -23,13 +28,18 @@ import {
 export class SafetyCenterPage {
   constructor() {
     addIcons({
+      alertCircleOutline,
       arrowBackOutline,
+      banOutline,
       chatbubbleEllipsesOutline,
+      checkmarkCircleOutline,
       documentTextOutline,
       flagOutline,
       heartOutline,
       lockClosedOutline,
+      mailOutline,
       shieldCheckmarkOutline,
+      warningOutline,
     });
   }
 }

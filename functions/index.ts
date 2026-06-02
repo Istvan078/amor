@@ -1,5 +1,6 @@
 import * as admin from 'firebase-admin';
 import { onRequest } from 'firebase-functions/v2/https';
+import { onDocumentCreated } from 'firebase-functions/v2/firestore';
 import * as express from 'express';
 import * as bodyParser from 'body-parser';
 
@@ -7,6 +8,14 @@ admin.initializeApp();
 
 type AuthenticatedRequest = express.Request & {
   user?: admin.auth.DecodedIdToken;
+};
+
+type ServerMatchParts = {
+  matches: string[];
+  possMatches: string[];
+  liked: string[];
+  notLiked: string[];
+  superLiked: string[];
 };
 
 const app = express();
@@ -105,17 +114,101 @@ const toPublicAuthUser = (user: admin.auth.UserRecord) => ({
   claims: sanitizeUserClaims(user.customClaims ?? {}),
 });
 
-const withoutUid = (values: unknown, uid: string) =>
-  Array.isArray(values) ? values.filter((value) => value !== uid) : [];
+const withoutUid = (values: unknown, uid: string): string[] =>
+  Array.isArray(values)
+    ? values.filter(
+        (value): value is string => typeof value === 'string' && value !== uid
+      )
+    : [];
 
-const withUniqueUid = (values: unknown, uid: string) => {
-  const nextValues = Array.isArray(values) ? [...values] : [];
+const withUniqueUid = (values: unknown, uid: string): string[] => {
+  const nextValues = normalizeUidList(values);
 
   if (!nextValues.includes(uid)) {
     nextValues.push(uid);
   }
 
   return nextValues;
+};
+
+const normalizeUidList = (values: unknown): string[] =>
+  Array.isArray(values)
+    ? values.filter((value): value is string => typeof value === 'string')
+    : [];
+
+const normalizeMatchParts = (value: unknown): ServerMatchParts => {
+  const matchParts =
+    value && typeof value === 'object'
+      ? (value as Record<string, unknown>)
+      : {};
+
+  return {
+    matches: normalizeUidList(matchParts.matches),
+    possMatches: normalizeUidList(matchParts.possMatches),
+    liked: normalizeUidList(matchParts.liked),
+    notLiked: normalizeUidList(matchParts.notLiked),
+    superLiked: normalizeUidList(matchParts.superLiked),
+  };
+};
+
+const buildMutualMatchParts = (
+  matchParts: ServerMatchParts,
+  otherUid: string
+): ServerMatchParts => ({
+  ...matchParts,
+  matches: withUniqueUid(matchParts.matches, otherUid),
+  possMatches: withoutUid(matchParts.possMatches, otherUid),
+  liked: withoutUid(matchParts.liked, otherUid),
+  notLiked: withoutUid(matchParts.notLiked, otherUid),
+});
+
+const createNotificationPayload = (
+  type: 'new_match' | 'new_message',
+  actorUid: string,
+  title: string,
+  body: string,
+  conversationId?: string
+) => ({
+  type,
+  actorUid,
+  ...(conversationId ? { conversationId } : {}),
+  title,
+  body,
+  isRead: false,
+  createdAt: admin.firestore.FieldValue.serverTimestamp(),
+});
+
+const sendPushToUser = async (
+  uid: string,
+  notification: admin.messaging.Notification,
+  data: Record<string, string>
+) => {
+  try {
+    const tokensSnapshot = await admin
+      .firestore()
+      .collection(`users/${uid}/pushTokens`)
+      .get();
+
+    const tokens = tokensSnapshot.docs
+      .map((snapshot) => {
+        const token = snapshot.data().token;
+
+        return typeof token === 'string' ? token : snapshot.id;
+      })
+      .filter((token) => !!token);
+
+    if (!tokens.length) {
+      return;
+    }
+
+    await admin.messaging().sendEachForMulticast({
+      tokens,
+      notification,
+      data,
+    });
+  } catch (error) {
+    console.error('Failed to send push notification:', error);
+  }
 };
 
 app.post('/setCustomClaims', verifyToken, async (req: AuthenticatedRequest, res: express.Response) => {
@@ -249,6 +342,136 @@ app.post('/removeMatch', verifyToken, async (req: AuthenticatedRequest, res: exp
   }
 });
 
+app.post('/createMutualMatch', verifyToken, async (req: AuthenticatedRequest, res: express.Response) => {
+  const { uid, otherUid } = req.body;
+  const myUid = uid ?? req.user?.uid;
+
+  if (!myUid || !otherUid || !canAccessUser(req, myUid) || myUid === otherUid) {
+    res.sendStatus(403);
+    return;
+  }
+
+  try {
+    const db = admin.firestore();
+    const result = await db.runTransaction(async (transaction) => {
+      const myProfileRef = db.collection('users').doc(myUid);
+      const otherProfileRef = db.collection('users').doc(otherUid);
+      const [myProfileSnapshot, otherProfileSnapshot] = await Promise.all([
+        transaction.get(myProfileRef),
+        transaction.get(otherProfileRef),
+      ]);
+
+      if (!myProfileSnapshot.exists || !otherProfileSnapshot.exists) {
+        throw new Error('profile_not_found');
+      }
+
+      const myProfile = myProfileSnapshot.data() ?? {};
+      const otherProfile = otherProfileSnapshot.data() ?? {};
+      const myMatchParts = normalizeMatchParts(myProfile.matchParts);
+      const otherMatchParts = normalizeMatchParts(otherProfile.matchParts);
+      const alreadyMatched =
+        myMatchParts.matches.includes(otherUid) ||
+        otherMatchParts.matches.includes(myUid);
+
+      if (alreadyMatched) {
+        return {
+          matched: true,
+          created: false,
+          matchParts: myMatchParts,
+        };
+      }
+
+      const myLikesOther =
+        myMatchParts.liked.includes(otherUid) ||
+        myMatchParts.superLiked.includes(otherUid);
+      const otherLikesMe =
+        otherMatchParts.liked.includes(myUid) ||
+        otherMatchParts.superLiked.includes(myUid);
+
+      if (!myLikesOther || !otherLikesMe) {
+        return {
+          matched: false,
+          created: false,
+          matchParts: myMatchParts,
+        };
+      }
+
+      const nextMyMatchParts = buildMutualMatchParts(myMatchParts, otherUid);
+      const nextOtherMatchParts = buildMutualMatchParts(otherMatchParts, myUid);
+
+      transaction.update(myProfileRef, {
+        matchParts: nextMyMatchParts,
+      });
+      transaction.update(otherProfileRef, {
+        matchParts: nextOtherMatchParts,
+      });
+
+      const myNotificationRef = myProfileRef.collection('notifications').doc();
+      const otherNotificationRef = otherProfileRef.collection('notifications').doc();
+
+      transaction.set(
+        myNotificationRef,
+        createNotificationPayload(
+          'new_match',
+          otherUid,
+          'New match',
+          'You have a new match on Amor.'
+        )
+      );
+      transaction.set(
+        otherNotificationRef,
+        createNotificationPayload(
+          'new_match',
+          myUid,
+          'New match',
+          'You have a new match on Amor.'
+        )
+      );
+
+      return {
+        matched: true,
+        created: true,
+        matchParts: nextMyMatchParts,
+      };
+    });
+
+    if (result.created) {
+      await Promise.all([
+        sendPushToUser(
+          myUid,
+          {
+            title: 'New match',
+            body: 'You have a new match on Amor.',
+          },
+          {
+            type: 'new_match',
+            actorUid: otherUid,
+          }
+        ),
+        sendPushToUser(
+          otherUid,
+          {
+            title: 'New match',
+            body: 'You have a new match on Amor.',
+          },
+          {
+            type: 'new_match',
+            actorUid: myUid,
+          }
+        ),
+      ]);
+    }
+
+    res.json({
+      message: 'OK',
+      ...result,
+    });
+  } catch (error) {
+    console.error('Hiba tortent a mutual match letrehozasakor:', error);
+    res.sendStatus(500);
+  }
+});
+
 app.get('/users', verifyToken, (req: AuthenticatedRequest, res: express.Response) => {
   admin
     .auth()
@@ -339,5 +562,58 @@ app.get('/legacy-users/:uid/claims', verifyToken, (req: AuthenticatedRequest, re
       res.sendStatus(500);
     });
 });
+
+export const onConversationMessageCreated = onDocumentCreated(
+  'conversations/{conversationId}/messages/{messageId}',
+  async (event) => {
+    const snapshot = event.data;
+
+    if (!snapshot) {
+      return;
+    }
+
+    const data = snapshot.data() as Record<string, unknown>;
+    const senderUid = typeof data.senderUid === 'string' ? data.senderUid : '';
+    const sentToUid = typeof data.sentToUid === 'string' ? data.sentToUid : '';
+    const text =
+      typeof data.text === 'string'
+        ? data.text
+        : typeof data.message === 'string'
+          ? data.message
+          : '';
+    const messagePreview = text.trim().slice(0, 120) || 'You have a new message.';
+    const conversationId = event.params.conversationId;
+
+    if (!senderUid || !sentToUid || senderUid === sentToUid) {
+      return;
+    }
+
+    await admin
+      .firestore()
+      .collection(`users/${sentToUid}/notifications`)
+      .add(
+        createNotificationPayload(
+          'new_message',
+          senderUid,
+          'New message',
+          messagePreview,
+          conversationId
+        )
+      );
+
+    await sendPushToUser(
+      sentToUid,
+      {
+        title: 'New message',
+        body: messagePreview,
+      },
+      {
+        type: 'new_message',
+        actorUid: senderUid,
+        conversationId,
+      }
+    );
+  }
+);
 
 export const api = onRequest({ cors: true }, app);
