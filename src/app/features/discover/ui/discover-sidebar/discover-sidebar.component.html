@@ -97,9 +97,12 @@
         <ion-icon name="people-outline" slot="start"></ion-icon>
         {{ t('discover.sidebar.pairs') }}
       </ion-button>
-      <ion-button fill="outline" (click)="messagesOpened.emit()">
+      <ion-button class="messages-nav-button" fill="outline" (click)="messagesOpened.emit()">
         <ion-icon name="chatbubbles-outline" slot="start"></ion-icon>
         {{ t('discover.sidebar.messages') }}
+        @if(getUnreadMessagesCount()) {
+          <span class="messages-nav-badge">{{ formatUnreadCount(getUnreadMessagesCount()) }}</span>
+        }
       </ion-button>
     </div>
 
@@ -123,9 +126,9 @@
               <span>{{ match.age }}</span>
             }
           </div>
-          <div class="match-presence" [class.is-online]="match.isOnline">
+          <div class="match-presence" [class.is-online]="isMatchOnline(match)">
             <span></span>
-            {{ match.isOnline ? t('discover.sidebar.online') : t('discover.sidebar.offline') }}
+            {{ isMatchOnline(match) ? t('discover.sidebar.online') : t('discover.sidebar.offline') }}
           </div>
           @if(isBlockedMatch(match)) {
             <p class="match-preview is-blocked-match">

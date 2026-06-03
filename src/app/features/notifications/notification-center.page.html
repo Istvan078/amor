@@ -1,0 +1,65 @@
+<ion-content class="notifications-content">
+  <ng-container *transloco="let t">
+    <main class="notifications-shell">
+      <section class="notifications-hero">
+        <a class="back-link" routerLink="/amor/discover">
+          <ion-icon name="arrow-back-outline" aria-hidden="true"></ion-icon>
+          {{ t('common.back') }}
+        </a>
+
+        <div class="hero-copy">
+          <p>{{ t('notifications.eyebrow') }}</p>
+          <h1>{{ t('notifications.title') }}</h1>
+          <span>{{ t('notifications.subtitle') }}</span>
+        </div>
+
+        @if (notificationsStore.unreadCount() > 0) {
+          <button class="mark-all-button" type="button" (click)="markAllAsRead()">
+            <ion-icon name="checkmark-done-outline" aria-hidden="true"></ion-icon>
+            {{ t('notifications.markAllRead') }}
+          </button>
+        }
+      </section>
+
+      <section class="notification-list" aria-label="Notifications">
+        @if (notificationsStore.notifications().length) {
+          @for (notification of notificationsStore.notifications(); track notification.id) {
+            <button
+              class="notification-card"
+              [class.is-unread]="!notification.isRead"
+              type="button"
+              (click)="openNotification(notification)"
+            >
+              <span class="notification-icon">
+                <ion-icon
+                  [name]="getNotificationIcon(notification.type)"
+                  aria-hidden="true"
+                ></ion-icon>
+              </span>
+
+              <span class="notification-body">
+                <span class="notification-title">{{ notification.title }}</span>
+                <span class="notification-text">{{ notification.body }}</span>
+              </span>
+
+              <span class="notification-meta">
+                @if (!notification.isRead) {
+                  <span class="unread-dot"></span>
+                }
+                <span>{{ formatNotificationDate(notification) }}</span>
+              </span>
+            </button>
+          }
+        } @else {
+          <article class="empty-notifications">
+            <span class="notification-icon empty">
+              <ion-icon name="notifications-outline" aria-hidden="true"></ion-icon>
+            </span>
+            <h2>{{ t('notifications.emptyTitle') }}</h2>
+            <p>{{ t('notifications.emptyText') }}</p>
+          </article>
+        }
+      </section>
+    </main>
+  </ng-container>
+</ion-content>

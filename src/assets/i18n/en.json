@@ -120,6 +120,7 @@
     "profile": {
       "myProfile": "My profile",
       "edit": "Edit details",
+      "settings": "Settings",
       "adminPanel": "Admin panel",
       "safetyCenter": "Safety center",
       "details": "Profile details",
@@ -139,6 +140,20 @@
       "subtitle": "You and {{name}} liked each other. Start with a thoughtful hello.",
       "message": "Send a message",
       "keepDiscovering": "Keep discovering"
+    },
+    "matchQuality": {
+      "eyebrow": "Why this match?",
+      "title": "Compatibility signals",
+      "subtitle": "A quick read on why this profile is worth your attention.",
+      "score": "match",
+      "reasons": {
+        "nearby": "Nearby",
+        "sharedInterests": "{{count}} shared interests",
+        "ageRange": "Within your age preference",
+        "recentlyActive": "Recently active",
+        "completeProfile": "Complete profile",
+        "default": "Promising profile"
+      }
     }
   },
   "privacy": {
@@ -229,6 +244,62 @@
       "support": "Contact support"
     }
   },
+  "settings": {
+    "eyebrow": "Settings",
+    "title": "Shape your Amor experience",
+    "subtitle": "Manage profile, language, privacy, notifications and support from one polished place.",
+    "backToApp": "Back to Amor",
+    "account": {
+      "eyebrow": "Account",
+      "title": "Profile and account",
+      "copy": "Keep your visible dating profile accurate and intentional.",
+      "editProfile": {
+        "title": "Edit profile",
+        "copy": "Update photos, details, preferences and profile readiness."
+      }
+    },
+    "language": {
+      "eyebrow": "Language",
+      "title": "App language",
+      "copy": "Switch the whole app between English and Hungarian instantly."
+    },
+    "privacy": {
+      "eyebrow": "Privacy and safety",
+      "title": "Control your data and safety",
+      "copy": "Review consent, learn safety tools and keep the experience under your control.",
+      "consent": {
+        "title": "Privacy consent",
+        "copy": "Manage required and optional data choices."
+      },
+      "safety": {
+        "title": "Safety center",
+        "copy": "See report, block and dating safety guidance."
+      }
+    },
+    "notifications": {
+      "eyebrow": "Notifications",
+      "title": "Notification center",
+      "copy": "Review new matches, messages and account notices.",
+      "center": {
+        "title": "Open notifications",
+        "copy": "Read and clear your in-app alerts."
+      }
+    },
+    "premium": {
+      "eyebrow": "Amorino Gold",
+      "title": "Premium features",
+      "copy": "Premium unlocks stronger discovery tools without changing the core dating experience.",
+      "likes": "See who likes you",
+      "rewind": "Rewind",
+      "boost": "Profile boost"
+    },
+    "support": {
+      "eyebrow": "Support",
+      "title": "Need help?",
+      "copy": "For account, privacy or safety questions, contact Amor support.",
+      "cta": "Contact support"
+    }
+  },
   "profile": {
     "photoViewerTitle": "Profile photos",
     "fields": {
@@ -281,6 +352,24 @@
       "title": "Delete profile?",
       "message": "This permanently removes your profile, matches and account access from Amor. This action cannot be undone.",
       "confirm": "Delete profile"
+    },
+    "completion": {
+      "eyebrow": "Profile readiness",
+      "title": "Complete your profile",
+      "readyTitle": "Your profile is ready",
+      "text": "Finish the essentials so Amor can show you better people.",
+      "readyText": "You can now use full discovery. A more complete profile still improves matching.",
+      "cta": "Complete profile",
+      "progressLabel": "Profile completion",
+      "discoveryGateTitle": "Finish your profile to enter Discover",
+      "discoveryGateText": "Amor needs a few essentials before showing you to people and suggesting better matches.",
+      "steps": {
+        "identity": "Basic details",
+        "photos": "Photo",
+        "bio": "Bio",
+        "interests": "Interests",
+        "location": "Location"
+      }
     }
   },
   "messages": {
@@ -333,7 +422,8 @@
     "startText": "A short, personal opener works best.",
     "placeholder": "Write your message...",
     "sendAria": "Send message",
-    "readAt": "Read {{time}}"
+    "readAt": "Read {{time}}",
+    "typing": "{{name}} is typing"
   },
   "promotions": {
     "sheet": {
@@ -410,10 +500,12 @@
       "label": "Active plan",
       "gold": "Amorino Gold",
       "superLikePack": "Super Like Pack",
+      "profileBoostPack": "Profile Boost Pack",
       "activePackage": "Purchased package",
       "active": "Active now",
       "activeUntil": "Active until {{date}}",
-      "superLikesBalance": "{{count}} Super Likes available"
+      "superLikesBalance": "{{count}} Super Likes available",
+      "profileBoostsBalance": "{{count}} boosts available"
     },
     "paywall": {
       "eyebrow": "Amorino Gold",
@@ -470,6 +562,14 @@
       "initializationFailed": "Billing initialization failed.",
       "offeringsFailed": "Failed to load payment offers."
     }
+  },
+  "notifications": {
+    "eyebrow": "Activity",
+    "title": "Notifications",
+    "subtitle": "New matches, messages and premium updates stay in one place.",
+    "markAllRead": "Mark all read",
+    "emptyTitle": "No notifications yet",
+    "emptyText": "When someone matches or messages you, it will appear here."
   },
   "update": {
     "available": "A new version is available.",

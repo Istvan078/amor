@@ -50,6 +50,26 @@ ion-tabs {
       letter-spacing: 0;
     }
 
+    .mobile-tab-badge {
+      position: absolute;
+      top: 5px;
+      right: 18px;
+      display: inline-grid;
+      place-items: center;
+      min-width: 19px;
+      height: 19px;
+      padding: 0 6px;
+      border: 2px solid rgba(16, 20, 35, 0.96);
+      border-radius: 999px;
+      background: linear-gradient(135deg, #ff5d8f, #ff7a59);
+      color: #ffffff;
+      font-size: 0.66rem;
+      font-weight: 900;
+      line-height: 1;
+      box-shadow: 0 8px 18px rgba(255, 93, 143, 0.28);
+      pointer-events: none;
+    }
+
     &.tab-selected {
       transform: translateY(-2px);
 

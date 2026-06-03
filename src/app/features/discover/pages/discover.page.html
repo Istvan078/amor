@@ -11,11 +11,12 @@
       [isPremium]="billingStore.isPremium()"
       [activeEntitlements]="billingStore.activeEntitlements()"
       [superLikesBalance]="billingStore.superLikesBalance()"
+      [profileBoostsBalance]="billingStore.profileBoostsBalance()"
       (profileOpened)="openUserCard()"
       (matchesOpened)="showMatchesCard()"
       (messagesOpened)="showMessages()"
       (messageOpened)="openMessWithMatch($event)"
-      (promotionSelected)="openPaywall($event)"
+      (promotionSelected)="handlePromotionSelected($event)"
     ></app-discover-sidebar>
 
     <div id="main-view-container" class="m-0 p-0" [class.is-message-view]="isShowMessages">
@@ -34,7 +35,32 @@
                 (matchRemoved)="handleMatchRemoved($event)"
               ></app-message>
             </ion-card>
-            } @if(!isShowMessages) {
+            } @if(!isShowMessages && userProf && !isProfileReadyForDiscovery(userProf)) {
+            <section class="discover-onboarding-card">
+              <div class="discover-onboarding-orbit" aria-hidden="true">
+                <span></span>
+                <span></span>
+                <span></span>
+              </div>
+              <small>{{ 'profile.completion.eyebrow' | transloco }}</small>
+              <h2>{{ 'profile.completion.discoveryGateTitle' | transloco }}</h2>
+              <p>{{ 'profile.completion.discoveryGateText' | transloco }}</p>
+              <div class="discover-onboarding-progress">
+                <div>
+                  <strong>{{ getProfileCompletionPercent(userProf) }}%</strong>
+                  <span>{{ 'profile.completion.progressLabel' | transloco }}</span>
+                </div>
+                <i [style.width.%]="getProfileCompletionPercent(userProf)"></i>
+              </div>
+              <button
+                type="button"
+                class="discover-onboarding-button"
+                (click)="startProfileOnboarding()"
+              >
+                {{ 'profile.completion.cta' | transloco }}
+              </button>
+            </section>
+            } @if(!isShowMessages && (!userProf || isProfileReadyForDiscovery(userProf))) {
             <app-discover-match-card
               [progress]="progress"
               [buffer]="buffer"
@@ -54,6 +80,7 @@
             && matchProf)) {
             <app-discover-match-details
               [labels]="labels"
+              [userProfile]="userProf"
               [matchProfile]="matchProf"
               [possibleDetailLists]="possMatchDetLists"
               (closed)="closeMatchDetails()"

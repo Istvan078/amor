@@ -37,6 +37,7 @@ export type MatchIndexEntry = {
   profileCompleteness: number;
   hasPhoto: boolean;
   lastActiveAt?: unknown;
+  boostedUntil?: unknown;
   photoUrl?: string;
 };
 
@@ -136,6 +137,25 @@ export class MatchIndexRepository {
     });
   }
 
+  async activateProfileBoost(uid: string, durationMinutes = 30) {
+    const boostedUntil = new Date(Date.now() + durationMinutes * 60 * 1000);
+
+    await this.runInFirebaseContext(() => {
+      const indexRef = doc(this.firestore, `matchIndex/${uid}`);
+
+      return setDoc(
+        indexRef,
+        {
+          boostedUntil: boostedUntil.toISOString(),
+          lastActiveAt: serverTimestamp(),
+        },
+        { merge: true }
+      );
+    });
+
+    return boostedUntil;
+  }
+
   async loadCandidates(profile: UserClass, resultLimit = 80) {
     const lookingForGender = profile.lookingForGender;
     const profileGender = profile.gender;
@@ -201,6 +221,8 @@ export class MatchIndexRepository {
       )
       .sort(
         (candidateA, candidateB) =>
+          Number(isBoosted(candidateB.claims)) -
+            Number(isBoosted(candidateA.claims)) ||
           toTimestampMillis(candidateB.claims.lastActiveAt) -
           toTimestampMillis(candidateA.claims.lastActiveAt)
       )
@@ -306,4 +328,8 @@ function toTimestampMillis(value: unknown) {
   }
 
   return 0;
+}
+
+function isBoosted(entry: MatchIndexEntry) {
+  return toTimestampMillis(entry.boostedUntil) > Date.now();
 }

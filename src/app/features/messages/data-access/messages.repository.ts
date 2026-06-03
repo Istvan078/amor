@@ -25,6 +25,10 @@ export type ConversationPreviewData = {
     unreadCount: number;
 };
 
+export type ConversationTypingData = {
+    isTyping: boolean;
+};
+
 @Injectable({
     providedIn: 'root',
 })
@@ -110,6 +114,63 @@ export class MessagesRepository {
                     );
                 },
                 (error) => onError?.(error)
+            );
+        });
+    }
+
+    listenToTypingStatus(
+        myUid: string,
+        matchUid: string,
+        onTypingStatus: (typing: ConversationTypingData) => void,
+        onError?: (error: unknown) => void
+    ) {
+        const conversationId = this.getConversationId(myUid, matchUid);
+
+        return this.runInFirebaseContext(() => {
+            const conversationRef = doc(
+                this.firestore,
+                `conversations/${conversationId}`
+            );
+
+            return onSnapshot(
+                conversationRef,
+                (snapshot) => {
+                    if (!snapshot.exists()) {
+                        onTypingStatus({ isTyping: false });
+                        return;
+                    }
+
+                    const data = snapshot.data() as Record<string, unknown>;
+                    const typing = this.toRecord(data['typing']);
+
+                    onTypingStatus({
+                        isTyping: this.isTypingTimestampActive(typing[matchUid]),
+                    });
+                },
+                (error) => onError?.(error)
+            );
+        });
+    }
+
+    async setTypingStatus(myUid: string, matchUid: string, isTyping: boolean) {
+        const conversationId = this.getConversationId(myUid, matchUid);
+        const participants = this.getConversationParticipants(myUid, matchUid);
+
+        await this.runInFirebaseContext(async () => {
+            const conversationRef = doc(
+                this.firestore,
+                `conversations/${conversationId}`
+            );
+
+            await setDoc(
+                conversationRef,
+                {
+                    participants,
+                    typing: {
+                        [myUid]: isTyping ? serverTimestamp() : null,
+                    },
+                },
+                { merge: true }
             );
         });
     }
@@ -386,6 +447,16 @@ export class MessagesRepository {
         }
 
         return undefined;
+    }
+
+    private isTypingTimestampActive(value: unknown) {
+        const date = this.toDate(value);
+
+        if (!date) {
+            return false;
+        }
+
+        return Date.now() - date.getTime() < 8 * 1000;
     }
 
     private runInFirebaseContext<T>(callback: () => T): T {

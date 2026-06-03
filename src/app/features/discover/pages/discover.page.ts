@@ -17,7 +17,7 @@ import {
   IonRow,
   ModalController,
 } from '@ionic/angular/standalone';
-import { TranslocoService } from '@jsverse/transloco';
+import { TranslocoPipe, TranslocoService } from '@jsverse/transloco';
 
 import { IonModalPage } from '../../../modals/ion-modal/ion-modal.page';
 import { ConfigService } from '../../../services/config.service';
@@ -47,13 +47,17 @@ import { UserClass } from '../../../shared/models/user.model';
 import { Message } from '../../../shared/models/message.model';
 import { MatchConversationPreviewsStore } from '../../messages/store/match-conversation-previews.store';
 import { MatchActionsStore } from '../../matching/store/match-actions.store';
+import { MatchIndexRepository } from '../../matching/data-access/match-index.repository';
 import { OnlinePresenceService } from '../../presence/data-access/online-presence.service';
 import { PromoStore } from '../../promotions/store/promo.store';
 import { DailyUsageStore } from '../../usage/store/daily-usage.store';
 import { PaywallComponent } from '../../billing/ui/paywall/paywall.component';
 import { BillingStore } from '../../billing/store/billing.store';
 import { UserClaims } from '../../auth/store/auth.slice';
-import { getProfileCompleteness } from '../../profile/utils/profile-completeness';
+import {
+  getProfileCompleteness,
+  isProfileCompleteForDiscovery,
+} from '../../profile/utils/profile-completeness';
 import { ItsAMatchModalComponent } from '../ui/its-a-match-modal/its-a-match-modal.component';
 
 @Component({
@@ -74,6 +78,7 @@ import { ItsAMatchModalComponent } from '../ui/its-a-match-modal/its-a-match-mod
     IonContent,
     IonGrid,
     IonRow,
+    TranslocoPipe,
   ],
 })
 export class DiscoverPage implements OnInit, OnDestroy {
@@ -122,6 +127,7 @@ export class DiscoverPage implements OnInit, OnDestroy {
   private discoverUiStore = inject(DiscoverUiStore);
   readonly matchConversationPreviewsStore = inject(MatchConversationPreviewsStore);
   private matchActionsStore = inject(MatchActionsStore);
+  private matchIndexRepository = inject(MatchIndexRepository);
   private onlinePresenceService = inject(OnlinePresenceService);
   private promoStore = inject(PromoStore);
   private dailyUsageStore = inject(DailyUsageStore);
@@ -340,8 +346,8 @@ export class DiscoverPage implements OnInit, OnDestroy {
 
     this.promoBottomSheetOpen = false;
 
-    if (event.reason === 'cta') {
-      void this.openPaywall(event.promotion);
+    if (event.reason === 'cta' && event.promotion) {
+      void this.handlePromotionSelected(event.promotion);
     }
   }
 
@@ -417,6 +423,15 @@ export class DiscoverPage implements OnInit, OnDestroy {
     this.promoBottomSheetOpen = true;
   }
 
+  async handlePromotionSelected(promotion: Promotions) {
+    if (promotion['id'] === 'profileBoost') {
+      await this.activateProfileBoostOrOpenPaywall(promotion);
+      return;
+    }
+
+    await this.openPaywall(promotion);
+  }
+
   async openPaywall(promotion?: Promotions) {
     void this.analytics.track(this.userProf?.uid ?? this.user?.uid, 'paywall_opened', {
       promotionId: promotion?.['id'] ?? null,
@@ -431,6 +446,54 @@ export class DiscoverPage implements OnInit, OnDestroy {
     });
 
     await modal.present();
+
+    const { data } = await modal.onDidDismiss<{
+      purchased?: boolean;
+      restored?: boolean;
+    }>();
+
+    if (
+      promotion?.['id'] === 'profileBoost' &&
+      (data?.purchased || data?.restored)
+    ) {
+      await this.activateProfileBoost();
+    }
+  }
+
+  private async activateProfileBoostOrOpenPaywall(promotion?: Promotions) {
+    if (!this.billingStore.hasProfileBoosts()) {
+      await this.openPaywall(promotion);
+      return;
+    }
+
+    const activated = await this.activateProfileBoost();
+
+    if (!activated) {
+      await this.openPaywall(promotion);
+    }
+  }
+
+  private async activateProfileBoost() {
+    const uid = this.userProf?.uid ?? this.user?.uid;
+
+    if (!uid) {
+      return false;
+    }
+
+    const consumed = await this.billingStore.consumeProfileBoost();
+
+    if (!consumed) {
+      return false;
+    }
+
+    const boostedUntil = await this.matchIndexRepository.activateProfileBoost(uid);
+    await this.dailyUsageStore.incrementDailyUsage(uid, 'boost');
+    void this.analytics.track(uid, 'boost_started', {
+      boostedUntil: boostedUntil.toISOString(),
+      durationMinutes: 30,
+    });
+
+    return true;
   }
 
   setUProfLabels() {
@@ -853,8 +916,17 @@ export class DiscoverPage implements OnInit, OnDestroy {
     await this.ensureDiscoverData(uid);
   }
 
-  private getProfileCompletionPercent(profile: Partial<UserClass>) {
+  getProfileCompletionPercent(profile: Partial<UserClass>) {
     return getProfileCompleteness(profile);
+  }
+
+  isProfileReadyForDiscovery(profile?: Partial<UserClass> | null) {
+    return isProfileCompleteForDiscovery(profile);
+  }
+
+  startProfileOnboarding() {
+    this.startUpdUserProf = true;
+    this.openUserCard();
   }
 
   private async buildClaimsFromProfile(
@@ -864,8 +936,6 @@ export class DiscoverPage implements OnInit, OnDestroy {
 
     try {
       const currentPosition = await this.locationService.getLocation();
-
-      await this.locationService.delay(1000);
 
       currentLocCoords = {
         lat: currentPosition.coords.latitude,

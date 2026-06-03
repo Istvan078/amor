@@ -10,6 +10,27 @@
       <ion-icon name="close-outline"></ion-icon>
     </ion-button>
 
+    @if(matchProfile) {
+    <section class="match-quality-card">
+      <div class="match-quality-score">
+        <span>{{ getCompatibilityScore() }}%</span>
+        <small>{{ t('discover.matchQuality.score') }}</small>
+      </div>
+      <div class="match-quality-copy">
+        <small>{{ t('discover.matchQuality.eyebrow') }}</small>
+        <h3>{{ t('discover.matchQuality.title') }}</h3>
+        <p>{{ t('discover.matchQuality.subtitle') }}</p>
+        <div class="match-quality-reasons">
+          @for(reason of getCompatibilityReasons(); track reason.key) {
+            <span>{{ t('discover.matchQuality.reasons.' + reason.key, reason.params) }}</span>
+          } @empty {
+            <span>{{ t('discover.matchQuality.reasons.default') }}</span>
+          }
+        </div>
+      </div>
+    </section>
+    }
+
     @for(listNum of possibleDetailLists;track $index){
     <ion-list style="margin-top: 10px">
       @for(lab of labels.userProfLabels; track $index) {

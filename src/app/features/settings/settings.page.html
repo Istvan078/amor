@@ -1,0 +1,130 @@
+<ng-container *transloco="let t">
+  <ion-content [fullscreen]="true" class="settings-content">
+    <main class="settings-shell">
+      <section class="settings-hero">
+        <div>
+          <span class="settings-eyebrow">{{ t('settings.eyebrow') }}</span>
+          <h1>{{ t('settings.title') }}</h1>
+          <p>{{ t('settings.subtitle') }}</p>
+          <ion-button class="settings-primary-button" routerLink="/amor/discover">
+            <ion-icon name="arrow-back-outline" slot="start"></ion-icon>
+            {{ t('settings.backToApp') }}
+          </ion-button>
+        </div>
+        <div class="settings-hero-icon" aria-hidden="true">
+          <ion-icon name="settings-outline"></ion-icon>
+        </div>
+      </section>
+
+      <section class="settings-grid">
+        <article class="settings-card settings-card-feature">
+          <div class="settings-card-icon">
+            <ion-icon name="person-circle-outline"></ion-icon>
+          </div>
+          <div>
+            <span class="settings-eyebrow">{{ t('settings.account.eyebrow') }}</span>
+            <h2>{{ t('settings.account.title') }}</h2>
+            <p>{{ t('settings.account.copy') }}</p>
+          </div>
+          <a class="settings-row" routerLink="/amor/discover">
+            <div>
+              <strong>{{ t('settings.account.editProfile.title') }}</strong>
+              <span>{{ t('settings.account.editProfile.copy') }}</span>
+            </div>
+            <ion-icon name="chevron-forward-outline"></ion-icon>
+          </a>
+        </article>
+
+        <article class="settings-card">
+          <div class="settings-card-icon">
+            <ion-icon name="language-outline"></ion-icon>
+          </div>
+          <div>
+            <span class="settings-eyebrow">{{ t('settings.language.eyebrow') }}</span>
+            <h2>{{ t('settings.language.title') }}</h2>
+            <p>{{ t('settings.language.copy') }}</p>
+          </div>
+          <div class="settings-language-row">
+            <app-language-switcher></app-language-switcher>
+          </div>
+        </article>
+
+        <article class="settings-card">
+          <div class="settings-card-icon">
+            <ion-icon name="shield-checkmark-outline"></ion-icon>
+          </div>
+          <div>
+            <span class="settings-eyebrow">{{ t('settings.privacy.eyebrow') }}</span>
+            <h2>{{ t('settings.privacy.title') }}</h2>
+            <p>{{ t('settings.privacy.copy') }}</p>
+          </div>
+          <div class="settings-row-list">
+            <a class="settings-row" routerLink="/amor/privacy">
+              <div>
+                <strong>{{ t('settings.privacy.consent.title') }}</strong>
+                <span>{{ t('settings.privacy.consent.copy') }}</span>
+              </div>
+              <ion-icon name="chevron-forward-outline"></ion-icon>
+            </a>
+            <a class="settings-row" routerLink="/amor/safety">
+              <div>
+                <strong>{{ t('settings.privacy.safety.title') }}</strong>
+                <span>{{ t('settings.privacy.safety.copy') }}</span>
+              </div>
+              <ion-icon name="chevron-forward-outline"></ion-icon>
+            </a>
+          </div>
+        </article>
+
+        <article class="settings-card">
+          <div class="settings-card-icon">
+            <ion-icon name="notifications-outline"></ion-icon>
+          </div>
+          <div>
+            <span class="settings-eyebrow">{{ t('settings.notifications.eyebrow') }}</span>
+            <h2>{{ t('settings.notifications.title') }}</h2>
+            <p>{{ t('settings.notifications.copy') }}</p>
+          </div>
+          <a class="settings-row" routerLink="/amor/notifications">
+            <div>
+              <strong>{{ t('settings.notifications.center.title') }}</strong>
+              <span>{{ t('settings.notifications.center.copy') }}</span>
+            </div>
+            <ion-icon name="chevron-forward-outline"></ion-icon>
+          </a>
+        </article>
+
+        <article class="settings-card settings-premium-card">
+          <div class="settings-card-icon">
+            <ion-icon name="diamond-outline"></ion-icon>
+          </div>
+          <div>
+            <span class="settings-eyebrow">{{ t('settings.premium.eyebrow') }}</span>
+            <h2>{{ t('settings.premium.title') }}</h2>
+            <p>{{ t('settings.premium.copy') }}</p>
+          </div>
+          <div class="settings-premium-pills">
+            <span>{{ t('settings.premium.likes') }}</span>
+            <span>{{ t('settings.premium.rewind') }}</span>
+            <span>{{ t('settings.premium.boost') }}</span>
+          </div>
+        </article>
+
+        <article class="settings-card">
+          <div class="settings-card-icon">
+            <ion-icon name="mail-outline"></ion-icon>
+          </div>
+          <div>
+            <span class="settings-eyebrow">{{ t('settings.support.eyebrow') }}</span>
+            <h2>{{ t('settings.support.title') }}</h2>
+            <p>{{ t('settings.support.copy') }}</p>
+          </div>
+          <ion-button class="settings-secondary-button" href="mailto:support@amor.app">
+            <ion-icon name="mail-outline" slot="start"></ion-icon>
+            {{ t('settings.support.cta') }}
+          </ion-button>
+        </article>
+      </section>
+    </main>
+  </ion-content>
+</ng-container>

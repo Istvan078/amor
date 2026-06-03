@@ -119,6 +119,7 @@
     },
     "profile": {
       "myProfile": "Profilom",
+      "settings": "Beállítások",
       "adminPanel": "Admin felulet",
       "safetyCenter": "Biztonsági központ",
       "edit": "Adatszerkesztés",
@@ -139,6 +140,20 @@
       "subtitle": "Te és {{name}} kölcsönösen kedveltétek egymást. Kezdd egy figyelmes üzenettel.",
       "message": "Üzenet küldése",
       "keepDiscovering": "További profilok"
+    },
+    "matchQuality": {
+      "eyebrow": "Miért jó találat?",
+      "title": "Kompatibilitási jelek",
+      "subtitle": "Gyors összefoglaló arról, miért érdemes figyelned erre a profilra.",
+      "score": "találat",
+      "reasons": {
+        "nearby": "Közel van",
+        "sharedInterests": "{{count}} közös érdeklődés",
+        "ageRange": "Az életkor preferenciádon belül",
+        "recentlyActive": "Mostanában aktív",
+        "completeProfile": "Teljes profil",
+        "default": "Ígéretes profil"
+      }
     }
   },
   "privacy": {
@@ -229,6 +244,62 @@
       "support": "Kapcsolat a támogatással"
     }
   },
+  "settings": {
+    "eyebrow": "Beállítások",
+    "title": "Alakítsd az Amor élményt",
+    "subtitle": "Profil, nyelv, adatvédelem, értesítések és támogatás egy prémium felületen.",
+    "backToApp": "Vissza az Amorba",
+    "account": {
+      "eyebrow": "Fiók",
+      "title": "Profil és fiók",
+      "copy": "Tartsd naprakészen és igényesen a látható társkereső profilodat.",
+      "editProfile": {
+        "title": "Profil szerkesztése",
+        "copy": "Frissítsd a képeket, adatokat, preferenciákat és a profilkészültséget."
+      }
+    },
+    "language": {
+      "eyebrow": "Nyelv",
+      "title": "Alkalmazás nyelve",
+      "copy": "Az egész app nyelvét azonnal válthatod magyar és angol között."
+    },
+    "privacy": {
+      "eyebrow": "Adatvédelem és biztonság",
+      "title": "Kezeld az adataidat és a biztonságodat",
+      "copy": "Nézd át a hozzájárulásokat, a biztonsági eszközöket és tartsd kézben az élményt.",
+      "consent": {
+        "title": "Adatvédelmi hozzájárulás",
+        "copy": "Kezeld a kötelező és opcionális adatkezelési döntéseidet."
+      },
+      "safety": {
+        "title": "Biztonsági központ",
+        "copy": "Jelentés, blokkolás és társkeresési biztonsági útmutató."
+      }
+    },
+    "notifications": {
+      "eyebrow": "Értesítések",
+      "title": "Értesítési központ",
+      "copy": "Nézd át az új matcheket, üzeneteket és fiókértesítéseket.",
+      "center": {
+        "title": "Értesítések megnyitása",
+        "copy": "Olvasd el és kezeld az appon belüli értesítéseidet."
+      }
+    },
+    "premium": {
+      "eyebrow": "Amorino Gold",
+      "title": "Prémium funkciók",
+      "copy": "A prémium erősebb felfedezési eszközöket ad, miközben az alap társkereső élmény megmarad.",
+      "likes": "Lásd, kik kedveltek",
+      "rewind": "Visszahozás",
+      "boost": "Profil boost"
+    },
+    "support": {
+      "eyebrow": "Támogatás",
+      "title": "Segítség kell?",
+      "copy": "Fiók, adatvédelem vagy biztonság esetén írj az Amor támogatásnak.",
+      "cta": "Kapcsolat a támogatással"
+    }
+  },
   "profile": {
     "photoViewerTitle": "Profilképek",
     "fields": {
@@ -281,6 +352,24 @@
       "title": "Törlöd a profilod?",
       "message": "Ez végleg eltávolítja a profilodat, a matcheket és a fiókhozzáférést az Amorban. A művelet nem vonható vissza.",
       "confirm": "Profil törlése"
+    },
+    "completion": {
+      "eyebrow": "Profilkészültség",
+      "title": "Fejezd be a profilod",
+      "readyTitle": "A profilod készen áll",
+      "text": "Töltsd ki a fontos részeket, hogy az Amor jobb találatokat mutasson.",
+      "readyText": "Már használhatod a teljes felfedezési élményt. A részletesebb profil még jobb találatokat hozhat.",
+      "cta": "Profil befejezése",
+      "progressLabel": "Profil készültsége",
+      "discoveryGateTitle": "Fejezd be a profilod a Felfedezés használatához",
+      "discoveryGateText": "Az Amornak szüksége van néhány alapadatra, mielőtt megmutat másoknak és jobb találatokat ajánl.",
+      "steps": {
+        "identity": "Alapadatok",
+        "photos": "Fotó",
+        "bio": "Bemutatkozás",
+        "interests": "Érdeklődések",
+        "location": "Lokáció"
+      }
     }
   },
   "messages": {
@@ -333,7 +422,8 @@
     "startText": "Egy rövid, személyes nyitás jobban működik.",
     "placeholder": "Írd ide az üzeneted...",
     "sendAria": "Üzenet küldése",
-    "readAt": "Olvasva {{time}}"
+    "readAt": "Olvasva {{time}}",
+    "typing": "{{name}} gépel"
   },
   "promotions": {
     "sheet": {
@@ -410,10 +500,12 @@
       "label": "Aktív csomag",
       "gold": "Amorino Gold",
       "superLikePack": "Super Like Pack",
+      "profileBoostPack": "Profile Boost csomag",
       "activePackage": "Megvásárolt csomag",
       "active": "Jelenleg aktív",
       "activeUntil": "Aktív eddig: {{date}}",
-      "superLikesBalance": "{{count}} Super Like elérhető"
+      "superLikesBalance": "{{count}} Super Like elérhető",
+      "profileBoostsBalance": "{{count}} kiemelés elérhető"
     },
     "paywall": {
       "eyebrow": "Amorino Gold",
@@ -470,6 +562,14 @@
       "initializationFailed": "A fizetési rendszer inicializálása sikertelen.",
       "offeringsFailed": "Nem sikerült betölteni a fizetési ajánlatokat."
     }
+  },
+  "notifications": {
+    "eyebrow": "Aktivitás",
+    "title": "Értesítések",
+    "subtitle": "Az új matchek, üzenetek és prémium frissítések egy helyen jelennek meg.",
+    "markAllRead": "Mind olvasott",
+    "emptyTitle": "Még nincs értesítés",
+    "emptyText": "Ha valaki matchel vagy üzen neked, itt fog megjelenni."
   },
   "update": {
     "available": "Új verzió elérhető.",

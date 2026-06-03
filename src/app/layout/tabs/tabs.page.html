@@ -35,6 +35,9 @@
       >
         <ion-icon aria-hidden="true" name="chatbubble-ellipses-outline"></ion-icon>
         <ion-label>{{ t('tabs.messages') }}</ion-label>
+        @if (getUnreadMessagesCount()) {
+          <span class="mobile-tab-badge">{{ formatUnreadCount(getUnreadMessagesCount()) }}</span>
+        }
       </ion-tab-button>
       }
     </ion-tab-bar>

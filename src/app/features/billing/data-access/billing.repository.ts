@@ -270,6 +270,27 @@ export class BillingRepository {
     };
   }
 
+  async consumeProfileBoost(uid: string) {
+    const current = await this.getCachedBilling(uid);
+    const profileBoosts = current.consumables.profileBoosts ?? 0;
+
+    if (profileBoosts <= 0) {
+      return {
+        current,
+        consumed: false,
+      };
+    }
+
+    const nextCurrent = await this.updateConsumables(uid, current, {
+      profileBoosts: profileBoosts - 1,
+    });
+
+    return {
+      current: nextCurrent,
+      consumed: true,
+    };
+  }
+
   isPurchaseCancelled(error: unknown) {
     const purchaseError = error as {
       userCancelled?: boolean;

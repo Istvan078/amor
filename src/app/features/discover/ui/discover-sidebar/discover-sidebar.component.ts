@@ -92,6 +92,7 @@ export class DiscoverSidebarComponent implements AfterViewInit, OnChanges {
   @Input() isPremium = false;
   @Input() activeEntitlements: string[] = [];
   @Input() superLikesBalance = 0;
+  @Input() profileBoostsBalance = 0;
 
   @Output() profileOpened = new EventEmitter<void>();
   @Output() messageOpened = new EventEmitter<UserClass>();
@@ -158,8 +159,34 @@ export class DiscoverSidebarComponent implements AfterViewInit, OnChanges {
     return this.conversationPreviews[match.uid] ?? this.emptyPreview();
   }
 
+  getUnreadMessagesCount() {
+    return this.matches.reduce((total, match) => {
+      if (!match.uid || this.isBlockedMatch(match)) {
+        return total;
+      }
+
+      return total + this.getConversationPreview(match).unreadCount;
+    }, 0);
+  }
+
   formatUnreadCount(unreadCount: number) {
     return unreadCount > 99 ? '99+' : String(unreadCount);
+  }
+
+  isMatchOnline(match: UserClass) {
+    if (!match.isOnline) {
+      return false;
+    }
+
+    const lastSeenAt = this.getTimestampValue(
+      match['lastSeenAt'] ?? match['lastActiveAt']
+    );
+
+    if (!lastSeenAt) {
+      return false;
+    }
+
+    return Date.now() - lastSeenAt.getTime() < 2 * 60 * 1000;
   }
 
   hasBillingSummary() {
@@ -167,6 +194,7 @@ export class DiscoverSidebarComponent implements AfterViewInit, OnChanges {
       this.isPremium ||
       this.activeEntitlements.length ||
       this.superLikesBalance > 0 ||
+      this.profileBoostsBalance > 0 ||
       this.billingCurrent?.productId
     );
   }
@@ -178,6 +206,10 @@ export class DiscoverSidebarComponent implements AfterViewInit, OnChanges {
 
     if (this.superLikesBalance > 0) {
       return 'billing.status.superLikePack';
+    }
+
+    if (this.profileBoostsBalance > 0) {
+      return 'billing.status.profileBoostPack';
     }
 
     return 'billing.status.activePackage';
@@ -192,13 +224,17 @@ export class DiscoverSidebarComponent implements AfterViewInit, OnChanges {
       return 'billing.status.superLikesBalance';
     }
 
+    if (this.profileBoostsBalance > 0) {
+      return 'billing.status.profileBoostsBalance';
+    }
+
     return 'billing.status.active';
   }
 
   billingSubtitleParams() {
     return {
       date: this.formatBillingDate(this.billingCurrent?.expiresAt),
-      count: this.superLikesBalance,
+      count: this.superLikesBalance || this.profileBoostsBalance,
     };
   }
 
@@ -222,6 +258,31 @@ export class DiscoverSidebarComponent implements AfterViewInit, OnChanges {
       month: 'short',
       year: 'numeric',
     });
+  }
+
+  private getTimestampValue(value: unknown): Date | undefined {
+    if (!value) {
+      return undefined;
+    }
+
+    if (value instanceof Date) {
+      return Number.isNaN(value.getTime()) ? undefined : value;
+    }
+
+    if (typeof value === 'object' && 'toDate' in value) {
+      const timestamp = value as { toDate?: () => Date };
+      const date = timestamp.toDate?.();
+
+      return date && !Number.isNaN(date.getTime()) ? date : undefined;
+    }
+
+    if (typeof value === 'string' || typeof value === 'number') {
+      const date = new Date(value);
+
+      return Number.isNaN(date.getTime()) ? undefined : date;
+    }
+
+    return undefined;
   }
 
   private emptyPreview(): MatchConversationPreview {

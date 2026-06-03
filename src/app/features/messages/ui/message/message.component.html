@@ -18,7 +18,15 @@
               <img [src]="getProfileImage(match)" alt="Profile picture" />
               <span>
                 <strong>{{ getDisplayName(match) || match.firstName }}</strong>
-                <small>
+                <small class="conversation-list-presence" [class.is-online]="isMatchOnline(match)">
+                  <i></i>
+                  {{
+                    isMatchOnline(match)
+                      ? t('discover.sidebar.online')
+                      : t('discover.sidebar.offline')
+                  }}
+                </small>
+                <small class="conversation-list-preview">
                   @if (isMatchBlocked(match)) {
                     {{ t('messages.blockedListHint') }}
                   } @else if (getConversationPreview(match).hasMessages) {
@@ -192,6 +200,15 @@
               </div>
             }
           }
+
+          @if (!messagesStore.loading() && messagesStore.isMatchTyping() && matchProfile) {
+            <div class="message-row typing-row">
+              <span class="typing-bubble">
+                <strong>{{ t('messages.typing', { name: matchProfile.firstName || getDisplayName(matchProfile) }) }}</strong>
+                <span aria-hidden="true"><i></i><i></i><i></i></span>
+              </span>
+            </div>
+          }
         </div>
 
         <form
@@ -208,6 +225,7 @@
             [disabled]="isCurrentMatchBlocked"
             rows="1"
             autoGrow="true"
+            (ionInput)="onMessageInput()"
           ></ion-textarea>
           <ion-button
             type="submit"

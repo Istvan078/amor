@@ -48,6 +48,10 @@
               <ion-icon name="exit-outline" slot="start"></ion-icon>
               {{ t('common.signOut') }}
             </ion-button>
+            <ion-button class="profile-settings-button" routerLink="/amor/settings" fill="outline">
+              <ion-icon name="settings-outline" slot="start"></ion-icon>
+              {{ t('discover.profile.settings') }}
+            </ion-button>
             @if (canOpenAdmin) {
               <ion-button class="profile-admin-button" routerLink="/admin" fill="outline">
                 <ion-icon name="shield-checkmark-outline" slot="start"></ion-icon>
@@ -78,6 +82,58 @@
               </div>
             </section>
           }
+
+          <section
+            class="profile-completion-card"
+            [class.is-ready]="profileReadyForDiscovery()"
+          >
+            <div class="profile-completion-head">
+              <div>
+                <small>{{ t('profile.completion.eyebrow') }}</small>
+                <strong>
+                  {{
+                    profileReadyForDiscovery()
+                      ? t('profile.completion.readyTitle')
+                      : t('profile.completion.title')
+                  }}
+                </strong>
+              </div>
+              <span>{{ profileCompletionPercent() }}%</span>
+            </div>
+
+            <div class="profile-completion-meter" aria-hidden="true">
+              <i [style.width.%]="profileCompletionPercent()"></i>
+            </div>
+
+            <p>
+              {{
+                profileReadyForDiscovery()
+                  ? t('profile.completion.readyText')
+                  : t('profile.completion.text')
+              }}
+            </p>
+
+            <div class="profile-completion-steps">
+              @for (step of profileCompletionSteps(); track step.key) {
+                <span [class.is-complete]="step.completed">
+                  <ion-icon
+                    [name]="step.completed ? 'checkmark-circle-outline' : step.icon"
+                  ></ion-icon>
+                  {{ t('profile.completion.steps.' + step.key) }}
+                </span>
+              }
+            </div>
+
+            @if (!profileReadyForDiscovery()) {
+              <ion-button
+                class="profile-completion-button"
+                fill="solid"
+                (click)="startUpdateRequested.emit()"
+              >
+                {{ t('profile.completion.cta') }}
+              </ion-button>
+            }
+          </section>
 
           <section class="profile-info-panel">
             <div class="profile-section-heading">

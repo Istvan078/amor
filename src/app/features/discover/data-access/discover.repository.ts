@@ -80,10 +80,12 @@ export class DiscoverRepository {
     async updateUserOnlineStatus(uid: string, isOnline: boolean) {
         await this.runInFirebaseContext(() => {
             const profileRef = doc(this.firestore, `users/${uid}`);
+            const now = new Date().toISOString();
 
             return updateDoc(profileRef, {
                 isOnline,
-                lastSeenAt: new Date().toISOString(),
+                lastSeenAt: now,
+                lastActiveAt: now,
             });
         });
     }

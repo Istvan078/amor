@@ -36,11 +36,21 @@ import { UserClass } from '../../../../shared/models/user.model';
 import { addIcons } from 'ionicons';
 import {
   diamondOutline,
+  checkmarkCircleOutline,
+  heartOutline,
+  imagesOutline,
+  locationOutline,
+  personOutline,
+  settingsOutline,
   shieldCheckmarkOutline,
   sparklesOutline,
   trashOutline,
 } from 'ionicons/icons';
 import { BillingCurrent } from '../../../billing/data-access/billing.repository';
+import {
+  getProfileCompleteness,
+  PROFILE_COMPLETENESS_DISCOVERY_THRESHOLD,
+} from '../../../profile/utils/profile-completeness';
 
 export type ProfileChoiceSelectedEvent = {
   event: any;
@@ -107,11 +117,69 @@ export class DiscoverProfilePanelComponent {
 
   constructor() {
     addIcons({
+      checkmarkCircleOutline,
       diamondOutline,
+      heartOutline,
+      imagesOutline,
+      locationOutline,
+      personOutline,
+      settingsOutline,
       shieldCheckmarkOutline,
       sparklesOutline,
       trashOutline,
     })
+  }
+
+  profileCompletionPercent() {
+    return getProfileCompleteness(this.userProfile);
+  }
+
+  profileReadyForDiscovery() {
+    return this.profileCompletionPercent() >= PROFILE_COMPLETENESS_DISCOVERY_THRESHOLD;
+  }
+
+  profileCompletionSteps() {
+    const profile = this.userProfile;
+    const hasPhoto = !!profile?.profilePicture || !!profile?.pictures?.length;
+    const hasLocation =
+      !!profile?.currentPlace ||
+      (
+        Number.isFinite(Number(profile?.currentLocCoords?.lat)) &&
+        Number.isFinite(Number(profile?.currentLocCoords?.lon))
+      );
+
+    return [
+      {
+        key: 'identity',
+        icon: 'person-outline',
+        completed: !!(
+          profile?.firstName &&
+          profile?.birthDate &&
+          profile?.gender &&
+          profile?.lookingForGender
+        ),
+      },
+      {
+        key: 'photos',
+        icon: 'images-outline',
+        completed: hasPhoto,
+      },
+      {
+        key: 'bio',
+        icon: 'heart-outline',
+        completed: !!profile?.aboutMe,
+      },
+      {
+        key: 'interests',
+        icon: 'sparkles-outline',
+        completed: !!profile?.interests?.length,
+      },
+      {
+        key: 'location',
+        icon: 'location-outline',
+        completed: hasLocation,
+      },
+    ];
   }
 
   dateTriggerId(key: string) {

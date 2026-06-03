@@ -5,12 +5,14 @@ import {
   EventEmitter,
   Input,
   OnChanges,
+  OnDestroy,
   Output,
   SimpleChanges,
   ViewChild,
   effect,
   inject,
 } from '@angular/core';
+import { DOCUMENT } from '@angular/common';
 import { FormsModule, NgForm } from '@angular/forms';
 import {
   IonAvatar,
@@ -57,7 +59,7 @@ import { MessagesStore } from '../../store/messages.store';
     TranslocoDirective,
   ],
 })
-export class MessageComponent implements AfterViewChecked, OnChanges {
+export class MessageComponent implements AfterViewChecked, OnChanges, OnDestroy {
   @ViewChild('messageThread', { read: ElementRef })
   private messageThread?: ElementRef<HTMLElement>;
 
@@ -85,9 +87,12 @@ export class MessageComponent implements AfterViewChecked, OnChanges {
   private profileStore = inject(ProfileStore);
   private alertCtrl = inject(AlertController);
   private transloco = inject(TranslocoService);
+  private document = inject(DOCUMENT);
   private userProfile?: UserClass;
   private pendingScrollToBottom = false;
   private lastRenderedMessageSignature = '';
+  private typingStopTimer: ReturnType<typeof setTimeout> | null = null;
+  private lastTypingWriteAt = 0;
   isConversationMenuOpen = false;
   moderationNoticeKey?: string;
   readonly fallbackAvatar =
@@ -116,6 +121,8 @@ export class MessageComponent implements AfterViewChecked, OnChanges {
   }
 
   ngAfterViewChecked() {
+    this.syncMobileMessageViewState();
+
     const messageSignature = this.messagesStore
       .messages()
       .map((message) => `${message.number}:${message.message}`)
@@ -134,10 +141,21 @@ export class MessageComponent implements AfterViewChecked, OnChanges {
 
   ngOnChanges(changes: SimpleChanges) {
     if (changes['matchProfile']) {
+      this.clearLocalTypingStatus(
+        changes['matchProfile'].previousValue as UserClass | undefined
+      );
       this.isConversationMenuOpen = false;
       this.moderationNoticeKey = undefined;
       void this.loadMessages();
     }
+
+    this.syncMobileMessageViewState();
+  }
+
+  ngOnDestroy() {
+    this.clearLocalTypingStatus();
+    this.document.body.classList.remove('is-mobile-messages-tab');
+    this.document.body.classList.remove('is-mobile-message-view');
   }
 
   async loadMessages() {
@@ -217,7 +235,24 @@ export class MessageComponent implements AfterViewChecked, OnChanges {
     return unreadCount > 99 ? '99+' : String(unreadCount);
   }
 
+  isMatchOnline(match: UserClass) {
+    if (!match.isOnline) {
+      return false;
+    }
+
+    const lastSeenAt = this.getTimestampValue(
+      match['lastSeenAt'] ?? match['lastActiveAt']
+    );
+
+    if (!lastSeenAt) {
+      return false;
+    }
+
+    return Date.now() - lastSeenAt.getTime() < 2 * 60 * 1000;
+  }
+
   selectMatch(match: UserClass) {
+    this.clearLocalTypingStatus(this.matchProfile);
     this.matchProfile = match;
     this.isConversationMenuOpen = false;
     this.moderationNoticeKey = undefined;
@@ -226,6 +261,7 @@ export class MessageComponent implements AfterViewChecked, OnChanges {
       this.options.isSelectedMatch = true;
     }
 
+    this.syncMobileMessageViewState();
     void this.loadMessages();
   }
 
@@ -235,6 +271,8 @@ export class MessageComponent implements AfterViewChecked, OnChanges {
     if (this.options) {
       this.options.isSelectedMatch = false;
     }
+
+    this.syncMobileMessageViewState();
   }
 
   toggleConversationMenu() {
@@ -340,7 +378,33 @@ export class MessageComponent implements AfterViewChecked, OnChanges {
     });
 
     form.resetForm();
+    this.clearLocalTypingStatus();
     this.pendingScrollToBottom = true;
+  }
+
+  onMessageInput() {
+    if (this.isCurrentMatchBlocked || !this.userProfile || !this.matchProfile) {
+      return;
+    }
+
+    const now = Date.now();
+
+    if (now - this.lastTypingWriteAt > 2500) {
+      this.lastTypingWriteAt = now;
+      void this.messagesStore.setTypingStatus(
+        this.userProfile,
+        this.matchProfile,
+        true
+      );
+    }
+
+    if (this.typingStopTimer) {
+      clearTimeout(this.typingStopTimer);
+    }
+
+    this.typingStopTimer = setTimeout(() => {
+      this.clearLocalTypingStatus();
+    }, 3000);
   }
 
   private scrollThreadToBottom() {
@@ -353,6 +417,67 @@ export class MessageComponent implements AfterViewChecked, OnChanges {
 
       element.scrollTop = element.scrollHeight;
     });
+  }
+
+  private clearLocalTypingStatus(matchProfile = this.matchProfile) {
+    if (this.typingStopTimer) {
+      clearTimeout(this.typingStopTimer);
+      this.typingStopTimer = null;
+    }
+
+    if (!this.lastTypingWriteAt) {
+      return;
+    }
+
+    this.lastTypingWriteAt = 0;
+
+    if (!this.userProfile || !matchProfile) {
+      return;
+    }
+
+    void this.messagesStore.setTypingStatus(
+      this.userProfile,
+      matchProfile,
+      false
+    );
+  }
+
+  private getTimestampValue(value: unknown): Date | undefined {
+    if (!value) {
+      return undefined;
+    }
+
+    if (value instanceof Date) {
+      return Number.isNaN(value.getTime()) ? undefined : value;
+    }
+
+    if (typeof value === 'object' && 'toDate' in value) {
+      const timestamp = value as { toDate?: () => Date };
+      const date = timestamp.toDate?.();
+
+      return date && !Number.isNaN(date.getTime()) ? date : undefined;
+    }
+
+    if (typeof value === 'string' || typeof value === 'number') {
+      const date = new Date(value);
+
+      return Number.isNaN(date.getTime()) ? undefined : date;
+    }
+
+    return undefined;
+  }
+
+  private syncMobileMessageViewState() {
+    const isMobileMessagesTab = !!this.options?.phoneView;
+
+    this.document.body.classList.toggle(
+      'is-mobile-messages-tab',
+      isMobileMessagesTab
+    );
+    this.document.body.classList.toggle(
+      'is-mobile-message-view',
+      !!(isMobileMessagesTab && this.options?.isSelectedMatch)
+    );
   }
 
   private async confirmRemoveMatch(match: UserClass) {

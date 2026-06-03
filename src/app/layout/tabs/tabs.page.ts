@@ -11,6 +11,7 @@ import { TranslocoDirective } from '@jsverse/transloco';
 
 import { AuthStore } from '../../features/auth/store/auth.store';
 import { DiscoverUiStore } from '../../features/discover/store/discover-ui.store';
+import { MatchConversationPreviewsStore } from '../../features/messages/store/match-conversation-previews.store';
 import { ProfileStore } from '../../features/profile/store/profile.store';
 
 @Component({
@@ -25,6 +26,7 @@ export class TabsPage {
   readonly profileStore = inject(ProfileStore);
   private router = inject(Router);
   readonly discoverUiStore = inject(DiscoverUiStore);
+  private matchConversationPreviewsStore = inject(MatchConversationPreviewsStore);
 
   openUserCard() {
     this.discoverUiStore.setPhoneView(true);
@@ -57,6 +59,17 @@ export class TabsPage {
 
   isMessagesActive() {
     return this.discoverUiStore.isShowMessages();
+  }
+
+  getUnreadMessagesCount() {
+    return Object.values(this.matchConversationPreviewsStore.previews()).reduce(
+      (total, preview) => total + preview.unreadCount,
+      0
+    );
+  }
+
+  formatUnreadCount(unreadCount: number) {
+    return unreadCount > 99 ? '99+' : String(unreadCount);
   }
 
   isPrivacyActive() {

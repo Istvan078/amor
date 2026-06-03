@@ -1,9 +1,6 @@
 :host {
-  position: fixed;
-  top: 1rem;
-  right: 1.8rem;
-  z-index: 100;
-  pointer-events: none;
+  display: inline-flex;
+  pointer-events: auto;
 }
 
 .language-switcher {
@@ -48,8 +45,12 @@ button.active {
 
 @media screen and (max-width: 768px) {
   :host {
-    top: 0.5rem;
-    right: 0.5rem;
+    display: inline-flex;
+  }
+
+  :host-context(body.is-mobile-messages-tab),
+  :host-context(body.is-mobile-message-view) {
+    display: none;
   }
 
   button {

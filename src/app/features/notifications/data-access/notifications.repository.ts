@@ -79,10 +79,36 @@ import { Capacitor } from '@capacitor/core';
 import { PushNotifications } from '@capacitor/push-notifications';
 import {
     Firestore,
+    collection,
     doc,
+    limit,
+    onSnapshot,
+    orderBy,
+    query,
     serverTimestamp,
     setDoc,
+    updateDoc,
+    writeBatch,
 } from '@angular/fire/firestore';
+
+export type AppNotificationType =
+    | 'new_message'
+    | 'new_match'
+    | 'super_like'
+    | 'profile_boost_ended'
+    | 'premium_expiry'
+    | 'report_status';
+
+export type AppNotification = {
+    id: string;
+    type: AppNotificationType;
+    actorUid?: string;
+    title: string;
+    body: string;
+    conversationId?: string;
+    isRead: boolean;
+    createdAt?: Date;
+};
 
 @Injectable({
     providedIn: 'root',
@@ -92,6 +118,77 @@ export class NotificationsRepository {
     private injector = inject(Injector);
 
     private listenersRegistered = false;
+
+    listenToNotifications(
+        uid: string,
+        onNotifications: (notifications: AppNotification[]) => void,
+        onError?: (error: unknown) => void
+    ) {
+        return this.runInFirebaseContext(() => {
+            const notificationsCollection = collection(
+                this.firestore,
+                `users/${uid}/notifications`
+            );
+            const notificationsQuery = query(
+                notificationsCollection,
+                orderBy('createdAt', 'desc'),
+                limit(30)
+            );
+
+            return onSnapshot(
+                notificationsQuery,
+                (snapshot) => {
+                    onNotifications(
+                        snapshot.docs.map((docSnapshot) =>
+                            this.mapNotification(docSnapshot.id, docSnapshot.data())
+                        )
+                    );
+                },
+                (error) => {
+                    onError?.(error);
+                }
+            );
+        });
+    }
+
+    async markAsRead(uid: string, notificationId: string) {
+        if (!uid || !notificationId) {
+            return;
+        }
+
+        return this.runInFirebaseContext(() => {
+            const notificationRef = doc(
+                this.firestore,
+                `users/${uid}/notifications/${notificationId}`
+            );
+
+            return updateDoc(notificationRef, {
+                isRead: true,
+            });
+        });
+    }
+
+    async markAllAsRead(uid: string, notificationIds: string[]) {
+        if (!uid || !notificationIds.length) {
+            return;
+        }
+
+        return this.runInFirebaseContext(() => {
+            const batch = writeBatch(this.firestore);
+
+            notificationIds.forEach((notificationId) => {
+                const notificationRef = doc(
+                    this.firestore,
+                    `users/${uid}/notifications/${notificationId}`
+                );
+                batch.update(notificationRef, {
+                    isRead: true,
+                });
+            });
+
+            return batch.commit();
+        });
+    }
 
     async init(uid: string) {
         if (!uid || !Capacitor.isNativePlatform()) {
@@ -148,6 +245,62 @@ export class NotificationsRepository {
                 { merge: true }
             );
         });
+    }
+
+    private mapNotification(id: string, data: Record<string, unknown>): AppNotification {
+        return {
+            id,
+            type: this.toNotificationType(data['type']),
+            actorUid: typeof data['actorUid'] === 'string' ? data['actorUid'] : undefined,
+            title: typeof data['title'] === 'string' ? data['title'] : 'Notification',
+            body: typeof data['body'] === 'string' ? data['body'] : '',
+            conversationId:
+                typeof data['conversationId'] === 'string'
+                    ? data['conversationId']
+                    : undefined,
+            isRead: data['isRead'] === true,
+            createdAt: this.toDate(data['createdAt']),
+        };
+    }
+
+    private toNotificationType(value: unknown): AppNotificationType {
+        if (
+            value === 'new_message' ||
+            value === 'new_match' ||
+            value === 'super_like' ||
+            value === 'profile_boost_ended' ||
+            value === 'premium_expiry' ||
+            value === 'report_status'
+        ) {
+            return value;
+        }
+
+        return 'new_message';
+    }
+
+    private toDate(value: unknown): Date | undefined {
+        if (!value) {
+            return undefined;
+        }
+
+        if (value instanceof Date) {
+            return value;
+        }
+
+        if (
+            typeof value === 'object' &&
+            'toDate' in value &&
+            typeof value.toDate === 'function'
+        ) {
+            return value.toDate();
+        }
+
+        if (typeof value === 'string' || typeof value === 'number') {
+            const date = new Date(value);
+            return Number.isNaN(date.getTime()) ? undefined : date;
+        }
+
+        return undefined;
     }
 
     private runInFirebaseContext<T>(callback: () => T): T {

@@ -78,7 +78,7 @@ app-discover {
     place-items: center;
     width: 100%;
     min-height: 100dvh;
-    padding: 34px 40px;
+    padding: 34px 112px 34px 40px;
     overflow-y: auto;
   }
 
@@ -773,6 +773,8 @@ app-discover {
   }
 
   .matches-and-messages-cont ion-button {
+    position: relative;
+    overflow: visible;
     min-height: 44px;
     --border-color: rgba(255, 255, 255, 0.16);
     --border-radius: 999px;
@@ -783,6 +785,26 @@ app-discover {
     font-weight: 900;
     letter-spacing: 0;
     text-transform: uppercase;
+  }
+
+  .messages-nav-badge {
+    position: absolute;
+    top: -8px;
+    right: -6px;
+    display: inline-grid;
+    place-items: center;
+    min-width: 24px;
+    height: 24px;
+    padding: 0 7px;
+    border: 2px solid #101423;
+    border-radius: 999px;
+    background: linear-gradient(135deg, #ff5d8f, #ff7a59);
+    color: #ffffff;
+    font-size: 0.72rem;
+    font-weight: 900;
+    line-height: 1;
+    box-shadow: 0 10px 24px rgba(255, 93, 143, 0.34);
+    pointer-events: none;
   }
 
   .pairs-and-messageheads-cont {
@@ -1063,21 +1085,240 @@ app-discover {
     color: var(--amor-text);
   }
 
+  .match-quality-card {
+    display: grid;
+    grid-template-columns: auto minmax(0, 1fr);
+    gap: 16px;
+    padding: 16px;
+    border: 1px solid rgba(255, 93, 143, 0.22);
+    border-radius: 8px;
+    background:
+      radial-gradient(circle at 0% 0%, rgba(255, 93, 143, 0.18), transparent 38%),
+      linear-gradient(135deg, rgba(255, 255, 255, 0.095), rgba(255, 255, 255, 0.045)),
+      rgba(19, 24, 40, 0.92);
+    box-shadow: 0 18px 42px rgba(0, 0, 0, 0.2);
+  }
+
+  .match-quality-score {
+    display: grid;
+    place-items: center;
+    align-self: start;
+    width: 84px;
+    height: 84px;
+    border: 1px solid rgba(242, 199, 110, 0.42);
+    border-radius: 999px;
+    background:
+      radial-gradient(circle at 35% 24%, rgba(255, 255, 255, 0.2), transparent 36%),
+      linear-gradient(135deg, rgba(255, 93, 143, 0.42), rgba(242, 199, 110, 0.26));
+    color: #ffffff;
+    box-shadow: 0 16px 38px rgba(255, 93, 143, 0.18);
+  }
+
+  .match-quality-score span {
+    font-size: 1.35rem;
+    font-weight: 950;
+    line-height: 1;
+  }
+
+  .match-quality-score small,
+  .match-quality-copy small {
+    color: var(--amor-gold);
+    font-size: 0.7rem;
+    font-weight: 900;
+    text-transform: uppercase;
+  }
+
+  .match-quality-copy h3 {
+    margin: 2px 0 6px;
+    color: var(--amor-text);
+    font-size: 1.08rem;
+    font-weight: 950;
+  }
+
+  .match-quality-copy p {
+    margin: 0 0 12px;
+    color: var(--amor-muted);
+    line-height: 1.45;
+  }
+
+  .match-quality-reasons {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+  }
+
+  .match-quality-reasons span {
+    display: inline-flex;
+    align-items: center;
+    min-height: 30px;
+    padding: 7px 10px;
+    border: 1px solid rgba(255, 255, 255, 0.11);
+    border-radius: 999px;
+    background: rgba(255, 255, 255, 0.06);
+    color: var(--amor-text);
+    font-size: 0.78rem;
+    font-weight: 850;
+  }
+
+  .discover-onboarding-card {
+    position: relative;
+    display: grid;
+    place-items: center;
+    gap: 16px;
+    width: min(620px, calc(100vw - 32px));
+    min-height: min(640px, calc(100dvh - 116px));
+    margin: 0 auto;
+    padding: 34px;
+    overflow: hidden;
+    border: 1px solid rgba(255, 255, 255, 0.13);
+    border-radius: 8px;
+    background:
+      radial-gradient(circle at 50% 16%, rgba(255, 93, 143, 0.2), transparent 28%),
+      radial-gradient(circle at 100% 100%, rgba(53, 198, 189, 0.15), transparent 28%),
+      linear-gradient(135deg, rgba(31, 38, 61, 0.98), rgba(16, 21, 36, 0.98));
+    color: var(--amor-text);
+    text-align: center;
+    box-shadow: 0 30px 90px rgba(0, 0, 0, 0.32);
+  }
+
+  .discover-onboarding-card small {
+    color: var(--amor-gold);
+    font-size: 0.78rem;
+    font-weight: 900;
+    text-transform: uppercase;
+  }
+
+  .discover-onboarding-card h2 {
+    max-width: 480px;
+    margin: 0;
+    color: #ffffff;
+    font-size: clamp(2rem, 4vw, 3.6rem);
+    font-weight: 950;
+    line-height: 1.02;
+  }
+
+  .discover-onboarding-card p {
+    max-width: 460px;
+    margin: 0;
+    color: var(--amor-muted);
+    font-size: 1rem;
+    line-height: 1.55;
+  }
+
+  .discover-onboarding-orbit {
+    position: relative;
+    display: grid;
+    place-items: center;
+    width: 116px;
+    height: 116px;
+    border-radius: 999px;
+    background: rgba(255, 255, 255, 0.05);
+  }
+
+  .discover-onboarding-orbit::before {
+    content: "";
+    width: 52px;
+    height: 52px;
+    border-radius: 999px;
+    background: linear-gradient(135deg, var(--amor-rose), var(--amor-coral));
+    box-shadow: 0 16px 46px rgba(255, 93, 143, 0.38);
+  }
+
+  .discover-onboarding-orbit span {
+    position: absolute;
+    width: 12px;
+    height: 12px;
+    border-radius: 999px;
+    background: var(--amor-gold);
+  }
+
+  .discover-onboarding-orbit span:nth-child(1) {
+    transform: translate(0, -48px);
+  }
+
+  .discover-onboarding-orbit span:nth-child(2) {
+    transform: translate(42px, 25px);
+    background: #35c6bd;
+  }
+
+  .discover-onboarding-orbit span:nth-child(3) {
+    transform: translate(-42px, 25px);
+    background: #ff7a59;
+  }
+
+  .discover-onboarding-progress {
+    position: relative;
+    width: min(420px, 100%);
+    overflow: hidden;
+    padding: 14px;
+    border: 1px solid rgba(255, 255, 255, 0.12);
+    border-radius: 999px;
+    background: rgba(255, 255, 255, 0.06);
+  }
+
+  .discover-onboarding-progress div {
+    position: relative;
+    z-index: 1;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+  }
+
+  .discover-onboarding-progress strong {
+    color: #ffffff;
+    font-size: 1.15rem;
+    font-weight: 950;
+  }
+
+  .discover-onboarding-progress span {
+    color: rgba(248, 245, 239, 0.7);
+    font-size: 0.82rem;
+    font-weight: 800;
+  }
+
+  .discover-onboarding-progress i {
+    position: absolute;
+    inset: 0 auto 0 0;
+    display: block;
+    border-radius: inherit;
+    background: linear-gradient(135deg, rgba(255, 93, 143, 0.55), rgba(255, 122, 89, 0.55));
+  }
+
+  .discover-onboarding-button {
+    min-height: 50px;
+    padding: 0 26px;
+    border: 0;
+    border-radius: 999px;
+    background: linear-gradient(135deg, var(--amor-rose), var(--amor-coral));
+    color: #ffffff;
+    box-shadow: 0 18px 42px rgba(255, 93, 143, 0.24);
+    font-weight: 950;
+    cursor: pointer;
+  }
+
   .profile-panel {
-    width: min(1040px, 100%);
+    width: min(1220px, 100%);
   }
 
   .profile-shell {
     display: grid;
-    grid-template-columns: minmax(280px, 350px) minmax(0, 1fr);
-    gap: 18px;
+    grid-template-columns: minmax(320px, 420px) minmax(480px, 720px);
+    grid-template-areas:
+      "hero info"
+      "actions info"
+      "completion info"
+      "editor editor";
+    gap: 18px 24px;
     align-items: start;
+    justify-content: center;
   }
 
   .profile-hero {
+    grid-area: hero;
     width: 100%;
-    height: 460px;
-    min-height: 460px;
+    height: min(58dvh, 560px);
+    min-height: 440px;
   }
 
   .profile-hero-overlay {
@@ -1104,6 +1345,7 @@ app-discover {
   }
 
   .profile-actions {
+    grid-area: actions;
     display: flex;
     flex-wrap: wrap;
     gap: 10px;
@@ -1161,6 +1403,14 @@ app-discover {
     --color: var(--amor-text);
   }
 
+  .profile-settings-button {
+    --border-color: rgba(255, 218, 114, 0.32);
+    --background: rgba(255, 218, 114, 0.08);
+    --background-hover: rgba(255, 218, 114, 0.14);
+    --color: var(--amor-text);
+    filter: drop-shadow(0 12px 24px rgba(255, 218, 114, 0.08));
+  }
+
   .profile-admin-button {
     --border-color: rgba(242, 199, 110, 0.32);
     --background: linear-gradient(
@@ -1178,6 +1428,7 @@ app-discover {
   }
 
   .profile-info-panel,
+  .profile-completion-card,
   .profile-editor-panel {
     padding: 22px;
     border: 1px solid var(--amor-line);
@@ -1187,12 +1438,129 @@ app-discover {
   }
 
   .profile-info-panel {
-    grid-column: 2;
-    grid-row: 1 / span 2;
+    grid-area: info;
   }
 
   .profile-editor-panel {
-    grid-column: 1 / -1;
+    grid-area: editor;
+  }
+
+  .profile-completion-card {
+    grid-area: completion;
+    display: grid;
+    gap: 14px;
+    background:
+      radial-gradient(circle at 100% 0%, rgba(255, 93, 143, 0.16), transparent 34%),
+      linear-gradient(135deg, rgba(255, 255, 255, 0.095), rgba(255, 255, 255, 0.045)),
+      rgba(24, 29, 47, 0.94);
+  }
+
+  .profile-completion-card.is-ready {
+    border-color: rgba(53, 198, 189, 0.26);
+    background:
+      radial-gradient(circle at 100% 0%, rgba(53, 198, 189, 0.16), transparent 34%),
+      rgba(24, 29, 47, 0.94);
+  }
+
+  .profile-completion-head {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 16px;
+  }
+
+  .profile-completion-head div {
+    display: grid;
+    gap: 5px;
+  }
+
+  .profile-completion-head small {
+    color: var(--amor-gold);
+    font-size: 0.73rem;
+    font-weight: 900;
+    text-transform: uppercase;
+  }
+
+  .profile-completion-head strong {
+    color: #ffffff;
+    font-size: 1.15rem;
+    font-weight: 950;
+  }
+
+  .profile-completion-head > span {
+    display: inline-grid;
+    place-items: center;
+    min-width: 58px;
+    height: 58px;
+    border: 1px solid rgba(242, 199, 110, 0.34);
+    border-radius: 999px;
+    background: rgba(255, 255, 255, 0.07);
+    color: var(--amor-gold);
+    font-weight: 950;
+  }
+
+  .profile-completion-meter {
+    height: 9px;
+    overflow: hidden;
+    border-radius: 999px;
+    background: rgba(255, 255, 255, 0.1);
+  }
+
+  .profile-completion-meter i {
+    display: block;
+    height: 100%;
+    border-radius: inherit;
+    background: linear-gradient(135deg, var(--amor-rose), var(--amor-coral));
+  }
+
+  .profile-completion-card p {
+    margin: 0;
+    color: var(--amor-muted);
+    line-height: 1.5;
+  }
+
+  .profile-completion-steps {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 8px;
+  }
+
+  .profile-completion-steps span {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    min-height: 38px;
+    padding: 9px 10px;
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    border-radius: 999px;
+    background: rgba(255, 255, 255, 0.055);
+    color: rgba(248, 245, 239, 0.78);
+    font-size: 0.78rem;
+    font-weight: 850;
+  }
+
+  .profile-completion-steps span.is-complete {
+    border-color: rgba(53, 198, 189, 0.32);
+    color: #9ff7cb;
+  }
+
+  .profile-completion-steps ion-icon {
+    flex: 0 0 auto;
+    color: currentColor;
+    font-size: 18px;
+  }
+
+  .profile-completion-button {
+    justify-self: start;
+    min-height: 42px;
+    margin: 0;
+    --background: linear-gradient(135deg, var(--amor-rose), var(--amor-coral));
+    --border-radius: 999px;
+    --box-shadow: 0 16px 34px rgba(255, 93, 143, 0.22);
+    --color: #ffffff;
+    font-weight: 900;
+    letter-spacing: 0;
+    text-transform: none;
   }
 
   .profile-section-heading {
@@ -1672,6 +2040,7 @@ app-discover {
     }
 
     .profile-info-panel,
+    .profile-completion-card,
     .profile-editor-panel {
       width: 100%;
       padding: 16px;
@@ -1679,6 +2048,14 @@ app-discover {
       background:
         radial-gradient(circle at 100% 0%, rgba(255, 93, 143, 0.12), transparent 34%),
         rgba(25, 30, 49, 0.9);
+    }
+
+    .profile-completion-steps {
+      grid-template-columns: 1fr;
+    }
+
+    .profile-completion-button {
+      width: 100%;
     }
 
     .profile-stat-grid {
@@ -1750,6 +2127,26 @@ app-discover {
 
     .profile-editor-checkbox {
       min-height: 50px;
+    }
+
+    .match-quality-card {
+      grid-template-columns: 1fr;
+      border-radius: 18px;
+    }
+
+    .match-quality-score {
+      width: 76px;
+      height: 76px;
+    }
+
+    .discover-onboarding-card {
+      min-height: calc(100dvh - 190px);
+      padding: 24px;
+      border-radius: 18px;
+    }
+
+    .discover-onboarding-card h2 {
+      font-size: 2rem;
     }
   }
 }

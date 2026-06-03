@@ -1,7 +1,10 @@
 import { Component, effect, inject, OnInit } from '@angular/core';
+import { RouterLink } from '@angular/router';
 import { SwUpdate } from '@angular/service-worker';
-import { IonApp, IonRouterOutlet } from '@ionic/angular/standalone';
+import { IonApp, IonIcon, IonRouterOutlet } from '@ionic/angular/standalone';
 import { TranslocoService } from '@jsverse/transloco';
+import { addIcons } from 'ionicons';
+import { notificationsOutline } from 'ionicons/icons';
 
 import { UpdateService } from './core/update/update.service';
 import { AuthStore } from './features/auth/store/auth.store';
@@ -16,23 +19,26 @@ import { NotificationsStore } from './features/notifications/store/notifications
   templateUrl: 'app.component.html',
   styleUrls: ['app.component.scss'],
   standalone: true,
-  imports: [LanguageSwitcherComponent, IonApp, IonRouterOutlet],
+  imports: [LanguageSwitcherComponent, IonApp, IonIcon, IonRouterOutlet, RouterLink],
 })
 export class AppComponent implements OnInit {
-  private authStore = inject(AuthStore);
+  readonly authStore = inject(AuthStore);
   private updateService = inject(UpdateService);
   private swUpdate = inject(SwUpdate);
   private transloco = inject(TranslocoService);
   private billingStore = inject(BillingStore);
-  private notificationsStore = inject(NotificationsStore);
+  readonly notificationsStore = inject(NotificationsStore);
 
   constructor() {
+    addIcons({ notificationsOutline });
+
     effect(() => {
       const uid = this.authStore.uid();
 
       queueMicrotask(() => {
         if (uid) {
           void this.billingStore.initBilling(uid);
+          this.notificationsStore.start(uid);
           if (Capacitor.isNativePlatform())
             void this.notificationsStore.init(uid);
           return;

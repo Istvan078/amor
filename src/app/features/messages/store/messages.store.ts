@@ -15,12 +15,14 @@ type MessagesState = {
     messages: Message[];
     loading: boolean;
     error: string | null;
+    isMatchTyping: boolean;
 };
 
 const initialState: MessagesState = {
     messages: [],
     loading: false,
     error: null,
+    isMatchTyping: false,
 };
 
 export const MessagesStore = signalStore(
@@ -36,12 +38,40 @@ export const MessagesStore = signalStore(
         analytics = inject(AnalyticsService)
     ) => {
         let unsubscribeMessages: (() => void) | null = null;
+        let unsubscribeTyping: (() => void) | null = null;
         let activeConversationId: string | null = null;
+        let typingExpiryTimer: ReturnType<typeof setTimeout> | null = null;
+
+        const clearTypingExpiryTimer = () => {
+            if (!typingExpiryTimer) {
+                return;
+            }
+
+            clearTimeout(typingExpiryTimer);
+            typingExpiryTimer = null;
+        };
+
+        const setMatchTyping = (isMatchTyping: boolean) => {
+            clearTypingExpiryTimer();
+            patchState(store, { isMatchTyping });
+
+            if (!isMatchTyping) {
+                return;
+            }
+
+            typingExpiryTimer = setTimeout(() => {
+                typingExpiryTimer = null;
+                patchState(store, { isMatchTyping: false });
+            }, 8500);
+        };
 
         const stopListening = () => {
             unsubscribeMessages?.();
+            unsubscribeTyping?.();
             unsubscribeMessages = null;
+            unsubscribeTyping = null;
             activeConversationId = null;
+            setMatchTyping(false);
         };
 
         return {
@@ -55,9 +85,11 @@ export const MessagesStore = signalStore(
                     return;
                 }
 
+                const myUid = userProfile.uid;
+                const matchUid = matchProfile.uid;
                 const conversationId = repository.getConversationId(
-                    userProfile.uid,
-                    matchProfile.uid
+                    myUid,
+                    matchUid
                 );
 
                 if (activeConversationId === conversationId) {
@@ -74,14 +106,28 @@ export const MessagesStore = signalStore(
 
                 try {
                     unsubscribeMessages = repository.listenToMessages(
-                        userProfile.uid,
-                        matchProfile.uid,
+                        myUid,
+                        matchUid,
                         (messages) => {
                             patchState(store, {
                                 messages,
                                 loading: false,
                                 error: null,
                             });
+
+                            const hasUnreadIncomingMessages = messages.some(
+                                (message) =>
+                                    message.sentToUid === myUid &&
+                                    message.senderUid === matchUid &&
+                                    message.isRead !== true
+                            );
+
+                            if (hasUnreadIncomingMessages) {
+                                void repository.markConversationMessagesRead(
+                                    myUid,
+                                    matchUid
+                                );
+                            }
                         },
                         (error) => {
                             console.error(error);
@@ -92,9 +138,18 @@ export const MessagesStore = signalStore(
                             });
                         }
                     );
+                    unsubscribeTyping = repository.listenToTypingStatus(
+                        myUid,
+                        matchUid,
+                        (typing) => setMatchTyping(typing.isTyping),
+                        (error) => {
+                            console.error(error);
+                            setMatchTyping(false);
+                        }
+                    );
                     await repository.markConversationMessagesRead(
-                        userProfile.uid,
-                        matchProfile.uid
+                        myUid,
+                        matchUid
                     );
                 } catch (error) {
                     console.error(error);
@@ -131,6 +186,22 @@ export const MessagesStore = signalStore(
                     characterCount: message.message.trim().length,
                     hasAttachments: !!message.attachments?.length,
                 });
+            },
+
+            async setTypingStatus(
+                userProfile: UserClass,
+                matchProfile: UserClass,
+                isTyping: boolean
+            ) {
+                if (!userProfile.uid || !matchProfile.uid) {
+                    return;
+                }
+
+                await repository.setTypingStatus(
+                    userProfile.uid,
+                    matchProfile.uid,
+                    isTyping
+                );
             },
 
             clearMessages() {

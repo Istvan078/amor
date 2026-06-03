@@ -63,6 +63,22 @@ export const routes: Routes = [
                     ),
             },
             {
+                path: 'notifications',
+                canMatch: [authGuard],
+                loadComponent: () =>
+                    import('./features/notifications/notification-center.page').then(
+                        (m) => m.NotificationCenterPage
+                    ),
+            },
+            {
+                path: 'settings',
+                canMatch: [authGuard],
+                loadComponent: () =>
+                    import('./features/settings/settings.page').then(
+                        (m) => m.SettingsPage
+                    ),
+            },
+            {
                 path: '',
                 redirectTo: 'register',
                 pathMatch: 'full',

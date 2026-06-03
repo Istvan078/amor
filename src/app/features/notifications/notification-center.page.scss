@@ -1,0 +1,232 @@
+:host {
+  display: block;
+  min-height: 100%;
+  color: #ffffff;
+  background:
+    radial-gradient(circle at 12% 8%, rgba(255, 93, 143, 0.24), transparent 34%),
+    radial-gradient(circle at 90% 16%, rgba(36, 191, 217, 0.18), transparent 30%), #080d1d;
+}
+
+.notifications-content {
+  --background: transparent;
+}
+
+.notifications-shell {
+  width: min(1040px, calc(100% - 32px));
+  min-height: 100%;
+  margin: 0 auto;
+  padding: 48px 0 80px;
+}
+
+.notifications-hero {
+  display: grid;
+  grid-template-columns: auto 1fr auto;
+  gap: 24px;
+  align-items: center;
+  padding: 28px;
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  border-radius: 24px;
+  background:
+    linear-gradient(135deg, rgba(255, 93, 143, 0.16), rgba(29, 46, 72, 0.52)),
+    rgba(18, 24, 43, 0.84);
+  box-shadow: 0 24px 64px rgba(0, 0, 0, 0.28);
+}
+
+.back-link,
+.mark-all-button {
+  min-height: 44px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  border: 1px solid rgba(255, 255, 255, 0.16);
+  border-radius: 999px;
+  color: #ffffff;
+  background: rgba(255, 255, 255, 0.07);
+  font-weight: 900;
+  text-decoration: none;
+}
+
+.back-link {
+  padding: 0 18px;
+}
+
+.mark-all-button {
+  padding: 0 20px;
+  cursor: pointer;
+}
+
+.back-link ion-icon,
+.mark-all-button ion-icon {
+  font-size: 18px;
+}
+
+.hero-copy p {
+  margin: 0 0 6px;
+  color: #ffdc73;
+  font-size: 12px;
+  font-weight: 900;
+  letter-spacing: 0;
+  text-transform: uppercase;
+}
+
+.hero-copy h1 {
+  margin: 0;
+  color: #ffffff;
+  font-size: clamp(34px, 6vw, 64px);
+  line-height: 0.95;
+  letter-spacing: 0;
+}
+
+.hero-copy span {
+  display: block;
+  margin-top: 10px;
+  color: rgba(255, 255, 255, 0.72);
+  font-size: 16px;
+}
+
+.notification-list {
+  display: grid;
+  gap: 14px;
+  margin-top: 22px;
+}
+
+.notification-card {
+  width: 100%;
+  display: grid;
+  grid-template-columns: auto 1fr auto;
+  gap: 16px;
+  align-items: center;
+  padding: 18px;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 18px;
+  color: #ffffff;
+  background:
+    linear-gradient(135deg, rgba(255, 255, 255, 0.08), rgba(255, 255, 255, 0.03)),
+    rgba(24, 31, 53, 0.92);
+  box-shadow: 0 18px 42px rgba(0, 0, 0, 0.2);
+  text-align: left;
+  cursor: pointer;
+  transition:
+    transform 160ms ease,
+    border-color 160ms ease,
+    background 160ms ease;
+}
+
+.notification-card:hover,
+.notification-card.is-unread {
+  border-color: rgba(255, 93, 143, 0.42);
+  background:
+    linear-gradient(135deg, rgba(255, 93, 143, 0.16), rgba(36, 191, 217, 0.08)),
+    rgba(24, 31, 53, 0.94);
+}
+
+.notification-card:hover {
+  transform: translateY(-1px);
+}
+
+.notification-icon {
+  width: 48px;
+  height: 48px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 16px;
+  color: #ffffff;
+  background: linear-gradient(135deg, #ff5d8f, #ff7a59);
+  box-shadow: 0 14px 28px rgba(255, 93, 143, 0.28);
+}
+
+.notification-icon.empty {
+  margin: 0 auto 16px;
+}
+
+.notification-icon ion-icon {
+  font-size: 22px;
+}
+
+.notification-body {
+  min-width: 0;
+  display: grid;
+  gap: 5px;
+}
+
+.notification-title {
+  color: #ffffff;
+  font-size: 18px;
+  font-weight: 900;
+}
+
+.notification-text {
+  color: rgba(255, 255, 255, 0.72);
+  font-size: 14px;
+  line-height: 1.45;
+}
+
+.notification-meta {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  color: rgba(255, 255, 255, 0.58);
+  font-size: 12px;
+  font-weight: 800;
+}
+
+.unread-dot {
+  width: 10px;
+  height: 10px;
+  border-radius: 999px;
+  background: #ff5d8f;
+  box-shadow: 0 0 18px rgba(255, 93, 143, 0.7);
+}
+
+.empty-notifications {
+  padding: 72px 24px;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 24px;
+  background: rgba(24, 31, 53, 0.72);
+  text-align: center;
+}
+
+.empty-notifications h2 {
+  margin: 0 0 8px;
+  color: #ffffff;
+  font-size: 24px;
+}
+
+.empty-notifications p {
+  margin: 0;
+  color: rgba(255, 255, 255, 0.68);
+}
+
+@media screen and (max-width: 768px) {
+  .notifications-shell {
+    width: min(390px, calc(100% - 28px));
+    padding: 26px 0 96px;
+  }
+
+  .notifications-hero {
+    grid-template-columns: 1fr;
+    align-items: start;
+    padding: 22px;
+    border-radius: 22px;
+  }
+
+  .hero-copy h1 {
+    font-size: 38px;
+  }
+
+  .mark-all-button,
+  .back-link {
+    width: fit-content;
+  }
+
+  .notification-card {
+    grid-template-columns: auto 1fr;
+  }
+
+  .notification-meta {
+    grid-column: 2;
+    justify-content: flex-start;
+  }
+}

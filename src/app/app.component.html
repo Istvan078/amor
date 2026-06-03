@@ -1,4 +1,20 @@
 <ion-app>
-  <app-language-switcher></app-language-switcher>
+  <div class="app-top-actions" aria-label="App actions">
+    @if (authStore.uid()) {
+      <a
+        class="notification-center-link"
+        routerLink="/amor/notifications"
+        aria-label="Open notifications"
+      >
+        <ion-icon name="notifications-outline" aria-hidden="true"></ion-icon>
+        @if (notificationsStore.unreadCount() > 0) {
+          <span class="notification-center-badge">
+            {{ notificationsStore.unreadCount() > 9 ? '9+' : notificationsStore.unreadCount() }}
+          </span>
+        }
+      </a>
+    }
+    <app-language-switcher></app-language-switcher>
+  </div>
   <ion-router-outlet></ion-router-outlet>
 </ion-app>

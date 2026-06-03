@@ -1,5 +1,5 @@
-import { inject } from '@angular/core';
-import { patchState, signalStore, withMethods, withState } from '@ngrx/signals';
+import { computed, inject } from '@angular/core';
+import { patchState, signalStore, withComputed, withMethods, withState } from '@ngrx/signals';
 import { NotificationsRepository } from '../data-access/notifications.repository';
 import { initialState } from './notifications.slice';
 
@@ -9,41 +9,106 @@ export const NotificationsStore = signalStore(
 
     withState(initialState),
 
-    withMethods((store, repository = inject(NotificationsRepository)) => ({
-        async init(uid: string) {
-            if (!uid || store.loading() || store.registered()) {
-                return;
-            }
+    withComputed((store) => ({
+        hasUnread: computed(() => store.unreadCount() > 0),
+    })),
 
-            patchState(store, {
-                loading: true,
-                error: null,
-            });
+    withMethods((store, repository = inject(NotificationsRepository)) => {
+        let activeUid: string | null = null;
+        let unsubscribeNotifications: (() => void) | null = null;
 
-            try {
-                const result = await repository.init(uid);
+        const stopListening = () => {
+            unsubscribeNotifications?.();
+            unsubscribeNotifications = null;
+            activeUid = null;
+        };
+
+        return {
+            start(uid: string) {
+                if (!uid || activeUid === uid) {
+                    return;
+                }
+
+                stopListening();
+                activeUid = uid;
+
+                unsubscribeNotifications = repository.listenToNotifications(
+                    uid,
+                    (notifications) => {
+                        patchState(store, {
+                            notifications,
+                            unreadCount: notifications.filter(
+                                (notification) => !notification.isRead
+                            ).length,
+                            error: null,
+                        });
+                    },
+                    (error) => {
+                        console.error(error);
+                        patchState(store, {
+                            error: 'Failed to load notifications.',
+                        });
+                    }
+                );
+            },
+
+            async init(uid: string) {
+                if (!uid || store.loading() || store.registered()) {
+                    return;
+                }
 
                 patchState(store, {
-                    loading: false,
-                    registered: result.registered,
-                    error:
-                        result.reason === 'permission_denied'
-                            ? 'Notification permission was denied.'
-                            : null,
+                    loading: true,
+                    error: null,
                 });
-            } catch (error) {
-                console.error(error);
 
-                patchState(store, {
-                    loading: false,
-                    registered: false,
-                    error: 'Failed to register push notifications.',
-                });
-            }
-        },
+                try {
+                    const result = await repository.init(uid);
 
-        reset() {
-            patchState(store, initialState);
-        },
-    }))
+                    patchState(store, {
+                        loading: false,
+                        registered: result.registered,
+                        error:
+                            result.reason === 'permission_denied'
+                                ? 'Notification permission was denied.'
+                                : null,
+                    });
+                } catch (error) {
+                    console.error(error);
+
+                    patchState(store, {
+                        loading: false,
+                        registered: false,
+                        error: 'Failed to register push notifications.',
+                    });
+                }
+            },
+
+            async markAsRead(notificationId: string) {
+                if (!activeUid || !notificationId) {
+                    return;
+                }
+
+                await repository.markAsRead(activeUid, notificationId);
+            },
+
+            async markAllAsRead() {
+                if (!activeUid) {
+                    return;
+                }
+
+                const unreadNotificationIds = store
+                    .notifications()
+                    .filter((notification) => !notification.isRead)
+                    .map((notification) => notification.id);
+
+                await repository.markAllAsRead(activeUid, unreadNotificationIds);
+            },
+
+            reset() {
+                stopListening();
+                patchState(store, initialState);
+            },
+        };
+    })
 );

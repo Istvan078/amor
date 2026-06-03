@@ -27,6 +27,7 @@ type BillingState = {
   activeEntitlements: string[];
   isPremium: boolean;
   superLikesBalance: number;
+  profileBoostsBalance: number;
 };
 
 const initialState: BillingState = {
@@ -42,6 +43,7 @@ const initialState: BillingState = {
   activeEntitlements: [],
   isPremium: false,
   superLikesBalance: 0,
+  profileBoostsBalance: 0,
 };
 
 function patchBillingCurrent(
@@ -55,6 +57,7 @@ function patchBillingCurrent(
     isPremium: !!current?.isPremium,
     activeEntitlements: current?.activeEntitlements ?? [],
     superLikesBalance: current?.consumables?.superLikes ?? 0,
+    profileBoostsBalance: current?.consumables?.profileBoosts ?? 0,
   });
 }
 
@@ -69,6 +72,7 @@ export const BillingStore = signalStore(
     hasOfferings: computed(() => store.offerings().length > 0),
     premiumExpiresAt: computed(() => store.current()?.expiresAt ?? null),
     hasSuperLikes: computed(() => store.superLikesBalance() > 0),
+    hasProfileBoosts: computed(() => store.profileBoostsBalance() > 0),
   })),
 
   withMethods((
@@ -270,6 +274,24 @@ export const BillingStore = signalStore(
 
         try {
           const result = await repository.consumeSuperLike(uid);
+          patchBillingCurrent(store, result.current);
+
+          return result.consumed;
+        } catch (error) {
+          console.error(error);
+          return false;
+        }
+      },
+
+      async consumeProfileBoost() {
+        const uid = store.uid();
+
+        if (!uid) {
+          return false;
+        }
+
+        try {
+          const result = await repository.consumeProfileBoost(uid);
           patchBillingCurrent(store, result.current);
 
           return result.consumed;
