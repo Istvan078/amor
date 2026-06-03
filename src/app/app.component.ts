@@ -8,7 +8,8 @@ import { AuthStore } from './features/auth/store/auth.store';
 import { BillingStore } from './features/billing/store/billing.store';
 import { LanguageSwitcherComponent } from './shared/ui/language-switcher/language-switcher.component';
 import { Capacitor } from '@capacitor/core';
-import { StatusBar, Style } from '@capacitor/status-bar';
+import { StatusBar } from '@capacitor/status-bar';
+import { NotificationsStore } from './features/notifications/store/notifications.store';
 
 @Component({
   selector: 'app-root',
@@ -23,6 +24,7 @@ export class AppComponent implements OnInit {
   private swUpdate = inject(SwUpdate);
   private transloco = inject(TranslocoService);
   private billingStore = inject(BillingStore);
+  private notificationsStore = inject(NotificationsStore);
 
   constructor() {
     effect(() => {
@@ -31,10 +33,13 @@ export class AppComponent implements OnInit {
       queueMicrotask(() => {
         if (uid) {
           void this.billingStore.initBilling(uid);
+          if (Capacitor.isNativePlatform())
+            void this.notificationsStore.init(uid);
           return;
         }
 
         this.billingStore.resetBilling();
+        this.notificationsStore.reset();
       });
     });
   }
@@ -54,9 +59,6 @@ export class AppComponent implements OnInit {
     if (!Capacitor.isNativePlatform()) return;
     try {
       await StatusBar.hide();
-      // await StatusBar.setOverlaysWebView({ overlay: true });
-      // await StatusBar.setBackgroundColor({ color: '#0b1023' });
-      // await StatusBar.setStyle({ style: Style.Light });
     }
     catch (error) {
       console.warn('Failed to set up native status bar', error);
