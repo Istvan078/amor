@@ -23,8 +23,10 @@ import {
   lockClosedOutline,
   mailOutline,
   megaphoneOutline,
+  moonOutline,
   notificationsOutline,
   personCircleOutline,
+  phonePortraitOutline,
   radioButtonOnOutline,
   settingsOutline,
   shieldCheckmarkOutline,
@@ -33,7 +35,12 @@ import {
 } from 'ionicons/icons';
 
 import { LanguageSwitcherComponent } from '../../shared/ui/language-switcher/language-switcher.component';
-import { NotificationPreferences, UserClass } from '../../shared/models/user.model';
+import {
+  NotificationDeliveryPreferences,
+  NotificationPreferences,
+  NotificationQuietHours,
+  UserClass,
+} from '../../shared/models/user.model';
 import { AuthStore } from '../auth/store/auth.store';
 import { ProfileStore } from '../profile/store/profile.store';
 
@@ -43,6 +50,13 @@ type VisibilitySettingKey =
   | 'distanceVisibility';
 
 type NotificationSettingKey = keyof NotificationPreferences;
+type NotificationDeliveryKey = keyof NotificationDeliveryPreferences;
+type NotificationSaveKey =
+  | `preference:${NotificationSettingKey}`
+  | `delivery:${NotificationDeliveryKey}`
+  | 'quiet-hours-enabled'
+  | 'quiet-hours-start'
+  | 'quiet-hours-end';
 
 @Component({
   selector: 'app-settings-page',
@@ -139,8 +153,41 @@ export class SettingsPage implements OnInit {
     },
   ];
 
+  readonly notificationDeliverySettings: Array<{
+    key: NotificationDeliveryKey;
+    icon: string;
+    titleKey: string;
+    copyKey: string;
+    enabledKey: string;
+    disabledKey: string;
+  }> = [
+    {
+      key: 'inApp',
+      icon: 'notifications-outline',
+      titleKey: 'settings.notifications.delivery.inApp.title',
+      copyKey: 'settings.notifications.delivery.inApp.copy',
+      enabledKey: 'settings.notifications.delivery.inApp.enabled',
+      disabledKey: 'settings.notifications.delivery.inApp.disabled',
+    },
+    {
+      key: 'push',
+      icon: 'phone-portrait-outline',
+      titleKey: 'settings.notifications.delivery.push.title',
+      copyKey: 'settings.notifications.delivery.push.copy',
+      enabledKey: 'settings.notifications.delivery.push.enabled',
+      disabledKey: 'settings.notifications.delivery.push.disabled',
+    },
+  ];
+
+  private readonly quietHoursDefaults: Required<NotificationQuietHours> = {
+    enabled: false,
+    start: '22:00',
+    end: '07:00',
+    timeZone: Intl.DateTimeFormat().resolvedOptions().timeZone || 'UTC',
+  };
+
   savingSetting: VisibilitySettingKey | null = null;
-  savingNotificationSetting: NotificationSettingKey | null = null;
+  savingNotificationSetting: NotificationSaveKey | null = null;
   settingsNoticeKey?: string;
   notificationNoticeKey?: string;
 
@@ -160,8 +207,10 @@ export class SettingsPage implements OnInit {
       lockClosedOutline,
       mailOutline,
       megaphoneOutline,
+      moonOutline,
       notificationsOutline,
       personCircleOutline,
+      phonePortraitOutline,
       radioButtonOnOutline,
       settingsOutline,
       shieldCheckmarkOutline,
@@ -203,7 +252,7 @@ export class SettingsPage implements OnInit {
   }
 
   isNotificationSettingSaving(key: NotificationSettingKey) {
-    return this.savingNotificationSetting === key;
+    return this.savingNotificationSetting === `preference:${key}`;
   }
 
   getNotificationStatusKey(setting: {
@@ -214,6 +263,55 @@ export class SettingsPage implements OnInit {
     return this.isNotificationSettingEnabled(setting.key)
       ? setting.enabledKey
       : setting.disabledKey;
+  }
+
+  isNotificationDeliveryEnabled(key: NotificationDeliveryKey) {
+    return this.profileStore.profile()?.notificationDelivery?.[key] !== false;
+  }
+
+  isNotificationDeliverySaving(key: NotificationDeliveryKey) {
+    return this.savingNotificationSetting === `delivery:${key}`;
+  }
+
+  getNotificationDeliveryStatusKey(setting: {
+    key: NotificationDeliveryKey;
+    enabledKey: string;
+    disabledKey: string;
+  }) {
+    return this.isNotificationDeliveryEnabled(setting.key)
+      ? setting.enabledKey
+      : setting.disabledKey;
+  }
+
+  getQuietHours() {
+    return {
+      ...this.quietHoursDefaults,
+      ...(this.profileStore.profile()?.notificationQuietHours ?? {}),
+    };
+  }
+
+  isQuietHoursEnabled() {
+    return this.getQuietHours().enabled === true;
+  }
+
+  quietHoursStart() {
+    return this.getQuietHours().start;
+  }
+
+  quietHoursEnd() {
+    return this.getQuietHours().end;
+  }
+
+  quietHoursTimeZone() {
+    return this.getQuietHours().timeZone;
+  }
+
+  isQuietHoursSaving(key?: 'enabled' | 'start' | 'end') {
+    if (!key) {
+      return this.savingNotificationSetting?.startsWith('quiet-hours') === true;
+    }
+
+    return this.savingNotificationSetting === `quiet-hours-${key}`;
   }
 
   async updateVisibilitySetting(key: VisibilitySettingKey, event: Event) {
@@ -248,7 +346,7 @@ export class SettingsPage implements OnInit {
       return;
     }
 
-    this.savingNotificationSetting = key;
+    this.savingNotificationSetting = `preference:${key}`;
     this.notificationNoticeKey = undefined;
 
     const notificationPreferences = {
@@ -264,5 +362,88 @@ export class SettingsPage implements OnInit {
     this.notificationNoticeKey = saved
       ? 'settings.notifications.saved'
       : 'settings.notifications.error';
+  }
+
+  async updateNotificationDeliverySetting(
+    key: NotificationDeliveryKey,
+    event: Event
+  ) {
+    const checked =
+      (event as CustomEvent<{ checked: boolean }>).detail?.checked === true;
+    const profile = this.profileStore.profile();
+
+    if (!profile) {
+      return;
+    }
+
+    await this.saveNotificationUpdate(`delivery:${key}`, {
+      notificationDelivery: {
+        ...(profile.notificationDelivery ?? {}),
+        [key]: checked,
+      },
+    });
+  }
+
+  async updateQuietHoursEnabled(event: Event) {
+    const checked =
+      (event as CustomEvent<{ checked: boolean }>).detail?.checked === true;
+
+    await this.saveQuietHours(
+      {
+        ...this.getQuietHours(),
+        enabled: checked,
+      },
+      'quiet-hours-enabled'
+    );
+  }
+
+  async updateQuietHoursTime(key: 'start' | 'end', event: Event) {
+    const value = ((event.target as HTMLInputElement | null)?.value ?? '').trim();
+
+    if (!this.isValidQuietHoursTime(value)) {
+      return;
+    }
+
+    await this.saveQuietHours(
+      {
+        ...this.getQuietHours(),
+        [key]: value,
+      },
+      `quiet-hours-${key}`
+    );
+  }
+
+  private async saveQuietHours(
+    quietHours: NotificationQuietHours,
+    savingKey: NotificationSaveKey
+  ) {
+    await this.saveNotificationUpdate(savingKey, {
+      notificationQuietHours: quietHours,
+    });
+  }
+
+  private async saveNotificationUpdate(
+    savingKey: NotificationSaveKey,
+    update: Partial<UserClass>
+  ) {
+    const uid = this.profileStore.uid() ?? this.authStore.uid();
+
+    if (!uid || this.savingNotificationSetting) {
+      return;
+    }
+
+    this.savingNotificationSetting = savingKey;
+    this.notificationNoticeKey = undefined;
+
+    const saved = await this.profileStore.updateProfile(uid, update);
+
+    this.savingNotificationSetting = null;
+    this.notificationNoticeKey = saved
+      ? 'settings.notifications.saved'
+      : 'settings.notifications.error';
+  }
+
+  private isValidQuietHoursTime(value: string) {
+    return /^\d{2}:\d{2}$/.test(value);
   }
 }

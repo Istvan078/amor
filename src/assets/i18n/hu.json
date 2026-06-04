@@ -343,6 +343,30 @@
           "disabled": "Promóciós értesítések kikapcsolva"
         }
       },
+      "delivery": {
+        "title": "Kézbesítés",
+        "inApp": {
+          "title": "Appon belüli központ",
+          "copy": "Az értesítések megmaradnak az Amor értesítési központban.",
+          "enabled": "Appon belüli értesítések bekapcsolva",
+          "disabled": "Appon belüli értesítések kikapcsolva"
+        },
+        "push": {
+          "title": "Push értesítések",
+          "copy": "A fontos jelzések megjelennek ezen az eszközön.",
+          "enabled": "Push értesítések bekapcsolva",
+          "disabled": "Push értesítések kikapcsolva"
+        }
+      },
+      "quietHours": {
+        "title": "Csendes órák",
+        "copy": "Szüneteltesd a push értesítéseket a saját nyugodt időszakodban. Az appon belüli jelzések csendben gyűlnek.",
+        "enabled": "Csendes órák aktívak",
+        "disabled": "Csendes órák kikapcsolva",
+        "start": "Kezdés",
+        "end": "Vége",
+        "timeZone": "Időzóna"
+      },
       "saved": "Értesítési beállítás mentve",
       "error": "Nem sikerült menteni az értesítési beállítást",
       "center": {
@@ -645,6 +669,9 @@
     "title": "Értesítések",
     "subtitle": "Az új matchek, üzenetek és prémium frissítések egy helyen jelennek meg.",
     "markAllRead": "Mind olvasott",
+    "deleteRead": "Olvasottak törlése",
+    "delete": "Értesítés törlése",
+    "openAria": "Értesítés megnyitása",
     "emptyTitle": "Még nincs értesítés",
     "emptyText": "Ha valaki matchel vagy üzen neked, itt fog megjelenni."
   },

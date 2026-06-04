@@ -30,6 +30,8 @@ type NotificationPreferenceKey =
   | 'superLikes'
   | 'promotions';
 
+type NotificationDeliveryKey = 'inApp' | 'push';
+
 const app = express();
 
 app.use(bodyParser.json());
@@ -213,6 +215,87 @@ const isNotificationEnabled = (
   return notificationPreferences[preferenceKey] !== false;
 };
 
+const isNotificationDeliveryEnabled = (
+  profileData: Record<string, unknown>,
+  deliveryKey: NotificationDeliveryKey
+) => {
+  const notificationDelivery =
+    profileData.notificationDelivery &&
+      typeof profileData.notificationDelivery === 'object'
+      ? (profileData.notificationDelivery as Record<string, unknown>)
+      : {};
+
+  return notificationDelivery[deliveryKey] !== false;
+};
+
+const parseTimeToMinutes = (value: unknown, fallback: string): number => {
+  const timeValue = typeof value === 'string' ? value : fallback;
+  const match = /^(\d{2}):(\d{2})$/.exec(timeValue);
+
+  if (!match) {
+    return parseTimeToMinutes(fallback, '00:00');
+  }
+
+  const hours = Number(match[1]);
+  const minutes = Number(match[2]);
+
+  if (hours < 0 || hours > 23 || minutes < 0 || minutes > 59) {
+    return parseTimeToMinutes(fallback, '00:00');
+  }
+
+  return hours * 60 + minutes;
+};
+
+const getTimeZoneMinutes = (date: Date, timeZone: string): number => {
+  try {
+    const parts = new Intl.DateTimeFormat('en-GB', {
+      timeZone,
+      hour: '2-digit',
+      minute: '2-digit',
+      hour12: false,
+    }).formatToParts(date);
+    const hours = Number(parts.find((part) => part.type === 'hour')?.value ?? 0);
+    const minutes = Number(parts.find((part) => part.type === 'minute')?.value ?? 0);
+
+    return hours * 60 + minutes;
+  } catch {
+    return date.getUTCHours() * 60 + date.getUTCMinutes();
+  }
+};
+
+const isQuietHoursActive = (
+  profileData: Record<string, unknown>,
+  now = new Date()
+): boolean => {
+  const quietHours =
+    profileData.notificationQuietHours &&
+      typeof profileData.notificationQuietHours === 'object'
+      ? (profileData.notificationQuietHours as Record<string, unknown>)
+      : {};
+
+  if (quietHours.enabled !== true) {
+    return false;
+  }
+
+  const startMinutes = parseTimeToMinutes(quietHours.start, '22:00');
+  const endMinutes = parseTimeToMinutes(quietHours.end, '07:00');
+  const timeZone =
+    typeof quietHours.timeZone === 'string' && quietHours.timeZone
+      ? quietHours.timeZone
+      : 'UTC';
+  const currentMinutes = getTimeZoneMinutes(now, timeZone);
+
+  if (startMinutes === endMinutes) {
+    return false;
+  }
+
+  if (startMinutes < endMinutes) {
+    return currentMinutes >= startMinutes && currentMinutes < endMinutes;
+  }
+
+  return currentMinutes >= startMinutes || currentMinutes < endMinutes;
+};
+
 const getUserProfileData = async (uid: string): Promise<Record<string, unknown>> => {
   const profileSnapshot = await admin.firestore().collection('users').doc(uid).get();
 
@@ -223,7 +306,7 @@ const sendPushToUser = async (
   uid: string,
   notification: admin.messaging.Notification,
   data: Record<string, string>
-) => {
+): Promise<boolean> => {
   try {
     const tokensSnapshot = await admin
       .firestore()
@@ -239,16 +322,27 @@ const sendPushToUser = async (
       .filter((token) => !!token);
 
     if (!tokens.length) {
-      return;
+      return false;
     }
 
-    await admin.messaging().sendEachForMulticast({
+    const response = await admin.messaging().sendEachForMulticast({
       tokens,
       notification,
       data,
     });
+
+    if (response.failureCount > 0) {
+      console.warn('Some push notifications failed:', {
+        uid,
+        failureCount: response.failureCount,
+        successCount: response.successCount,
+      });
+    }
+
+    return response.successCount > 0;
   } catch (error) {
     console.error('Failed to send push notification:', error);
+    return false;
   }
 };
 
@@ -270,14 +364,26 @@ const notifyUserIfEnabled = async (
     return false;
   }
 
-  await admin
-    .firestore()
-    .collection(`users/${uid}/notifications`)
-    .add(payload);
+  let inAppCreated = false;
+  let pushSent = false;
 
-  await sendPushToUser(uid, notification, data);
+  if (isNotificationDeliveryEnabled(recipientProfile, 'inApp')) {
+    await admin
+      .firestore()
+      .collection(`users/${uid}/notifications`)
+      .add(payload);
 
-  return true;
+    inAppCreated = true;
+  }
+
+  if (
+    isNotificationDeliveryEnabled(recipientProfile, 'push') &&
+    !isQuietHoursActive(recipientProfile)
+  ) {
+    pushSent = await sendPushToUser(uid, notification, data);
+  }
+
+  return inAppCreated || pushSent;
 };
 
 app.post('/setCustomClaims', verifyToken, async (req: AuthenticatedRequest, res: express.Response) => {

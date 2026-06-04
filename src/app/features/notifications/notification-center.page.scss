@@ -56,6 +56,17 @@
   cursor: pointer;
 }
 
+.hero-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  justify-content: flex-end;
+}
+
+.clear-read-button {
+  color: #ffcfdb;
+}
+
 .back-link ion-icon,
 .mark-all-button ion-icon {
   font-size: 18px;
@@ -94,19 +105,16 @@
 .notification-card {
   width: 100%;
   display: grid;
-  grid-template-columns: auto 1fr auto;
-  gap: 16px;
+  grid-template-columns: minmax(0, 1fr) auto;
   align-items: center;
-  padding: 18px;
   border: 1px solid rgba(255, 255, 255, 0.1);
   border-radius: 18px;
+  overflow: hidden;
   color: #ffffff;
   background:
     linear-gradient(135deg, rgba(255, 255, 255, 0.08), rgba(255, 255, 255, 0.03)),
     rgba(24, 31, 53, 0.92);
   box-shadow: 0 18px 42px rgba(0, 0, 0, 0.2);
-  text-align: left;
-  cursor: pointer;
   transition:
     transform 160ms ease,
     border-color 160ms ease,
@@ -123,6 +131,48 @@
 
 .notification-card:hover {
   transform: translateY(-1px);
+}
+
+.notification-open-button {
+  width: 100%;
+  min-width: 0;
+  display: grid;
+  grid-template-columns: auto 1fr auto;
+  gap: 16px;
+  align-items: center;
+  padding: 18px;
+  border: 0;
+  color: inherit;
+  background: transparent;
+  text-align: left;
+  cursor: pointer;
+}
+
+.notification-delete-button {
+  display: grid;
+  place-items: center;
+  width: 48px;
+  height: 48px;
+  margin-right: 12px;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 16px;
+  color: rgba(255, 255, 255, 0.7);
+  background: rgba(255, 255, 255, 0.06);
+  cursor: pointer;
+  transition:
+    border-color 160ms ease,
+    color 160ms ease,
+    background 160ms ease;
+}
+
+.notification-delete-button:hover {
+  border-color: rgba(255, 93, 143, 0.38);
+  color: #ffcfdb;
+  background: rgba(255, 93, 143, 0.12);
+}
+
+.notification-delete-button ion-icon {
+  font-size: 19px;
 }
 
 .notification-icon {
@@ -221,12 +271,22 @@
     width: fit-content;
   }
 
-  .notification-card {
+  .hero-actions {
+    justify-content: flex-start;
+  }
+
+  .notification-open-button {
     grid-template-columns: auto 1fr;
   }
 
   .notification-meta {
     grid-column: 2;
     justify-content: flex-start;
+  }
+
+  .notification-delete-button {
+    width: 42px;
+    height: 42px;
+    margin-right: 10px;
   }
 }

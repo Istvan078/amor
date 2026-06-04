@@ -214,6 +214,88 @@
   gap: 12px;
 }
 
+.settings-notification-delivery-list {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 12px;
+}
+
+.settings-quiet-hours {
+  display: grid;
+  gap: 12px;
+  padding: 14px;
+  border: 1px solid rgba(255, 218, 114, 0.14);
+  border-radius: 22px;
+  background:
+    linear-gradient(135deg, rgba(255, 218, 114, 0.08), rgba(53, 198, 189, 0.04)),
+    rgba(255, 255, 255, 0.035);
+}
+
+.settings-quiet-hours.is-muted {
+  border-color: rgba(255, 255, 255, 0.08);
+  background: rgba(255, 255, 255, 0.035);
+}
+
+.settings-quiet-hours-head {
+  min-height: 108px;
+  border-color: rgba(255, 255, 255, 0.08);
+  background: transparent;
+}
+
+.settings-quiet-hours-times {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(160px, 1fr)) minmax(180px, auto);
+  gap: 12px;
+  align-items: end;
+}
+
+.settings-quiet-hours-times label {
+  display: grid;
+  gap: 8px;
+}
+
+.settings-quiet-hours-times label span,
+.settings-quiet-hours-times p {
+  margin: 0;
+  color: rgba(248, 245, 239, 0.66);
+  font-size: 0.78rem;
+  font-weight: 900;
+}
+
+.settings-quiet-hours-times input {
+  min-height: 48px;
+  width: 100%;
+  padding: 0 14px;
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  border-radius: 16px;
+  outline: none;
+  background: rgba(255, 255, 255, 0.08);
+  color: #fff;
+  font: inherit;
+  font-weight: 900;
+  color-scheme: dark;
+}
+
+.settings-quiet-hours-times input:focus {
+  border-color: rgba(53, 198, 189, 0.56);
+  box-shadow: 0 0 0 3px rgba(53, 198, 189, 0.12);
+}
+
+.settings-quiet-hours-times input:disabled {
+  opacity: 0.58;
+}
+
+.settings-quiet-hours-times p {
+  display: grid;
+  gap: 4px;
+  align-self: center;
+}
+
+.settings-quiet-hours-times p strong {
+  color: #ffda72;
+  font-size: 0.9rem;
+}
+
 .settings-toggle-row {
   display: grid;
   grid-template-columns: auto minmax(0, 1fr) auto;
@@ -402,6 +484,11 @@
   }
 
   .settings-notification-list {
+    grid-template-columns: 1fr;
+  }
+
+  .settings-notification-delivery-list,
+  .settings-quiet-hours-times {
     grid-template-columns: 1fr;
   }
 

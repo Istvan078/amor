@@ -13,42 +13,68 @@
           <span>{{ t('notifications.subtitle') }}</span>
         </div>
 
-        @if (notificationsStore.unreadCount() > 0) {
-          <button class="mark-all-button" type="button" (click)="markAllAsRead()">
-            <ion-icon name="checkmark-done-outline" aria-hidden="true"></ion-icon>
-            {{ t('notifications.markAllRead') }}
-          </button>
-        }
+        <div class="hero-actions">
+          @if (notificationsStore.unreadCount() > 0) {
+            <button class="mark-all-button" type="button" (click)="markAllAsRead()">
+              <ion-icon name="checkmark-done-outline" aria-hidden="true"></ion-icon>
+              {{ t('notifications.markAllRead') }}
+            </button>
+          }
+          @if (notificationsStore.hasRead()) {
+            <button
+              class="mark-all-button clear-read-button"
+              type="button"
+              (click)="deleteReadNotifications()"
+            >
+              <ion-icon name="trash-outline" aria-hidden="true"></ion-icon>
+              {{ t('notifications.deleteRead') }}
+            </button>
+          }
+        </div>
       </section>
 
       <section class="notification-list" aria-label="Notifications">
         @if (notificationsStore.notifications().length) {
           @for (notification of notificationsStore.notifications(); track notification.id) {
-            <button
+            <article
               class="notification-card"
               [class.is-unread]="!notification.isRead"
-              type="button"
-              (click)="openNotification(notification)"
             >
-              <span class="notification-icon">
-                <ion-icon
-                  [name]="getNotificationIcon(notification.type)"
-                  aria-hidden="true"
-                ></ion-icon>
-              </span>
+              <button
+                class="notification-open-button"
+                type="button"
+                [attr.aria-label]="t('notifications.openAria')"
+                (click)="openNotification(notification)"
+              >
+                <span class="notification-icon">
+                  <ion-icon
+                    [name]="getNotificationIcon(notification.type)"
+                    aria-hidden="true"
+                  ></ion-icon>
+                </span>
 
-              <span class="notification-body">
-                <span class="notification-title">{{ notification.title }}</span>
-                <span class="notification-text">{{ notification.body }}</span>
-              </span>
+                <span class="notification-body">
+                  <span class="notification-title">{{ notification.title }}</span>
+                  <span class="notification-text">{{ notification.body }}</span>
+                </span>
 
-              <span class="notification-meta">
-                @if (!notification.isRead) {
-                  <span class="unread-dot"></span>
-                }
-                <span>{{ formatNotificationDate(notification) }}</span>
-              </span>
-            </button>
+                <span class="notification-meta">
+                  @if (!notification.isRead) {
+                    <span class="unread-dot"></span>
+                  }
+                  <span>{{ formatNotificationDate(notification) }}</span>
+                </span>
+              </button>
+
+              <button
+                class="notification-delete-button"
+                type="button"
+                [attr.aria-label]="t('notifications.delete')"
+                (click)="deleteNotification($event, notification)"
+              >
+                <ion-icon name="trash-outline" aria-hidden="true"></ion-icon>
+              </button>
+            </article>
           }
         } @else {
           <article class="empty-notifications">

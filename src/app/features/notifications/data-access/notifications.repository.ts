@@ -80,6 +80,7 @@ import { PushNotifications } from '@capacitor/push-notifications';
 import {
     Firestore,
     collection,
+    deleteDoc,
     doc,
     limit,
     onSnapshot,
@@ -90,6 +91,7 @@ import {
     updateDoc,
     writeBatch,
 } from '@angular/fire/firestore';
+import { NotificationNavigationService } from './notification-navigation.service';
 
 export type AppNotificationType =
     | 'new_message'
@@ -117,6 +119,7 @@ export type AppNotification = {
 export class NotificationsRepository {
     private firestore = inject(Firestore);
     private injector = inject(Injector);
+    private notificationNavigation = inject(NotificationNavigationService);
 
     private listenersRegistered = false;
 
@@ -191,6 +194,41 @@ export class NotificationsRepository {
         });
     }
 
+    async deleteNotification(uid: string, notificationId: string) {
+        if (!uid || !notificationId) {
+            return;
+        }
+
+        return this.runInFirebaseContext(() => {
+            const notificationRef = doc(
+                this.firestore,
+                `users/${uid}/notifications/${notificationId}`
+            );
+
+            return deleteDoc(notificationRef);
+        });
+    }
+
+    async deleteNotifications(uid: string, notificationIds: string[]) {
+        if (!uid || !notificationIds.length) {
+            return;
+        }
+
+        return this.runInFirebaseContext(() => {
+            const batch = writeBatch(this.firestore);
+
+            notificationIds.forEach((notificationId) => {
+                const notificationRef = doc(
+                    this.firestore,
+                    `users/${uid}/notifications/${notificationId}`
+                );
+                batch.delete(notificationRef);
+            });
+
+            return batch.commit();
+        });
+    }
+
     async init(uid: string) {
         if (!uid || !Capacitor.isNativePlatform()) {
             return { registered: false, reason: 'not_native' as const };
@@ -212,7 +250,13 @@ export class NotificationsRepository {
             });
 
             await PushNotifications.addListener('pushNotificationActionPerformed', (action) => {
-                console.log('Push action performed:', action);
+                const data = action.notification.data;
+
+                void this.notificationNavigation.openPushData(
+                    data && typeof data === 'object'
+                        ? (data as Record<string, unknown>)
+                        : undefined
+                );
             });
         }
 

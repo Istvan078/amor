@@ -62,10 +62,7 @@ export class TabsPage {
   }
 
   getUnreadMessagesCount() {
-    return Object.values(this.matchConversationPreviewsStore.previews()).reduce(
-      (total, preview) => total + preview.unreadCount,
-      0
-    );
+    return this.matchConversationPreviewsStore.totalUnreadCount();
   }
 
   formatUnreadCount(unreadCount: number) {

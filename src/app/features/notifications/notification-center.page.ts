@@ -1,5 +1,5 @@
 import { Component, inject } from '@angular/core';
-import { Router, RouterLink } from '@angular/router';
+import { RouterLink } from '@angular/router';
 import { IonContent, IonIcon } from '@ionic/angular/standalone';
 import { TranslocoDirective, TranslocoService } from '@jsverse/transloco';
 import { addIcons } from 'ionicons';
@@ -12,12 +12,14 @@ import {
     notificationsOutline,
     sparklesOutline,
     starOutline,
+    trashOutline,
 } from 'ionicons/icons';
 
 import {
     AppNotification,
     AppNotificationType,
 } from './data-access/notifications.repository';
+import { NotificationNavigationService } from './data-access/notification-navigation.service';
 import { NotificationsStore } from './store/notifications.store';
 
 @Component({
@@ -30,7 +32,7 @@ import { NotificationsStore } from './store/notifications.store';
 export class NotificationCenterPage {
     readonly notificationsStore = inject(NotificationsStore);
 
-    private router = inject(Router);
+    private notificationNavigation = inject(NotificationNavigationService);
     private transloco = inject(TranslocoService);
 
     constructor() {
@@ -43,6 +45,7 @@ export class NotificationCenterPage {
             notificationsOutline,
             sparklesOutline,
             starOutline,
+            trashOutline,
         });
     }
 
@@ -83,10 +86,19 @@ export class NotificationCenterPage {
             await this.notificationsStore.markAsRead(notification.id);
         }
 
-        await this.router.navigate(['/amor/discover']);
+        await this.notificationNavigation.openNotificationTarget(notification);
     }
 
     async markAllAsRead() {
         await this.notificationsStore.markAllAsRead();
+    }
+
+    async deleteNotification(event: Event, notification: AppNotification) {
+        event.stopPropagation();
+        await this.notificationsStore.deleteNotification(notification.id);
+    }
+
+    async deleteReadNotifications() {
+        await this.notificationsStore.deleteReadNotifications();
     }
 }

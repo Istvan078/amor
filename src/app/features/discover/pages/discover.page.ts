@@ -7,7 +7,7 @@ import {
   effect,
   inject,
 } from '@angular/core';
-import { Router } from '@angular/router';
+import { ActivatedRoute, Router } from '@angular/router';
 import {
   AlertController,
   IonCard,
@@ -18,6 +18,7 @@ import {
   ModalController,
 } from '@ionic/angular/standalone';
 import { TranslocoPipe, TranslocoService } from '@jsverse/transloco';
+import { Subscription } from 'rxjs';
 
 import { IonModalPage } from '../../../modals/ion-modal/ion-modal.page';
 import { ConfigService } from '../../../services/config.service';
@@ -123,6 +124,11 @@ export class DiscoverPage implements OnInit, OnDestroy {
 
   private loadedDiscoverUid: string | null = null;
   private loadingDiscoverUid: string | null = null;
+  private pendingMessageMatchUid: string | null = null;
+  private pendingTargetProfileUid: string | null = null;
+  private resolvingMessageDeepLink = false;
+  private resolvingTargetProfileDeepLink = false;
+  private routeQueryParamSubscription?: Subscription;
   private promoBottomSheetQueued = false;
   private promoBottomSheetShownForUid: string | null = null;
 
@@ -143,6 +149,7 @@ export class DiscoverPage implements OnInit, OnDestroy {
   private modalCtrl = inject(ModalController);
   private config = inject(ConfigService);
   private router = inject(Router);
+  private route = inject(ActivatedRoute);
   private locationService = inject(LocationService);
   private alertCtrl = inject(AlertController);
   private discoverRepository = inject(DiscoverRepository);
@@ -235,11 +242,13 @@ export class DiscoverPage implements OnInit, OnDestroy {
   async ngOnInit() {
     this.updatePhoneView();
     this.setPromotion();
+    this.subscribeToDeepLinkQueryParams();
 
     await this.ensureDiscoverData(this.authStore.user()?.uid);
   }
 
   ngOnDestroy() {
+    this.routeQueryParamSubscription?.unsubscribe();
     this.matchConversationPreviewsStore.stop();
     this.dailyUsageStore.clearDailyUsage();
     void this.onlinePresenceService.setOffline(this.user?.uid ?? this.authStore.user()?.uid);
@@ -277,6 +286,8 @@ export class DiscoverPage implements OnInit, OnDestroy {
       if (!this.discoverStore.error()) {
         this.loadedDiscoverUid = uid;
         this.schedulePromoBottomSheetCheck();
+        void this.resolvePendingMessageDeepLink();
+        void this.resolvePendingTargetProfileDeepLink();
       }
     } finally {
       if (this.loadingDiscoverUid === uid) {
@@ -304,6 +315,132 @@ export class DiscoverPage implements OnInit, OnDestroy {
     this.syncMatchActionState();
   }
 
+  private subscribeToDeepLinkQueryParams() {
+    this.routeQueryParamSubscription?.unsubscribe();
+    this.routeQueryParamSubscription = this.route.queryParamMap.subscribe(
+      (params) => {
+        const view = params.get('view');
+        const matchUid = params.get('matchUid');
+        const targetUid = params.get('targetUid');
+
+        if (view === 'messages' && matchUid) {
+          this.pendingMessageMatchUid = matchUid;
+          void this.resolvePendingMessageDeepLink();
+          return;
+        }
+
+        if (targetUid) {
+          this.pendingTargetProfileUid = targetUid;
+          void this.resolvePendingTargetProfileDeepLink();
+        }
+      }
+    );
+  }
+
+  private async resolvePendingMessageDeepLink() {
+    if (this.resolvingMessageDeepLink || this.loadingDiscoverUid) {
+      return;
+    }
+
+    const matchUid = this.pendingMessageMatchUid;
+    const myUid = this.userProf?.uid ?? this.authStore.user()?.uid;
+
+    if (!matchUid || !myUid) {
+      return;
+    }
+
+    this.resolvingMessageDeepLink = true;
+
+    try {
+      const isKnownMatch = await this.ensureDeepLinkedMatchIsAvailable(
+        myUid,
+        matchUid
+      );
+
+      if (!isKnownMatch) {
+        this.pendingMessageMatchUid = null;
+        await this.router.navigate(['/amor/discover'], { replaceUrl: true });
+        return;
+      }
+
+      let match = this.matches.find((matchProfile) => matchProfile.uid === matchUid);
+
+      if (!match) {
+        match = await this.discoverRepository.getUserProfile(matchUid);
+
+        if (!match?.uid) {
+          return;
+        }
+
+        this.matches = this.addMatchLocally(this.matches, match);
+        this.discoverStore.addMatch(match);
+      }
+
+      this.matchConversationPreviewsStore.start(this.userProf, this.matches);
+      this.openMessWithMatch(match);
+      this.pendingMessageMatchUid = null;
+      await this.router.navigate(['/amor/discover'], { replaceUrl: true });
+    } finally {
+      this.resolvingMessageDeepLink = false;
+    }
+  }
+
+  private async resolvePendingTargetProfileDeepLink() {
+    if (this.resolvingTargetProfileDeepLink || this.loadingDiscoverUid) {
+      return;
+    }
+
+    const targetUid = this.pendingTargetProfileUid;
+
+    if (!targetUid || targetUid === this.userProf?.uid) {
+      return;
+    }
+
+    this.resolvingTargetProfileDeepLink = true;
+
+    try {
+      const targetProfile = await this.discoverRepository.getUserProfile(targetUid);
+
+      if (!targetProfile?.uid) {
+        return;
+      }
+
+      this.options.isSelectedMatch = false;
+      this.discoverUiStore.showMatchesCard();
+      this.matchProf = targetProfile;
+      this.matchProf['index'] = -1;
+      this.isMatchPlaceHolder = false;
+      this.isMatchDetailsOpen = false;
+      this.setUProfLabels();
+      this.pendingTargetProfileUid = null;
+      await this.router.navigate(['/amor/discover'], { replaceUrl: true });
+    } finally {
+      this.resolvingTargetProfileDeepLink = false;
+    }
+  }
+
+  private async ensureDeepLinkedMatchIsAvailable(myUid: string, matchUid: string) {
+    const profileMatchUids = this.userProf?.matchParts?.matches ?? [];
+
+    if (
+      profileMatchUids.includes(matchUid) ||
+      this.matches.some((matchProfile) => matchProfile.uid === matchUid)
+    ) {
+      return true;
+    }
+
+    const latestProfile = await this.discoverRepository.getUserProfile(myUid);
+    const latestMatchUids = latestProfile?.matchParts?.matches ?? [];
+
+    if (!latestProfile?.uid || !latestMatchUids.includes(matchUid)) {
+      return false;
+    }
+
+    this.userProf = latestProfile;
+    this.profileStore.setProfile(latestProfile);
+    return true;
+  }
+
   private syncDiscoverState() {
     this.possibleMatchIds = this.discoverStore.possibleMatchIds();
     this.progress = this.discoverStore.progress();
@@ -312,6 +449,8 @@ export class DiscoverPage implements OnInit, OnDestroy {
     this.matchConversationPreviewsStore.start(this.userProf, this.matches);
     this.schedulePromoBottomSheetCheck();
     this.syncMatchActionState();
+    void this.resolvePendingMessageDeepLink();
+    void this.resolvePendingTargetProfileDeepLink();
   }
 
   private async loadLikedByProfiles(uid: string) {

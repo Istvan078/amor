@@ -11,6 +11,9 @@ export const NotificationsStore = signalStore(
 
     withComputed((store) => ({
         hasUnread: computed(() => store.unreadCount() > 0),
+        hasRead: computed(() =>
+            store.notifications().some((notification) => notification.isRead)
+        ),
     })),
 
     withMethods((store, repository = inject(NotificationsRepository)) => {
@@ -103,6 +106,27 @@ export const NotificationsStore = signalStore(
                     .map((notification) => notification.id);
 
                 await repository.markAllAsRead(activeUid, unreadNotificationIds);
+            },
+
+            async deleteNotification(notificationId: string) {
+                if (!activeUid || !notificationId) {
+                    return;
+                }
+
+                await repository.deleteNotification(activeUid, notificationId);
+            },
+
+            async deleteReadNotifications() {
+                if (!activeUid) {
+                    return;
+                }
+
+                const readNotificationIds = store
+                    .notifications()
+                    .filter((notification) => notification.isRead)
+                    .map((notification) => notification.id);
+
+                await repository.deleteNotifications(activeUid, readNotificationIds);
             },
 
             reset() {

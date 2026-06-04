@@ -163,6 +163,92 @@
             </div>
           </div>
 
+          <div class="settings-notification-preferences">
+            <h3>{{ t('settings.notifications.delivery.title') }}</h3>
+            <div class="settings-notification-delivery-list">
+              @for(setting of notificationDeliverySettings; track setting.key) {
+                <div
+                  class="settings-toggle-row"
+                  [class.is-muted]="!isNotificationDeliveryEnabled(setting.key)"
+                >
+                  <div class="settings-toggle-icon">
+                    <ion-icon [name]="setting.icon"></ion-icon>
+                  </div>
+                  <div class="settings-toggle-copy">
+                    <strong>{{ t(setting.titleKey) }}</strong>
+                    <span>{{ t(setting.copyKey) }}</span>
+                    <small [class.is-on]="isNotificationDeliveryEnabled(setting.key)">
+                      {{ t(getNotificationDeliveryStatusKey(setting)) }}
+                    </small>
+                  </div>
+                  <ion-toggle
+                    class="settings-toggle"
+                    [checked]="isNotificationDeliveryEnabled(setting.key)"
+                    [disabled]="isNotificationDeliverySaving(setting.key) || profileStore.loading()"
+                    [attr.aria-label]="t(setting.titleKey)"
+                    (ionChange)="updateNotificationDeliverySetting(setting.key, $event)"
+                  ></ion-toggle>
+                </div>
+              }
+            </div>
+          </div>
+
+          <div
+            class="settings-quiet-hours"
+            [class.is-muted]="!isQuietHoursEnabled()"
+          >
+            <div class="settings-toggle-row settings-quiet-hours-head">
+              <div class="settings-toggle-icon">
+                <ion-icon name="moon-outline"></ion-icon>
+              </div>
+              <div class="settings-toggle-copy">
+                <strong>{{ t('settings.notifications.quietHours.title') }}</strong>
+                <span>{{ t('settings.notifications.quietHours.copy') }}</span>
+                <small [class.is-on]="isQuietHoursEnabled()">
+                  {{
+                    t(
+                      isQuietHoursEnabled()
+                        ? 'settings.notifications.quietHours.enabled'
+                        : 'settings.notifications.quietHours.disabled'
+                    )
+                  }}
+                </small>
+              </div>
+              <ion-toggle
+                class="settings-toggle"
+                [checked]="isQuietHoursEnabled()"
+                [disabled]="isQuietHoursSaving('enabled') || profileStore.loading()"
+                [attr.aria-label]="t('settings.notifications.quietHours.title')"
+                (ionChange)="updateQuietHoursEnabled($event)"
+              ></ion-toggle>
+            </div>
+
+            <div class="settings-quiet-hours-times">
+              <label>
+                <span>{{ t('settings.notifications.quietHours.start') }}</span>
+                <input
+                  type="time"
+                  [value]="quietHoursStart()"
+                  [disabled]="isQuietHoursSaving('start') || profileStore.loading()"
+                  (change)="updateQuietHoursTime('start', $event)"
+                />
+              </label>
+              <label>
+                <span>{{ t('settings.notifications.quietHours.end') }}</span>
+                <input
+                  type="time"
+                  [value]="quietHoursEnd()"
+                  [disabled]="isQuietHoursSaving('end') || profileStore.loading()"
+                  (change)="updateQuietHoursTime('end', $event)"
+                />
+              </label>
+              <p>
+                {{ t('settings.notifications.quietHours.timeZone') }}
+                <strong>{{ quietHoursTimeZone() }}</strong>
+              </p>
+            </div>
+          </div>
+
           @if(notificationNoticeKey) {
             <p
               class="settings-save-notice"

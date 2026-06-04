@@ -33,6 +33,18 @@ export interface NotificationPreferences {
   promotions?: boolean;
 }
 
+export interface NotificationDeliveryPreferences {
+  inApp?: boolean;
+  push?: boolean;
+}
+
+export interface NotificationQuietHours {
+  enabled?: boolean;
+  start?: string;
+  end?: string;
+  timeZone?: string;
+}
+
 export class UserClass {
   [key: string]: any;
 
@@ -86,6 +98,8 @@ export class UserClass {
   public showOnlineStatus?: boolean;
   public distanceVisibility?: boolean;
   public notificationPreferences?: NotificationPreferences;
+  public notificationDelivery?: NotificationDeliveryPreferences;
+  public notificationQuietHours?: NotificationQuietHours;
   public isBanned?: boolean;
   public profileCompleted?: boolean;
   public profileCompleteness?: number;

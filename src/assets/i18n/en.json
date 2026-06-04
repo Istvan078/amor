@@ -343,6 +343,30 @@
           "disabled": "Promotion alerts off"
         }
       },
+      "delivery": {
+        "title": "Delivery",
+        "inApp": {
+          "title": "In-app center",
+          "copy": "Keep alerts in the Amor notification center.",
+          "enabled": "In-app alerts on",
+          "disabled": "In-app alerts off"
+        },
+        "push": {
+          "title": "Push notifications",
+          "copy": "Send important alerts to this device.",
+          "enabled": "Push alerts on",
+          "disabled": "Push alerts off"
+        }
+      },
+      "quietHours": {
+        "title": "Quiet hours",
+        "copy": "Pause push notifications during your personal downtime. In-app alerts still collect quietly.",
+        "enabled": "Quiet hours active",
+        "disabled": "Quiet hours off",
+        "start": "Start",
+        "end": "End",
+        "timeZone": "Time zone"
+      },
       "saved": "Notification setting saved",
       "error": "Could not save notification setting",
       "center": {
@@ -645,6 +669,9 @@
     "title": "Notifications",
     "subtitle": "New matches, messages and premium updates stay in one place.",
     "markAllRead": "Mark all read",
+    "deleteRead": "Clear read",
+    "delete": "Delete notification",
+    "openAria": "Open notification",
     "emptyTitle": "No notifications yet",
     "emptyText": "When someone matches or messages you, it will appear here."
   },

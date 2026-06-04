@@ -1,7 +1,8 @@
-import { inject } from '@angular/core';
+import { computed, inject } from '@angular/core';
 import {
     patchState,
     signalStore,
+    withComputed,
     withMethods,
     withState,
 } from '@ngrx/signals';
@@ -38,6 +39,14 @@ export const MatchConversationPreviewsStore = signalStore(
         providedIn: 'root',
     },
     withState(initialState),
+    withComputed((store) => ({
+        totalUnreadCount: computed(() =>
+            Object.values(store.previews()).reduce(
+                (total, preview) => total + preview.unreadCount,
+                0
+            )
+        ),
+    })),
     withMethods((store, repository = inject(MessagesRepository)) => {
         let signature = '';
         let requestId = 0;
