@@ -335,25 +335,40 @@
                   }
 
                   @if (lab.type === 'file') {
-                    <div class="profile-editor-upload-card">
+                    <div class="profile-editor-upload-card" [class.is-maxed]="!canAddMorePhotos()">
                       <div class="profile-editor-upload-copy">
                         <span>{{ fieldLabel(t, lab) }}</span>
-                        <strong>
+                        <strong [class.is-placeholder]="!selectedFiles.length && canAddMorePhotos()">
                           {{
-                            selectedFiles.length ? selectedFileNames() : fieldPlaceholder(t, lab)
+                            selectedFiles.length
+                              ? selectedFileNames()
+                              : canAddMorePhotos()
+                                ? fieldPlaceholder(t, lab)
+                                : t('profile.photos.maxReached')
                           }}
                         </strong>
+                        <small>
+                          {{
+                            t('profile.photos.count', {
+                              count: photoCount(),
+                              max: maxPhotos
+                            })
+                          }}
+                        </small>
                       </div>
                       <input
                         #fileInput
                         class="profile-file-input"
                         [type]="lab.type"
                         [multiple]="lab.multiple"
+                        [disabled]="!canAddMorePhotos()"
+                        accept="image/*"
                         (change)="lab.change($event)"
                       />
                       <ion-button
                         class="profile-choose-file-button"
                         type="button"
+                        [disabled]="!canAddMorePhotos()"
                         (click)="fileInput.click()"
                       >
                         <ion-icon name="images-outline" slot="start"></ion-icon>
@@ -361,27 +376,101 @@
                       </ion-button>
                       <ion-button
                         class="profile-upload-button"
-                        [disabled]="!selectedFiles.length"
+                        [disabled]="!selectedFiles.length || !canAddMorePhotos()"
                         (click)="picturesSaved.emit()"
                       >
                         {{ t('common.upload') }}
                       </ion-button>
                     </div>
-                    <ion-grid>
-                      <ion-row>
-                        @for (pic of userProfile.pictures ?? []; track pic.url; let i = $index) {
-                          <ion-col
-                            (click)="profilePictureOpened.emit(i)"
-                            sizeXs="4"
-                            sizeSm="4"
-                            sizeMd="3"
-                            sizeLg="2"
-                          >
-                            <ion-img class="user-pictures" [src]="pic.url"></ion-img>
-                          </ion-col>
-                        }
-                      </ion-row>
-                    </ion-grid>
+
+                    <section class="profile-photo-manager" [class.is-missing]="!hasMinimumPhotos()">
+                      <div class="profile-photo-manager-head">
+                        <div class="profile-photo-manager-title">
+                          <span>{{ t('profile.photos.title') }}</span>
+                          <strong>
+                            {{
+                              t('profile.photos.count', {
+                                count: photoCount(),
+                                max: maxPhotos
+                              })
+                            }}
+                          </strong>
+                        </div>
+                        <p class="profile-photo-rule" [class.is-ready]="hasMinimumPhotos()">
+                          {{ t(photoStatusKey()) }}
+                        </p>
+                      </div>
+
+                      @if (userProfile.pictures?.length) {
+                        <ion-reorder-group
+                          class="profile-photo-grid"
+                          [disabled]="false"
+                          (ionItemReorder)="onPhotoReorder($event)"
+                        >
+                          @for (pic of userProfile.pictures ?? []; track pic.url; let i = $index) {
+                            <article
+                              class="profile-photo-tile"
+                              [class.is-primary]="isPrimaryPhoto(i)"
+                            >
+                              <button
+                                class="profile-photo-preview"
+                                type="button"
+                                [attr.aria-label]="t('profile.photos.open')"
+                                [title]="t('profile.photos.open')"
+                                (click)="profilePictureOpened.emit(i)"
+                              >
+                                <ion-img [src]="pic.url"></ion-img>
+                              </button>
+
+                              <ion-reorder
+                                class="profile-photo-drag-handle"
+                                [attr.aria-label]="t('profile.photos.reorder')"
+                                [title]="t('profile.photos.reorder')"
+                              >
+                                <ion-icon name="reorder-three-outline"></ion-icon>
+                              </ion-reorder>
+
+                              @if (isPrimaryPhoto(i)) {
+                                <span class="profile-photo-badge">
+                                  <ion-icon name="star"></ion-icon>
+                                  {{ t('profile.photos.primary') }}
+                                </span>
+                              }
+
+                              <div class="profile-photo-actions">
+                                <ion-button
+                                  class="profile-photo-icon-button"
+                                  fill="clear"
+                                  size="small"
+                                  [disabled]="isPrimaryPhoto(i)"
+                                  [attr.aria-label]="t('profile.photos.makePrimary')"
+                                  [title]="t('profile.photos.makePrimary')"
+                                  (click)="$event.stopPropagation(); profilePhotoPrimarySelected.emit(i)"
+                                >
+                                  <ion-icon name="star-outline"></ion-icon>
+                                </ion-button>
+                                <ion-button
+                                  class="profile-photo-icon-button is-danger"
+                                  fill="clear"
+                                  size="small"
+                                  [disabled]="!canDeletePhoto()"
+                                  [attr.aria-label]="t('profile.photos.delete')"
+                                  [title]="t('profile.photos.delete')"
+                                  (click)="$event.stopPropagation(); profilePhotoDeleted.emit(i)"
+                                >
+                                  <ion-icon name="trash-outline"></ion-icon>
+                                </ion-button>
+                              </div>
+                            </article>
+                          }
+                        </ion-reorder-group>
+                      } @else {
+                        <div class="profile-photo-empty">
+                          <ion-icon name="images-outline"></ion-icon>
+                          <span>{{ t('profile.photos.empty') }}</span>
+                        </div>
+                      }
+                    </section>
                   }
 
                   @if (lab.type === 'checkbox') {
@@ -407,7 +496,11 @@
               </ion-list>
 
               <div class="profile-actions profile-save-actions">
-                <ion-button class="profile-save-button" (click)="profileUpdated.emit()">
+                <ion-button
+                  class="profile-save-button"
+                  [disabled]="!hasMinimumPhotos()"
+                  (click)="profileUpdated.emit()"
+                >
                   <ion-icon name="save-outline" slot="start"></ion-icon>
                   {{ t('common.save') }}
                 </ion-button>

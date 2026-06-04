@@ -95,6 +95,7 @@ export type AppNotificationType =
     | 'new_message'
     | 'new_match'
     | 'super_like'
+    | 'promotion'
     | 'profile_boost_ended'
     | 'premium_expiry'
     | 'report_status';
@@ -268,6 +269,7 @@ export class NotificationsRepository {
             value === 'new_message' ||
             value === 'new_match' ||
             value === 'super_like' ||
+            value === 'promotion' ||
             value === 'profile_boost_ended' ||
             value === 'premium_expiry' ||
             value === 'report_status'

@@ -1,6 +1,6 @@
 import * as admin from 'firebase-admin';
 import { onRequest } from 'firebase-functions/v2/https';
-import { onDocumentCreated } from 'firebase-functions/v2/firestore';
+import { onDocumentCreated, onDocumentUpdated } from 'firebase-functions/v2/firestore';
 import * as express from 'express';
 import * as bodyParser from 'body-parser';
 
@@ -17,6 +17,18 @@ type ServerMatchParts = {
   notLiked: string[];
   superLiked: string[];
 };
+
+type ServerNotificationType =
+  | 'new_match'
+  | 'new_message'
+  | 'super_like'
+  | 'promotion';
+
+type NotificationPreferenceKey =
+  | 'newMatches'
+  | 'newMessages'
+  | 'superLikes'
+  | 'promotions';
 
 const app = express();
 
@@ -163,7 +175,7 @@ const buildMutualMatchParts = (
 });
 
 const createNotificationPayload = (
-  type: 'new_match' | 'new_message',
+  type: ServerNotificationType,
   actorUid: string,
   title: string,
   body: string,
@@ -177,6 +189,35 @@ const createNotificationPayload = (
   isRead: false,
   createdAt: admin.firestore.FieldValue.serverTimestamp(),
 });
+
+const notificationPreferenceByType: Record<
+  ServerNotificationType,
+  NotificationPreferenceKey
+> = {
+  new_match: 'newMatches',
+  new_message: 'newMessages',
+  super_like: 'superLikes',
+  promotion: 'promotions',
+};
+
+const isNotificationEnabled = (
+  profileData: Record<string, unknown>,
+  preferenceKey: NotificationPreferenceKey
+) => {
+  const notificationPreferences =
+    profileData.notificationPreferences &&
+      typeof profileData.notificationPreferences === 'object'
+      ? (profileData.notificationPreferences as Record<string, unknown>)
+      : {};
+
+  return notificationPreferences[preferenceKey] !== false;
+};
+
+const getUserProfileData = async (uid: string): Promise<Record<string, unknown>> => {
+  const profileSnapshot = await admin.firestore().collection('users').doc(uid).get();
+
+  return profileSnapshot.exists ? (profileSnapshot.data() ?? {}) : {};
+};
 
 const sendPushToUser = async (
   uid: string,
@@ -209,6 +250,34 @@ const sendPushToUser = async (
   } catch (error) {
     console.error('Failed to send push notification:', error);
   }
+};
+
+const notifyUserIfEnabled = async (
+  uid: string,
+  payload: ReturnType<typeof createNotificationPayload>,
+  notification: admin.messaging.Notification,
+  data: Record<string, string>,
+  profileData?: Record<string, unknown>
+) => {
+  if (!uid) {
+    return false;
+  }
+
+  const recipientProfile = profileData ?? await getUserProfileData(uid);
+  const preferenceKey = notificationPreferenceByType[payload.type];
+
+  if (!isNotificationEnabled(recipientProfile, preferenceKey)) {
+    return false;
+  }
+
+  await admin
+    .firestore()
+    .collection(`users/${uid}/notifications`)
+    .add(payload);
+
+  await sendPushToUser(uid, notification, data);
+
+  return true;
 };
 
 app.post('/setCustomClaims', verifyToken, async (req: AuthenticatedRequest, res: express.Response) => {
@@ -406,28 +475,6 @@ app.post('/createMutualMatch', verifyToken, async (req: AuthenticatedRequest, re
         matchParts: nextOtherMatchParts,
       });
 
-      const myNotificationRef = myProfileRef.collection('notifications').doc();
-      const otherNotificationRef = otherProfileRef.collection('notifications').doc();
-
-      transaction.set(
-        myNotificationRef,
-        createNotificationPayload(
-          'new_match',
-          otherUid,
-          'New match',
-          'You have a new match on Amor.'
-        )
-      );
-      transaction.set(
-        otherNotificationRef,
-        createNotificationPayload(
-          'new_match',
-          myUid,
-          'New match',
-          'You have a new match on Amor.'
-        )
-      );
-
       return {
         matched: true,
         created: true,
@@ -437,8 +484,14 @@ app.post('/createMutualMatch', verifyToken, async (req: AuthenticatedRequest, re
 
     if (result.created) {
       await Promise.all([
-        sendPushToUser(
+        notifyUserIfEnabled(
           myUid,
+          createNotificationPayload(
+            'new_match',
+            otherUid,
+            'New match',
+            'You have a new match on Amor.'
+          ),
           {
             title: 'New match',
             body: 'You have a new match on Amor.',
@@ -448,8 +501,14 @@ app.post('/createMutualMatch', verifyToken, async (req: AuthenticatedRequest, re
             actorUid: otherUid,
           }
         ),
-        sendPushToUser(
+        notifyUserIfEnabled(
           otherUid,
+          createNotificationPayload(
+            'new_match',
+            myUid,
+            'New match',
+            'You have a new match on Amor.'
+          ),
           {
             title: 'New match',
             body: 'You have a new match on Amor.',
@@ -563,6 +622,61 @@ app.get('/legacy-users/:uid/claims', verifyToken, (req: AuthenticatedRequest, re
     });
 });
 
+app.post('/sendPromotionNotification', verifyToken, async (req: AuthenticatedRequest, res: express.Response) => {
+  if (!isPrivilegedUser(req)) {
+    res.sendStatus(403);
+    return;
+  }
+
+  const title =
+    typeof req.body.title === 'string' && req.body.title.trim()
+      ? req.body.title.trim().slice(0, 90)
+      : 'Amor update';
+  const body =
+    typeof req.body.body === 'string' && req.body.body.trim()
+      ? req.body.body.trim().slice(0, 160)
+      : 'A new Amor offer is available.';
+  const promotionId =
+    typeof req.body.promotionId === 'string'
+      ? req.body.promotionId.trim().slice(0, 80)
+      : '';
+  const requestedUid = typeof req.body.uid === 'string' ? req.body.uid.trim() : '';
+  const db = admin.firestore();
+
+  try {
+    const targetUids = requestedUid
+      ? [requestedUid]
+      : (await db.collection('users').select().get()).docs.map((snapshot) => snapshot.id);
+
+    const notificationResults = await Promise.all(
+      targetUids.map((targetUid) =>
+        notifyUserIfEnabled(
+          targetUid,
+          createNotificationPayload('promotion', req.user?.uid ?? 'amor', title, body),
+          {
+            title,
+            body,
+          },
+          {
+            type: 'promotion',
+            actorUid: req.user?.uid ?? 'amor',
+            ...(promotionId ? { promotionId } : {}),
+          }
+        )
+      )
+    );
+
+    res.json({
+      message: 'OK',
+      sentCount: notificationResults.filter((wasSent) => wasSent).length,
+      targetCount: targetUids.length,
+    });
+  } catch (error) {
+    console.error('Failed to send promotion notification:', error);
+    res.sendStatus(500);
+  }
+});
+
 export const onConversationMessageCreated = onDocumentCreated(
   'conversations/{conversationId}/messages/{messageId}',
   async (event) => {
@@ -588,21 +702,15 @@ export const onConversationMessageCreated = onDocumentCreated(
       return;
     }
 
-    await admin
-      .firestore()
-      .collection(`users/${sentToUid}/notifications`)
-      .add(
-        createNotificationPayload(
-          'new_message',
-          senderUid,
-          'New message',
-          messagePreview,
-          conversationId
-        )
-      );
-
-    await sendPushToUser(
+    await notifyUserIfEnabled(
       sentToUid,
+      createNotificationPayload(
+        'new_message',
+        senderUid,
+        'New message',
+        messagePreview,
+        conversationId
+      ),
       {
         title: 'New message',
         body: messagePreview,
@@ -612,6 +720,67 @@ export const onConversationMessageCreated = onDocumentCreated(
         actorUid: senderUid,
         conversationId,
       }
+    );
+  }
+);
+
+export const onUserSuperLikeAdded = onDocumentUpdated(
+  'users/{uid}',
+  async (event) => {
+    const beforeData = event.data?.before.data() as Record<string, unknown> | undefined;
+    const afterData = event.data?.after.data() as Record<string, unknown> | undefined;
+    const actorUid = event.params.uid;
+
+    if (!beforeData || !afterData || !actorUid) {
+      return;
+    }
+
+    const beforeSuperLiked = normalizeUidList(
+      (beforeData.matchParts as Record<string, unknown> | undefined)?.superLiked
+    );
+    const afterSuperLiked = normalizeUidList(
+      (afterData.matchParts as Record<string, unknown> | undefined)?.superLiked
+    );
+    const addedSuperLikedUids = afterSuperLiked.filter(
+      (uid) => !beforeSuperLiked.includes(uid) && uid !== actorUid
+    );
+
+    if (!addedSuperLikedUids.length) {
+      return;
+    }
+
+    await Promise.all(
+      addedSuperLikedUids.map(async (targetUid) => {
+        const targetProfile = await getUserProfileData(targetUid);
+        const targetMatchParts = normalizeMatchParts(targetProfile.matchParts);
+        const willBecomeMutualMatch =
+          targetMatchParts.matches.includes(actorUid) ||
+          targetMatchParts.liked.includes(actorUid) ||
+          targetMatchParts.superLiked.includes(actorUid);
+
+        if (willBecomeMutualMatch) {
+          return false;
+        }
+
+        return notifyUserIfEnabled(
+          targetUid,
+          createNotificationPayload(
+            'super_like',
+            actorUid,
+            'New Super Like',
+            'Someone sent you a Super Like on Amor.'
+          ),
+          {
+            title: 'New Super Like',
+            body: 'Someone sent you a Super Like on Amor.',
+          },
+          {
+            type: 'super_like',
+            actorUid,
+          },
+          targetProfile
+        );
+      })
     );
   }
 );

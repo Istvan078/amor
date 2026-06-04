@@ -32,6 +32,7 @@ import {
   flashOutline,
   giftOutline,
   heartCircleOutline,
+  lockClosedOutline,
   peopleOutline,
   rocketOutline,
   sparklesOutline,
@@ -65,6 +66,7 @@ type PromoSwiperElement = HTMLElement & {
 @Component({
   selector: 'app-discover-sidebar',
   templateUrl: './discover-sidebar.component.html',
+  styleUrls: ['./discover-sidebar.component.scss'],
   standalone: true,
   schemas: [CUSTOM_ELEMENTS_SCHEMA],
   imports: [
@@ -86,6 +88,7 @@ export class DiscoverSidebarComponent implements AfterViewInit, OnChanges {
   @Input() userProfile?: UserClass;
   @Input() promotions: Promotions[] = [];
   @Input() matches: UserClass[] = [];
+  @Input() likedByProfiles: UserClass[] = [];
   @Input() conversationPreviews: Record<string, MatchConversationPreview> = {};
   @Input() selectedMatchUid?: string;
   @Input() billingCurrent: BillingCurrent | null = null;
@@ -96,6 +99,8 @@ export class DiscoverSidebarComponent implements AfterViewInit, OnChanges {
 
   @Output() profileOpened = new EventEmitter<void>();
   @Output() messageOpened = new EventEmitter<UserClass>();
+  @Output() likedByUnlockRequested = new EventEmitter<void>();
+  @Output() likedByProfileSelected = new EventEmitter<UserClass>();
   @Output() matchesOpened = new EventEmitter<void>();
   @Output() messagesOpened = new EventEmitter<void>();
   @Output() promotionSelected = new EventEmitter<Promotions>();
@@ -115,6 +120,7 @@ export class DiscoverSidebarComponent implements AfterViewInit, OnChanges {
       flashOutline,
       giftOutline,
       heartCircleOutline,
+      lockClosedOutline,
       peopleOutline,
       rocketOutline,
       sparklesOutline,
@@ -131,12 +137,12 @@ export class DiscoverSidebarComponent implements AfterViewInit, OnChanges {
     }
   }
 
-  getMatchName(match: UserClass) {
-    return [match.firstName, match.lastName].filter(Boolean).join(' ');
+  getMatchName(match?: UserClass) {
+    return [match?.firstName, match?.lastName].filter(Boolean).join(' ');
   }
 
-  getMatchImage(match: UserClass) {
-    return match.pictures?.[0]?.url || this.fallbackAvatar;
+  getMatchImage(match?: UserClass) {
+    return match?.pictures?.[0]?.url || this.fallbackAvatar;
   }
 
   isSelectedMatch(match: UserClass) {
@@ -173,7 +179,38 @@ export class DiscoverSidebarComponent implements AfterViewInit, OnChanges {
     return unreadCount > 99 ? '99+' : String(unreadCount);
   }
 
+  getLikedByCount() {
+    return this.likedByProfiles.length;
+  }
+
+  getLikedByPreviewProfiles(): UserClass[] {
+    return this.likedByProfiles.slice(0, 3);
+  }
+
+  getLikedByPreviewSlots(): Array<UserClass | undefined> {
+    const previews = this.getLikedByPreviewProfiles();
+
+    return previews.length ? previews : [undefined, undefined, undefined];
+  }
+
+  openLikedByProfile(profile?: UserClass) {
+    if (!profile?.uid) {
+      return;
+    }
+
+    if (!this.isPremium) {
+      this.likedByUnlockRequested.emit();
+      return;
+    }
+
+    this.likedByProfileSelected.emit(profile);
+  }
+
   isMatchOnline(match: UserClass) {
+    if (match.showOnlineStatus === false) {
+      return false;
+    }
+
     if (!match.isOnline) {
       return false;
     }

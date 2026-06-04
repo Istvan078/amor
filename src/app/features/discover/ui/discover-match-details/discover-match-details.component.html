@@ -34,7 +34,7 @@
     @for(listNum of possibleDetailLists;track $index){
     <ion-list style="margin-top: 10px">
       @for(lab of labels.userProfLabels; track $index) {
-      @if(matchProfile && lab?.inMatch && lab.listNum === listNum && matchProfile[lab.key]) {
+      @if(matchProfile && lab?.inMatch && lab.listNum === listNum && matchProfile[lab.key] && isDetailVisible(lab)) {
       <ion-item>
         <ion-label>
           <h2>{{ fieldLabel(t, lab) }}</h2>

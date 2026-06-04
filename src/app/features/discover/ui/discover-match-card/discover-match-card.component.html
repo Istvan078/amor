@@ -1,5 +1,18 @@
 <ng-container *transloco="let t">
-  <ion-card class="user-card">
+  <ion-card
+    class="user-card"
+    [class.is-swipeable]="canSwipeCard()"
+    [class.is-swiping]="isSwipeDragging"
+    [class.is-swipe-animating]="isSwipeAnimating"
+    [class.has-swipe-intent]="!!swipeIntent"
+    [style.--swipe-x]="swipeX + 'px'"
+    [style.--swipe-y]="swipeY + 'px'"
+    [style.--swipe-rotate]="swipeRotation + 'deg'"
+    (pointerdown)="onSwipePointerDown($event)"
+    (pointermove)="onSwipePointerMove($event)"
+    (pointerup)="onSwipePointerUp($event)"
+    (pointercancel)="onSwipePointerCancel($event)"
+  >
     @if(progress !== 100) {
     <div class="match-progress-bar-container">
       <p>{{ t('discover.searching') }}</p>
@@ -56,6 +69,33 @@
       </swiper-slide>
       }
     </swiper-container>
+
+    @if(!isMatchPlaceHolder) {
+    <div class="swipe-feedback-layer" aria-hidden="true">
+      <div
+        class="swipe-feedback-stamp pass"
+        [style.opacity]="swipeFeedbackOpacity('pass')"
+      >
+        <ion-icon name="close-outline"></ion-icon>
+        {{ t('discover.actions.pass') }}
+      </div>
+      <div
+        class="swipe-feedback-stamp like"
+        [style.opacity]="swipeFeedbackOpacity('like')"
+      >
+        <ion-icon name="heart-outline"></ion-icon>
+        {{ t('discover.actions.like') }}
+      </div>
+      <div
+        class="swipe-feedback-stamp super-like"
+        [class.locked]="!canSuperLike"
+        [style.opacity]="swipeFeedbackOpacity('super-like')"
+      >
+        <ion-icon name="star"></ion-icon>
+        {{ t('discover.actions.superLikeShort') }}
+      </div>
+    </div>
+    }
     }
 
     <div class="card-content-cont-wrapper">
@@ -132,6 +172,7 @@
             fill="solid"
             shape="round"
             class="action-button dislike"
+            [attr.aria-label]="t('discover.actions.pass')"
           >
             <ion-icon
               slot="icon-only"
@@ -163,6 +204,7 @@
             fill="solid"
             shape="round"
             class="action-button like"
+            [attr.aria-label]="t('discover.actions.like')"
           >
             <ion-icon
               slot="icon-only"

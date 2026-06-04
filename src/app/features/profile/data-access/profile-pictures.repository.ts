@@ -17,6 +17,7 @@ export class ProfilePicturesRepository {
     private injector = inject(Injector);
     private storage = inject(Storage);
     private profileRepository = inject(ProfileRepository);
+    private readonly maxPictures = 6;
 
     async addPictures(uid: string, userProfile: UserClass, files: File[]) {
         if (!files.length) {
@@ -32,6 +33,13 @@ export class ProfilePicturesRepository {
         );
 
         for (const file of files) {
+            if (
+                userProfile.pictures.length >= this.maxPictures ||
+                uploadedFileNames.has(file.name)
+            ) {
+                continue;
+            }
+
             const picturePath = `pictures/${uid}/${file.name}`;
             const storageRef = this.runInFirebaseContext(() =>
                 ref(this.storage, picturePath)
@@ -43,13 +51,15 @@ export class ProfilePicturesRepository {
                 getDownloadURL(storageRef)
             );
 
-            if (!uploadedFileNames.has(file.name)) {
-                userProfile.pictures.push({
-                    url,
-                    name: file.name,
-                });
-                uploadedFileNames.add(file.name);
-            }
+            userProfile.pictures.push({
+                url,
+                name: file.name,
+            });
+            uploadedFileNames.add(file.name);
+        }
+
+        if (!userProfile.profilePicture && userProfile.pictures[0]?.url) {
+            userProfile.profilePicture = userProfile.pictures[0].url;
         }
 
         const profileData =

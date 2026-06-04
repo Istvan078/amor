@@ -52,7 +52,8 @@
 
 .settings-hero p,
 .settings-card p,
-.settings-row span {
+.settings-row span,
+.settings-toggle-copy span {
   color: rgba(248, 245, 239, 0.72);
   line-height: 1.55;
 }
@@ -108,6 +109,24 @@
     radial-gradient(circle at 0% 0%, rgba(255, 93, 143, 0.16), transparent 38%),
     radial-gradient(circle at 100% 100%, rgba(53, 198, 189, 0.12), transparent 34%),
     rgba(26, 31, 51, 0.92);
+}
+
+.settings-visibility-card {
+  grid-column: 1 / -1;
+  min-height: 0;
+  background:
+    radial-gradient(circle at 0% 0%, rgba(255, 218, 114, 0.12), transparent 34%),
+    radial-gradient(circle at 100% 12%, rgba(53, 198, 189, 0.14), transparent 36%),
+    rgba(26, 31, 51, 0.94);
+}
+
+.settings-notification-card {
+  grid-column: 1 / -1;
+  min-height: 0;
+  background:
+    radial-gradient(circle at 0% 0%, rgba(53, 198, 189, 0.14), transparent 34%),
+    radial-gradient(circle at 100% 12%, rgba(255, 93, 143, 0.12), transparent 36%),
+    rgba(26, 31, 51, 0.94);
 }
 
 .settings-card-icon {
@@ -169,6 +188,146 @@
 
 .settings-language-row {
   justify-content: flex-start;
+}
+
+.settings-visibility-list {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 12px;
+}
+
+.settings-notification-preferences {
+  display: grid;
+  gap: 12px;
+}
+
+.settings-notification-preferences h3 {
+  margin: 0;
+  color: #fff;
+  font-size: 1rem;
+  font-weight: 950;
+}
+
+.settings-notification-list {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 12px;
+}
+
+.settings-toggle-row {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr) auto;
+  gap: 14px;
+  align-items: center;
+  min-height: 124px;
+  padding: 16px;
+  border: 1px solid rgba(255, 255, 255, 0.11);
+  border-radius: 20px;
+  background:
+    linear-gradient(135deg, rgba(255, 255, 255, 0.08), rgba(255, 255, 255, 0.035));
+  transition:
+    border-color 180ms ease,
+    background 180ms ease,
+    opacity 180ms ease;
+}
+
+.settings-toggle-row.is-muted {
+  border-color: rgba(255, 255, 255, 0.08);
+  background: rgba(255, 255, 255, 0.04);
+}
+
+.settings-toggle-icon {
+  display: grid;
+  place-items: center;
+  width: 42px;
+  height: 42px;
+  border: 1px solid rgba(255, 218, 114, 0.18);
+  border-radius: 16px;
+  background: rgba(255, 218, 114, 0.08);
+  color: #ffda72;
+}
+
+.settings-toggle-icon ion-icon {
+  font-size: 21px;
+}
+
+.settings-toggle-copy {
+  min-width: 0;
+}
+
+.settings-toggle-copy strong {
+  display: block;
+  margin-bottom: 4px;
+  color: #fff;
+  font-size: 0.98rem;
+  font-weight: 950;
+}
+
+.settings-toggle-copy span {
+  display: block;
+  font-size: 0.9rem;
+}
+
+.settings-toggle-copy small {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  margin-top: 10px;
+  color: rgba(248, 245, 239, 0.58);
+  font-size: 0.76rem;
+  font-weight: 900;
+}
+
+.settings-toggle-copy small::before {
+  display: block;
+  width: 7px;
+  height: 7px;
+  border-radius: 999px;
+  background: rgba(248, 245, 239, 0.38);
+  content: '';
+}
+
+.settings-toggle-copy small.is-on {
+  color: #8ff2dc;
+}
+
+.settings-toggle-copy small.is-on::before {
+  background: #35c6bd;
+  box-shadow: 0 0 16px rgba(53, 198, 189, 0.48);
+}
+
+.settings-toggle {
+  --handle-background: #fff;
+  --handle-background-checked: #fff;
+  --track-background: rgba(248, 245, 239, 0.2);
+  --track-background-checked: #35c6bd;
+  --track-background-checked-opacity: 1;
+}
+
+.settings-save-notice {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  width: fit-content;
+  margin: -2px 0 0;
+  padding: 10px 12px;
+  border: 1px solid rgba(53, 198, 189, 0.22);
+  border-radius: 999px;
+  background: rgba(53, 198, 189, 0.08);
+  color: #8ff2dc;
+  font-size: 0.84rem;
+  font-weight: 900;
+}
+
+.settings-save-notice.is-error {
+  border-color: rgba(255, 93, 143, 0.28);
+  background: rgba(255, 93, 143, 0.08);
+  color: #ffb6c9;
+}
+
+.settings-save-notice ion-icon {
+  flex: 0 0 auto;
+  font-size: 18px;
 }
 
 .settings-primary-button,
@@ -236,6 +395,14 @@
 
   .settings-card {
     min-height: 0;
+  }
+
+  .settings-visibility-list {
+    grid-template-columns: 1fr;
+  }
+
+  .settings-notification-list {
+    grid-template-columns: 1fr;
   }
 
   .settings-row,

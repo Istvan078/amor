@@ -26,6 +26,13 @@ interface UserSubscription {
   bronze: boolean;
 }
 
+export interface NotificationPreferences {
+  newMatches?: boolean;
+  newMessages?: boolean;
+  superLikes?: boolean;
+  promotions?: boolean;
+}
+
 export class UserClass {
   [key: string]: any;
 
@@ -76,6 +83,9 @@ export class UserClass {
   public subscriptions?: UserSubscription;
   public isOnline?: boolean;
   public isVisible?: boolean;
+  public showOnlineStatus?: boolean;
+  public distanceVisibility?: boolean;
+  public notificationPreferences?: NotificationPreferences;
   public isBanned?: boolean;
   public profileCompleted?: boolean;
   public profileCompleteness?: number;

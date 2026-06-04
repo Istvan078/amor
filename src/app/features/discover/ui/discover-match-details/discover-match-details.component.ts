@@ -42,7 +42,7 @@ export class DiscoverMatchDetailsComponent {
     const reasons: Array<{ key: string; params?: Record<string, unknown> }> = [];
     const sharedInterests = this.getSharedInterests();
 
-    if (this.isNearby()) {
+    if (this.isDistanceVisible() && this.isNearby()) {
       reasons.push({ key: 'nearby' });
     }
 
@@ -107,6 +107,18 @@ export class DiscoverMatchDetailsComponent {
     );
 
     return distanceKm <= Number(this.userProfile?.lookingForDistance ?? 50);
+  }
+
+  isDetailVisible(label: { key?: string }) {
+    if (label.key === 'currentPlace') {
+      return this.isDistanceVisible();
+    }
+
+    return true;
+  }
+
+  private isDistanceVisible() {
+    return this.matchProfile?.distanceVisibility !== false;
   }
 
   private isRecentlyActive() {

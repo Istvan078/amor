@@ -113,9 +113,20 @@
       "blockedPreview": "Blocked",
       "you": "You"
     },
+    "likesYou": {
+      "eyebrow": "Amorino Gold",
+      "title": "People who liked you",
+      "lockedCount": "{{count}} people liked you",
+      "unlock": "Unlock Amorino Gold to see them",
+      "unlockedCount": "{{count}} people already liked you",
+      "lockedAvatarAlt": "Locked liked-you profile"
+    },
     "actions": {
+      "pass": "Pass",
+      "like": "Like",
       "rewind": "Undo last pass",
-      "superLike": "Send Super Like"
+      "superLike": "Send Super Like",
+      "superLikeShort": "Super Like"
     },
     "profile": {
       "myProfile": "My profile",
@@ -249,6 +260,31 @@
     "title": "Shape your Amor experience",
     "subtitle": "Manage profile, language, privacy, notifications and support from one polished place.",
     "backToApp": "Back to Amor",
+    "visibility": {
+      "eyebrow": "Discovery privacy",
+      "title": "Your visibility",
+      "copy": "Decide how much of your profile presence people can see while keeping matching active.",
+      "profile": {
+        "title": "Profile visibility",
+        "copy": "Show your profile in Discover for compatible people.",
+        "enabled": "Visible in Discover",
+        "disabled": "Hidden from Discover"
+      },
+      "online": {
+        "title": "Online status",
+        "copy": "Let matches see when you are active recently.",
+        "enabled": "Online badge visible",
+        "disabled": "Online badge hidden"
+      },
+      "distance": {
+        "title": "Distance visibility",
+        "copy": "Show location and distance-based details on your profile.",
+        "enabled": "Distance details visible",
+        "disabled": "Distance details hidden"
+      },
+      "saved": "Setting saved",
+      "error": "Could not save setting"
+    },
     "account": {
       "eyebrow": "Account",
       "title": "Profile and account",
@@ -278,8 +314,37 @@
     },
     "notifications": {
       "eyebrow": "Notifications",
-      "title": "Notification center",
-      "copy": "Review new matches, messages and account notices.",
+      "title": "Notifications",
+      "copy": "Choose which dating moments can reach you in-app and through push.",
+      "preferences": {
+        "title": "Notify me about",
+        "newMatches": {
+          "title": "New matches",
+          "copy": "When a like becomes a mutual match.",
+          "enabled": "Match alerts on",
+          "disabled": "Match alerts off"
+        },
+        "newMessages": {
+          "title": "New messages",
+          "copy": "When a match sends you a message.",
+          "enabled": "Message alerts on",
+          "disabled": "Message alerts off"
+        },
+        "superLikes": {
+          "title": "Super likes",
+          "copy": "When someone sends you a stronger signal.",
+          "enabled": "Super Like alerts on",
+          "disabled": "Super Like alerts off"
+        },
+        "promotions": {
+          "title": "Promotions",
+          "copy": "Premium offers, boosts and Amorino Gold updates.",
+          "enabled": "Promotion alerts on",
+          "disabled": "Promotion alerts off"
+        }
+      },
+      "saved": "Notification setting saved",
+      "error": "Could not save notification setting",
       "center": {
         "title": "Open notifications",
         "copy": "Read and clear your in-app alerts."
@@ -302,6 +367,18 @@
   },
   "profile": {
     "photoViewerTitle": "Profile photos",
+    "photos": {
+      "title": "Photo management",
+      "count": "{{count}} / {{max}} photos",
+      "required": "Minimum 1 photo required",
+      "maxReached": "Maximum 6 photos",
+      "primary": "Profile picture",
+      "makePrimary": "Set as profile picture",
+      "delete": "Delete photo",
+      "open": "Open photo",
+      "reorder": "Reorder photo",
+      "empty": "Add at least one photo to continue"
+    },
     "fields": {
       "pictures": "My photos",
       "aboutMe": "About me",

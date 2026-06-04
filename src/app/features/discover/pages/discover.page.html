@@ -5,6 +5,7 @@
       [userProfile]="userProf"
       [promotions]="promotions"
       [matches]="matches"
+      [likedByProfiles]="likedByProfiles"
       [conversationPreviews]="matchConversationPreviewsStore.previews()"
       [selectedMatchUid]="selectedMessProf?.uid"
       [billingCurrent]="billingStore.current()"
@@ -16,6 +17,8 @@
       (matchesOpened)="showMatchesCard()"
       (messagesOpened)="showMessages()"
       (messageOpened)="openMessWithMatch($event)"
+      (likedByUnlockRequested)="openSeeLikesPaywall()"
+      (likedByProfileSelected)="openLikedByProfile($event)"
       (promotionSelected)="handlePromotionSelected($event)"
     ></app-discover-sidebar>
 
@@ -104,6 +107,9 @@
         (startUpdateRequested)="startUpdateUserProf()"
         (profilePictureOpened)="showProfPics($event)"
         (picturesSaved)="savePictures()"
+        (profilePhotoReordered)="reorderProfilePhotos($event)"
+        (profilePhotoPrimarySelected)="selectPrimaryProfilePhoto($event)"
+        (profilePhotoDeleted)="deleteProfilePhoto($event)"
         (profileUpdated)="updateUserProf()"
         (profileDeleted)="confirmDeleteUserProf()"
         (signOutRequested)="signOutAlert()"

@@ -16,12 +16,15 @@ import {
   IonList,
   IonPopover,
   IonRange,
+  IonReorder,
+  IonReorderGroup,
   IonRow,
   IonSelect,
   IonSelectOption,
   IonText,
   IonTextarea,
 } from '@ionic/angular/standalone';
+import type { ItemReorderCustomEvent } from '@ionic/angular/standalone';
 import { TranslocoDirective } from '@jsverse/transloco';
 
 import {
@@ -41,9 +44,13 @@ import {
   imagesOutline,
   locationOutline,
   personOutline,
+  reorderThreeOutline,
+  saveOutline,
   settingsOutline,
   shieldCheckmarkOutline,
   sparklesOutline,
+  star,
+  starOutline,
   trashOutline,
 } from 'ionicons/icons';
 import { BillingCurrent } from '../../../billing/data-access/billing.repository';
@@ -79,6 +86,8 @@ export type ProfileChoiceSelectedEvent = {
     IonList,
     IonPopover,
     IonRange,
+    IonReorder,
+    IonReorderGroup,
     IonRow,
     IonSelect,
     IonSelectOption,
@@ -110,6 +119,12 @@ export class DiscoverProfilePanelComponent {
   @Output() startUpdateRequested = new EventEmitter<void>();
   @Output() profilePictureOpened = new EventEmitter<number>();
   @Output() picturesSaved = new EventEmitter<void>();
+  @Output() profilePhotoReordered = new EventEmitter<{
+    fromIndex: number;
+    toIndex: number;
+  }>();
+  @Output() profilePhotoPrimarySelected = new EventEmitter<number>();
+  @Output() profilePhotoDeleted = new EventEmitter<number>();
   @Output() profileUpdated = new EventEmitter<void>();
   @Output() profileDeleted = new EventEmitter<void>();
   @Output() signOutRequested = new EventEmitter<void>();
@@ -123,12 +138,18 @@ export class DiscoverProfilePanelComponent {
       imagesOutline,
       locationOutline,
       personOutline,
+      reorderThreeOutline,
+      saveOutline,
       settingsOutline,
       shieldCheckmarkOutline,
       sparklesOutline,
+      star,
+      starOutline,
       trashOutline,
     })
   }
+
+  readonly maxPhotos = 6;
 
   profileCompletionPercent() {
     return getProfileCompleteness(this.userProfile);
@@ -214,6 +235,58 @@ export class DiscoverProfilePanelComponent {
 
   selectedFileNames() {
     return this.selectedFiles.map((file) => file.name).join(', ');
+  }
+
+  photoCount() {
+    return this.userProfile?.pictures?.length ?? 0;
+  }
+
+  hasMinimumPhotos() {
+    return this.photoCount() >= 1;
+  }
+
+  canDeletePhoto() {
+    return this.photoCount() > 1;
+  }
+
+  canAddMorePhotos() {
+    return this.photoCount() < this.maxPhotos;
+  }
+
+  remainingPhotoSlots() {
+    return Math.max(this.maxPhotos - this.photoCount(), 0);
+  }
+
+  photoStatusKey() {
+    return this.canAddMorePhotos()
+      ? 'profile.photos.required'
+      : 'profile.photos.maxReached';
+  }
+
+  isPrimaryPhoto(index: number) {
+    const pictures = this.userProfile?.pictures ?? [];
+    const primaryPictureIndex = pictures.findIndex(
+      (picture) => picture.url === this.userProfile?.profilePicture
+    );
+
+    return index === (primaryPictureIndex >= 0 ? primaryPictureIndex : 0);
+  }
+
+  onPhotoReorder(event: ItemReorderCustomEvent) {
+    const { from: fromIndex, to: toIndex } = event.detail;
+    event.detail.complete();
+
+    if (
+      !Number.isInteger(fromIndex) ||
+      !Number.isInteger(toIndex) ||
+      fromIndex === toIndex ||
+      fromIndex < 0 ||
+      toIndex < 0
+    ) {
+      return;
+    }
+
+    this.profilePhotoReordered.emit({ fromIndex, toIndex });
   }
 
   hasBillingSummary() {

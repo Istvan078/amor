@@ -92,6 +92,62 @@
       </swiper-container>
     </div>
 
+    @if(getLikedByCount()) {
+      <section class="liked-by-card" [class.is-locked]="!isPremium">
+        <div class="liked-by-card-head">
+          <span>{{ t('discover.likesYou.eyebrow') }}</span>
+          <strong>{{ t('discover.likesYou.title') }}</strong>
+        </div>
+
+        <div class="liked-by-avatars" [class.is-blurred]="!isPremium">
+          @for(profile of getLikedByPreviewSlots(); track profile?.uid ?? $index) {
+            <button
+              type="button"
+              class="liked-by-avatar"
+              (click)="openLikedByProfile(profile)"
+              [attr.aria-label]="isPremium ? getMatchName(profile) : t('discover.likesYou.unlock')"
+            >
+              <img
+                [src]="getMatchImage(profile)"
+                [alt]="isPremium ? getMatchName(profile) : t('discover.likesYou.lockedAvatarAlt')"
+              />
+              @if(!isPremium) {
+                <span aria-hidden="true"></span>
+              }
+            </button>
+          }
+        </div>
+
+        @if(isPremium) {
+          <p>{{ t('discover.likesYou.unlockedCount', { count: getLikedByCount() }) }}</p>
+          <div class="liked-by-list">
+            @for(profile of getLikedByPreviewProfiles(); track profile.uid) {
+              <button type="button" (click)="openLikedByProfile(profile)">
+                <img [src]="getMatchImage(profile)" [alt]="getMatchName(profile)" />
+                <span>
+                  <strong>{{ getMatchName(profile) || profile.firstName }}</strong>
+                  @if(profile.age) {
+                    <small>{{ profile.age }}</small>
+                  }
+                </span>
+                <ion-icon name="chevron-forward-outline"></ion-icon>
+              </button>
+            }
+          </div>
+        } @else {
+          <p>{{ t('discover.likesYou.lockedCount', { count: getLikedByCount() }) }}</p>
+          <button
+            type="button"
+            class="liked-by-unlock-button"
+            (click)="likedByUnlockRequested.emit()"
+          >
+            <ion-icon name="lock-closed-outline"></ion-icon>
+            {{ t('discover.likesYou.unlock') }}
+          </button>
+        }
+      </section>
+    }
+
     <div class="matches-and-messages-cont">
       <ion-button fill="outline" (click)="matchesOpened.emit()">
         <ion-icon name="people-outline" slot="start"></ion-icon>

@@ -113,9 +113,20 @@
       "blockedPreview": "Blokkolva",
       "you": "Te"
     },
+    "likesYou": {
+      "eyebrow": "Amorino Gold",
+      "title": "Akik kedveltek",
+      "lockedCount": "{{count}} ember kedvelt",
+      "unlock": "Oldd fel Amorino Golddal",
+      "unlockedCount": "{{count}} ember már kedvelt",
+      "lockedAvatarAlt": "Zárolt kedvelő profil"
+    },
     "actions": {
+      "pass": "Pass",
+      "like": "Like",
       "rewind": "Előző profil visszahozása",
-      "superLike": "Super Like küldése"
+      "superLike": "Super Like küldése",
+      "superLikeShort": "Super Like"
     },
     "profile": {
       "myProfile": "Profilom",
@@ -249,6 +260,31 @@
     "title": "Alakítsd az Amor élményt",
     "subtitle": "Profil, nyelv, adatvédelem, értesítések és támogatás egy prémium felületen.",
     "backToApp": "Vissza az Amorba",
+    "visibility": {
+      "eyebrow": "Felfedezési adatvédelem",
+      "title": "Láthatóságod",
+      "copy": "Döntsd el, mennyit láthatnak mások a profilod jelenlétéből, miközben a matchelés aktív marad.",
+      "profile": {
+        "title": "Profil láthatósága",
+        "copy": "Jelenjen meg a profilod a hozzád illő emberek Felfedezésében.",
+        "enabled": "Látható a Felfedezésben",
+        "disabled": "Rejtve a Felfedezésben"
+      },
+      "online": {
+        "title": "Online státusz",
+        "copy": "A matchek láthatják, ha mostanában aktív voltál.",
+        "enabled": "Online jelvény látható",
+        "disabled": "Online jelvény rejtve"
+      },
+      "distance": {
+        "title": "Távolság láthatósága",
+        "copy": "Mutassa a helyhez és távolsághoz kötött profilrészleteket.",
+        "enabled": "Távolsági részletek láthatók",
+        "disabled": "Távolsági részletek rejtve"
+      },
+      "saved": "Beállítás mentve",
+      "error": "Nem sikerült menteni a beállítást"
+    },
     "account": {
       "eyebrow": "Fiók",
       "title": "Profil és fiók",
@@ -278,8 +314,37 @@
     },
     "notifications": {
       "eyebrow": "Értesítések",
-      "title": "Értesítési központ",
-      "copy": "Nézd át az új matcheket, üzeneteket és fiókértesítéseket.",
+      "title": "Értesítések",
+      "copy": "Válaszd ki, mely társkeresős pillanatok érhetnek el appon belül és pushban.",
+      "preferences": {
+        "title": "Értesíts ezekről",
+        "newMatches": {
+          "title": "Új matchek",
+          "copy": "Amikor egy like kölcsönös match-csé válik.",
+          "enabled": "Match értesítések bekapcsolva",
+          "disabled": "Match értesítések kikapcsolva"
+        },
+        "newMessages": {
+          "title": "Új üzenetek",
+          "copy": "Amikor egy matched üzenetet küld.",
+          "enabled": "Üzenetértesítések bekapcsolva",
+          "disabled": "Üzenetértesítések kikapcsolva"
+        },
+        "superLikes": {
+          "title": "Super like-ok",
+          "copy": "Amikor valaki erősebb jelzést küld neked.",
+          "enabled": "Super Like értesítések bekapcsolva",
+          "disabled": "Super Like értesítések kikapcsolva"
+        },
+        "promotions": {
+          "title": "Promóciók",
+          "copy": "Prémium ajánlatok, boostok és Amorino Gold frissítések.",
+          "enabled": "Promóciós értesítések bekapcsolva",
+          "disabled": "Promóciós értesítések kikapcsolva"
+        }
+      },
+      "saved": "Értesítési beállítás mentve",
+      "error": "Nem sikerült menteni az értesítési beállítást",
       "center": {
         "title": "Értesítések megnyitása",
         "copy": "Olvasd el és kezeld az appon belüli értesítéseidet."
@@ -302,6 +367,18 @@
   },
   "profile": {
     "photoViewerTitle": "Profilképek",
+    "photos": {
+      "title": "Képkezelés",
+      "count": "{{count}} / {{max}} kép",
+      "required": "Minimum 1 kép kötelező",
+      "maxReached": "Maximum 6 kép",
+      "primary": "Profilkép",
+      "makePrimary": "Legyen profilkép",
+      "delete": "Kép törlése",
+      "open": "Kép megnyitása",
+      "reorder": "Kép sorrendezése",
+      "empty": "Adj hozzá legalább egy képet a folytatáshoz"
+    },
     "fields": {
       "pictures": "Képeim",
       "aboutMe": "Rólam",

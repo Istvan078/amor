@@ -147,6 +147,36 @@ app-discover {
     border-radius: 8px;
     background: #252b3e;
     box-shadow: var(--amor-shadow);
+    transform: translate3d(var(--swipe-x, 0), var(--swipe-y, 0), 0) rotate(var(--swipe-rotate, 0deg));
+    transform-origin: 50% 92%;
+    transition:
+      transform 260ms cubic-bezier(0.2, 0.82, 0.28, 1),
+      box-shadow 180ms ease,
+      border-color 180ms ease;
+    will-change: transform;
+  }
+
+  .user-card.is-swipeable {
+    cursor: grab;
+    touch-action: none;
+    user-select: none;
+  }
+
+  .user-card.is-swiping {
+    cursor: grabbing;
+    transition: none;
+  }
+
+  .user-card.is-swipe-animating {
+    pointer-events: none;
+    transition: transform 240ms cubic-bezier(0.22, 0.82, 0.22, 1);
+  }
+
+  .user-card.has-swipe-intent {
+    border-color: rgba(255, 255, 255, 0.2);
+    box-shadow:
+      0 28px 78px rgba(4, 8, 18, 0.54),
+      0 0 0 1px rgba(255, 255, 255, 0.05);
   }
 
   .possible-match-img-cont,
@@ -170,6 +200,73 @@ app-discover {
   .possible-match-img-cont img,
   .user-settings-card-img-cont img {
     object-position: center top;
+  }
+
+  .swipe-feedback-layer {
+    position: absolute;
+    inset: 0;
+    z-index: 3;
+    pointer-events: none;
+  }
+
+  .swipe-feedback-stamp {
+    position: absolute;
+    z-index: 1;
+    display: inline-flex;
+    align-items: center;
+    gap: 10px;
+    min-width: 128px;
+    max-width: calc(100% - 48px);
+    padding: 12px 16px;
+    border: 3px solid currentColor;
+    border-radius: 8px;
+    background: rgba(8, 11, 20, 0.48);
+    box-shadow: 0 16px 42px rgba(0, 0, 0, 0.24);
+    font-size: clamp(1.02rem, 2.2vw, 1.45rem);
+    font-weight: 950;
+    letter-spacing: 0;
+    line-height: 1;
+    text-transform: uppercase;
+    text-shadow: 0 8px 22px rgba(0, 0, 0, 0.28);
+    backdrop-filter: blur(12px);
+    transform: scale(0.94);
+    transition:
+      opacity 80ms linear,
+      transform 120ms ease;
+  }
+
+  .swipe-feedback-stamp[style*='opacity: 0'] {
+    transform: scale(0.94);
+  }
+
+  .swipe-feedback-stamp ion-icon {
+    flex: 0 0 auto;
+    font-size: 1.25em;
+  }
+
+  .swipe-feedback-stamp.pass {
+    top: 54px;
+    right: 46px;
+    color: #ff5d70;
+    transform: rotate(11deg) scale(1);
+  }
+
+  .swipe-feedback-stamp.like {
+    top: 54px;
+    left: 46px;
+    color: var(--amor-teal);
+    transform: rotate(-11deg) scale(1);
+  }
+
+  .swipe-feedback-stamp.super-like {
+    top: 42%;
+    left: 50%;
+    color: var(--amor-gold);
+    transform: translate(-50%, -50%) scale(1);
+  }
+
+  .swipe-feedback-stamp.super-like.locked {
+    color: rgba(242, 199, 110, 0.82);
   }
 
   .card-content-cont-wrapper {
@@ -1810,6 +1907,13 @@ app-discover {
     min-width: 0;
   }
 
+  .profile-editor-upload-copy small {
+    color: rgba(248, 245, 239, 0.58);
+    font-size: 0.78rem;
+    font-weight: 800;
+    line-height: 1.2;
+  }
+
   .profile-file-input {
     position: absolute;
     width: 1px;
@@ -1829,6 +1933,252 @@ app-discover {
     font-weight: 900;
     letter-spacing: 0;
     text-transform: none;
+  }
+
+  .profile-editor-upload-card.is-maxed {
+    border-color: rgba(255, 214, 122, 0.28);
+    background:
+      radial-gradient(circle at 92% 8%, rgba(255, 214, 122, 0.18), transparent 30%),
+      linear-gradient(135deg, rgba(255, 255, 255, 0.09), rgba(255, 255, 255, 0.045));
+  }
+
+  .profile-photo-manager {
+    display: grid;
+    gap: 14px;
+    margin-top: 14px;
+    padding: 16px;
+    border: 1px solid var(--amor-line);
+    border-radius: 20px;
+    background:
+      radial-gradient(circle at 12% 0%, rgba(255, 93, 143, 0.18), transparent 34%),
+      linear-gradient(135deg, rgba(255, 255, 255, 0.105), rgba(255, 255, 255, 0.045));
+    box-shadow:
+      inset 0 1px 0 rgba(255, 255, 255, 0.08),
+      0 18px 40px rgba(0, 0, 0, 0.2);
+    backdrop-filter: blur(14px);
+  }
+
+  .profile-photo-manager.is-missing {
+    border-color: rgba(255, 93, 112, 0.38);
+  }
+
+  .profile-photo-manager-head {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 14px;
+  }
+
+  .profile-photo-manager-title {
+    display: grid;
+    gap: 5px;
+    min-width: 0;
+  }
+
+  .profile-photo-manager-title span {
+    color: var(--amor-gold);
+    font-size: 0.76rem;
+    font-weight: 900;
+    letter-spacing: 0;
+  }
+
+  .profile-photo-manager-title strong {
+    color: var(--amor-text);
+    font-size: 1.05rem;
+    line-height: 1.2;
+  }
+
+  .profile-photo-rule {
+    flex: 0 0 auto;
+    max-width: 190px;
+    margin: 0;
+    padding: 7px 10px;
+    border: 1px solid rgba(255, 255, 255, 0.12);
+    border-radius: 999px;
+    background: rgba(9, 13, 25, 0.32);
+    color: rgba(248, 245, 239, 0.7);
+    font-size: 0.72rem;
+    font-weight: 900;
+    line-height: 1.15;
+    text-align: center;
+  }
+
+  .profile-photo-rule.is-ready {
+    border-color: rgba(255, 214, 122, 0.24);
+    color: var(--amor-gold);
+  }
+
+  .profile-photo-grid {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 12px;
+  }
+
+  .profile-photo-tile {
+    position: relative;
+    min-width: 0;
+    aspect-ratio: 3 / 4;
+    overflow: hidden;
+    border: 1px solid rgba(255, 255, 255, 0.12);
+    border-radius: 16px;
+    background: rgba(9, 13, 25, 0.42);
+    box-shadow: 0 14px 30px rgba(0, 0, 0, 0.24);
+    cursor: grab;
+    transition:
+      border-color 160ms ease,
+      box-shadow 160ms ease,
+      transform 160ms ease;
+  }
+
+  .profile-photo-tile:hover {
+    transform: translateY(-2px);
+    border-color: rgba(255, 93, 143, 0.38);
+    box-shadow: 0 18px 38px rgba(0, 0, 0, 0.3);
+  }
+
+  .profile-photo-tile:active {
+    cursor: grabbing;
+  }
+
+  .profile-photo-tile.is-primary {
+    border-color: rgba(255, 214, 122, 0.8);
+    box-shadow:
+      0 0 0 1px rgba(255, 214, 122, 0.16),
+      0 18px 38px rgba(0, 0, 0, 0.3);
+  }
+
+  .profile-photo-preview {
+    display: block;
+    width: 100%;
+    height: 100%;
+    padding: 0;
+    border: 0;
+    background: transparent;
+    cursor: pointer;
+  }
+
+  .profile-photo-preview ion-img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+  }
+
+  .profile-photo-preview ion-img::part(image) {
+    object-fit: cover;
+  }
+
+  .profile-photo-preview::after {
+    position: absolute;
+    inset: 0;
+    content: '';
+    background:
+      linear-gradient(180deg, rgba(4, 7, 14, 0.28), transparent 34%),
+      linear-gradient(0deg, rgba(4, 7, 14, 0.62), transparent 42%);
+    pointer-events: none;
+  }
+
+  .profile-photo-drag-handle {
+    position: absolute;
+    top: 8px;
+    right: 8px;
+    z-index: 2;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 30px;
+    height: 30px;
+    border: 1px solid rgba(255, 255, 255, 0.16);
+    border-radius: 999px;
+    background: rgba(5, 8, 16, 0.62);
+    color: rgba(248, 245, 239, 0.88);
+    backdrop-filter: blur(10px);
+  }
+
+  .profile-photo-drag-handle ion-icon {
+    font-size: 19px;
+  }
+
+  .profile-photo-badge {
+    position: absolute;
+    top: 8px;
+    left: 8px;
+    z-index: 2;
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    max-width: calc(100% - 52px);
+    padding: 7px 9px;
+    border: 1px solid rgba(255, 214, 122, 0.36);
+    border-radius: 999px;
+    background: rgba(25, 19, 9, 0.72);
+    color: var(--amor-gold);
+    font-size: 0.68rem;
+    font-weight: 900;
+    line-height: 1;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    backdrop-filter: blur(10px);
+  }
+
+  .profile-photo-badge ion-icon {
+    flex: 0 0 auto;
+    font-size: 14px;
+  }
+
+  .profile-photo-actions {
+    position: absolute;
+    right: 8px;
+    bottom: 8px;
+    z-index: 2;
+    display: flex;
+    gap: 6px;
+  }
+
+  .profile-photo-icon-button {
+    width: 34px;
+    height: 34px;
+    min-height: 34px;
+    margin: 0;
+    --background: rgba(5, 8, 16, 0.68);
+    --background-hover: rgba(255, 255, 255, 0.14);
+    --border-color: rgba(255, 255, 255, 0.16);
+    --border-radius: 999px;
+    --box-shadow: none;
+    --color: var(--amor-gold);
+    --padding-bottom: 0;
+    --padding-end: 0;
+    --padding-start: 0;
+    --padding-top: 0;
+    backdrop-filter: blur(10px);
+  }
+
+  .profile-photo-icon-button.is-danger {
+    --color: #ff8ea2;
+  }
+
+  .profile-photo-icon-button ion-icon {
+    font-size: 18px;
+  }
+
+  .profile-photo-empty {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    min-height: 74px;
+    padding: 14px;
+    border: 1px dashed rgba(255, 255, 255, 0.16);
+    border-radius: 16px;
+    background: rgba(9, 13, 25, 0.26);
+    color: rgba(248, 245, 239, 0.72);
+    font-weight: 800;
+    line-height: 1.25;
+  }
+
+  .profile-photo-empty ion-icon {
+    flex: 0 0 auto;
+    color: var(--amor-gold);
+    font-size: 24px;
   }
 
   .profile-editor-choice-card {
@@ -1863,14 +2213,6 @@ app-discover {
     transform: translateY(-1px);
     border-color: rgba(255, 93, 143, 0.36);
     background: rgba(255, 255, 255, 0.075);
-  }
-
-  .user-pictures {
-    width: 100%;
-    aspect-ratio: 1;
-    overflow: hidden;
-    border-radius: 8px;
-    object-fit: cover;
   }
 
   ion-range {
@@ -2113,6 +2455,27 @@ app-discover {
     .profile-editor-upload-card {
       grid-template-columns: 1fr;
       align-items: stretch;
+    }
+
+    .profile-photo-manager-head {
+      flex-direction: column;
+      gap: 10px;
+    }
+
+    .profile-photo-rule {
+      max-width: none;
+      width: 100%;
+    }
+
+    .profile-photo-grid {
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 10px;
+    }
+
+    .profile-photo-badge {
+      max-width: calc(100% - 46px);
+      padding-inline: 8px;
+      font-size: 0.66rem;
     }
 
     .profile-choose-file-button,

@@ -35,6 +35,53 @@
           </a>
         </article>
 
+        <article class="settings-card settings-visibility-card">
+          <div class="settings-card-icon">
+            <ion-icon name="sparkles-outline"></ion-icon>
+          </div>
+          <div>
+            <span class="settings-eyebrow">{{ t('settings.visibility.eyebrow') }}</span>
+            <h2>{{ t('settings.visibility.title') }}</h2>
+            <p>{{ t('settings.visibility.copy') }}</p>
+          </div>
+
+          <div class="settings-visibility-list">
+            @for(setting of visibilitySettings; track setting.key) {
+              <div class="settings-toggle-row" [class.is-muted]="!isSettingEnabled(setting.key)">
+                <div class="settings-toggle-icon">
+                  <ion-icon [name]="setting.icon"></ion-icon>
+                </div>
+                <div class="settings-toggle-copy">
+                  <strong>{{ t(setting.titleKey) }}</strong>
+                  <span>{{ t(setting.copyKey) }}</span>
+                  <small [class.is-on]="isSettingEnabled(setting.key)">
+                    {{ t(getSettingStatusKey(setting)) }}
+                  </small>
+                </div>
+                <ion-toggle
+                  class="settings-toggle"
+                  [checked]="isSettingEnabled(setting.key)"
+                  [disabled]="isSettingSaving(setting.key) || profileStore.loading()"
+                  [attr.aria-label]="t(setting.titleKey)"
+                  (ionChange)="updateVisibilitySetting(setting.key, $event)"
+                ></ion-toggle>
+              </div>
+            }
+          </div>
+
+          @if(settingsNoticeKey) {
+            <p
+              class="settings-save-notice"
+              [class.is-error]="settingsNoticeKey === 'settings.visibility.error'"
+            >
+              <ion-icon
+                [name]="settingsNoticeKey === 'settings.visibility.error' ? 'alert-circle-outline' : 'checkmark-circle-outline'"
+              ></ion-icon>
+              {{ t(settingsNoticeKey) }}
+            </p>
+          }
+        </article>
+
         <article class="settings-card">
           <div class="settings-card-icon">
             <ion-icon name="language-outline"></ion-icon>
@@ -76,7 +123,7 @@
           </div>
         </article>
 
-        <article class="settings-card">
+        <article class="settings-card settings-notification-card">
           <div class="settings-card-icon">
             <ion-icon name="notifications-outline"></ion-icon>
           </div>
@@ -85,6 +132,49 @@
             <h2>{{ t('settings.notifications.title') }}</h2>
             <p>{{ t('settings.notifications.copy') }}</p>
           </div>
+
+          <div class="settings-notification-preferences">
+            <h3>{{ t('settings.notifications.preferences.title') }}</h3>
+            <div class="settings-notification-list">
+              @for(setting of notificationSettings; track setting.key) {
+                <div
+                  class="settings-toggle-row"
+                  [class.is-muted]="!isNotificationSettingEnabled(setting.key)"
+                >
+                  <div class="settings-toggle-icon">
+                    <ion-icon [name]="setting.icon"></ion-icon>
+                  </div>
+                  <div class="settings-toggle-copy">
+                    <strong>{{ t(setting.titleKey) }}</strong>
+                    <span>{{ t(setting.copyKey) }}</span>
+                    <small [class.is-on]="isNotificationSettingEnabled(setting.key)">
+                      {{ t(getNotificationStatusKey(setting)) }}
+                    </small>
+                  </div>
+                  <ion-toggle
+                    class="settings-toggle"
+                    [checked]="isNotificationSettingEnabled(setting.key)"
+                    [disabled]="isNotificationSettingSaving(setting.key) || profileStore.loading()"
+                    [attr.aria-label]="t(setting.titleKey)"
+                    (ionChange)="updateNotificationSetting(setting.key, $event)"
+                  ></ion-toggle>
+                </div>
+              }
+            </div>
+          </div>
+
+          @if(notificationNoticeKey) {
+            <p
+              class="settings-save-notice"
+              [class.is-error]="notificationNoticeKey === 'settings.notifications.error'"
+            >
+              <ion-icon
+                [name]="notificationNoticeKey === 'settings.notifications.error' ? 'alert-circle-outline' : 'checkmark-circle-outline'"
+              ></ion-icon>
+              {{ t(notificationNoticeKey) }}
+            </p>
+          }
+
           <a class="settings-row" routerLink="/amor/notifications">
             <div>
               <strong>{{ t('settings.notifications.center.title') }}</strong>

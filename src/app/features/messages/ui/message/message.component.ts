@@ -236,6 +236,10 @@ export class MessageComponent implements AfterViewChecked, OnChanges, OnDestroy 
   }
 
   isMatchOnline(match: UserClass) {
+    if (match.showOnlineStatus === false) {
+      return false;
+    }
+
     if (!match.isOnline) {
       return false;
     }

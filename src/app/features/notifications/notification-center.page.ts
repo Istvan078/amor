@@ -8,8 +8,10 @@ import {
     chatbubbleEllipsesOutline,
     checkmarkDoneOutline,
     heartOutline,
+    megaphoneOutline,
     notificationsOutline,
     sparklesOutline,
+    starOutline,
 } from 'ionicons/icons';
 
 import {
@@ -37,8 +39,10 @@ export class NotificationCenterPage {
             chatbubbleEllipsesOutline,
             checkmarkDoneOutline,
             heartOutline,
+            megaphoneOutline,
             notificationsOutline,
             sparklesOutline,
+            starOutline,
         });
     }
 
@@ -52,6 +56,10 @@ export class NotificationCenterPage {
                 return 'heart-outline';
             case 'new_message':
                 return 'chatbubble-ellipses-outline';
+            case 'super_like':
+                return 'star-outline';
+            case 'promotion':
+                return 'megaphone-outline';
             default:
                 return 'sparkles-outline';
         }
