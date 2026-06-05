@@ -193,6 +193,12 @@ export class DiscoverSidebarComponent implements AfterViewInit, OnChanges {
     return previews.length ? previews : [undefined, undefined, undefined];
   }
 
+  getHiddenLikeCountKey() {
+    return this.getLikedByCount() === 1
+      ? 'discover.likesYou.hiddenLike'
+      : 'discover.likesYou.hiddenLikes';
+  }
+
   openLikedByProfile(profile?: UserClass) {
     if (!profile?.uid) {
       return;

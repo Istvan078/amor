@@ -49,7 +49,8 @@ button.active {
   }
 
   :host-context(body.is-mobile-messages-tab),
-  :host-context(body.is-mobile-message-view) {
+  :host-context(body.is-mobile-message-view),
+  :host-context(body.is-mobile-promo-sheet-open) {
     display: none;
   }
 

@@ -97,6 +97,7 @@ export class UserClass {
   public isVisible?: boolean;
   public showOnlineStatus?: boolean;
   public distanceVisibility?: boolean;
+  public readReceiptsEnabled?: boolean;
   public notificationPreferences?: NotificationPreferences;
   public notificationDelivery?: NotificationDeliveryPreferences;
   public notificationQuietHours?: NotificationQuietHours;

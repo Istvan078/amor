@@ -8,10 +8,11 @@ import {
   setDoc,
 } from '@angular/fire/firestore';
 
-export type DailyUsageAction = 'rewind' | 'super-like' | 'boost';
+export type DailyUsageAction = 'like' | 'rewind' | 'super-like' | 'boost';
 
 export type DailyUsage = {
   date: string;
+  likesUsed: number;
   superLikesUsed: number;
   rewindsUsed: number;
   boostsUsed: number;
@@ -28,15 +29,24 @@ export function getDailyUsageDateKey(date = new Date()) {
 function emptyUsage(date = getDailyUsageDateKey()): DailyUsage {
   return {
     date,
+    likesUsed: 0,
     superLikesUsed: 0,
     rewindsUsed: 0,
     boostsUsed: 0,
   };
 }
 
-type DailyUsageCountField = 'superLikesUsed' | 'rewindsUsed' | 'boostsUsed';
+type DailyUsageCountField =
+  | 'likesUsed'
+  | 'superLikesUsed'
+  | 'rewindsUsed'
+  | 'boostsUsed';
 
 function usageFieldForAction(action: DailyUsageAction): DailyUsageCountField {
+  if (action === 'like') {
+    return 'likesUsed';
+  }
+
   if (action === 'super-like') {
     return 'superLikesUsed';
   }

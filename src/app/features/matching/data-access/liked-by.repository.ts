@@ -18,22 +18,37 @@ export class LikedByRepository {
   private firestore = inject(Firestore);
 
   async getProfilesWhoLikedUser(uid: string, resultLimit = 12) {
-    const snapshots = await this.runInFirebaseContext(() => {
+    const snapshots = await this.runInFirebaseContext(async () => {
       const usersCollection = collection(this.firestore, 'users');
 
-      return getDocs(
-        query(
-          usersCollection,
-          where('matchParts.liked', 'array-contains', uid),
-          limit(resultLimit)
-        )
-      );
+      return Promise.all([
+        getDocs(
+          query(
+            usersCollection,
+            where('matchParts.liked', 'array-contains', uid),
+            limit(resultLimit)
+          )
+        ),
+        getDocs(
+          query(
+            usersCollection,
+            where('matchParts.superLiked', 'array-contains', uid),
+            limit(resultLimit)
+          )
+        ),
+      ]);
     });
 
-    return snapshots.docs.map((snapshot) => ({
-      uid: snapshot.id,
-      ...snapshot.data(),
-    })) as UserClass[];
+    const profilesByUid = new Map<string, UserClass>();
+
+    for (const snapshot of snapshots.flatMap((querySnapshot) => querySnapshot.docs)) {
+      profilesByUid.set(snapshot.id, {
+        uid: snapshot.id,
+        ...snapshot.data(),
+      } as UserClass);
+    }
+
+    return Array.from(profilesByUid.values()).slice(0, resultLimit);
   }
 
   private runInFirebaseContext<T>(callback: () => T): T {

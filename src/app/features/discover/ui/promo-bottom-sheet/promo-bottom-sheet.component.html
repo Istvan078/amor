@@ -8,6 +8,7 @@
 
     <section
       class="promo-sheet"
+      [class.promo-sheet--likes-you]="isLikedByPromotion(promo)"
       [class.promo-sheet--expanded]="showOtherOffers"
       [style.--promo-accent]="promo['accent'] || '#ff5d8f'"
       [style.--promo-accent-soft]="promo['accentSoft'] || '#f2c76e'"
@@ -26,25 +27,50 @@
         <ion-icon name="close-outline" aria-hidden="true"></ion-icon>
       </button>
 
-      <div class="promo-sheet__icon">
-        <ion-icon [name]="getIconName(promo)" aria-hidden="true"></ion-icon>
-      </div>
+      @if (isLikedByPromotion(promo)) {
+        <div class="promo-sheet__likes-card">
+          <div class="promo-sheet__likes-head">
+            <span>{{ t('discover.likesYou.eyebrow') }}</span>
+            <strong>{{ t('discover.likesYou.title') }}</strong>
+          </div>
 
-      <p class="promo-sheet__eyebrow">
-        @if (promo['eyebrowKey']) {
-          {{ t(promo['eyebrowKey']) }}
-        } @else {
-          {{ promo['category'] }}
-        }
-      </p>
+          <div class="promo-sheet__likes-avatars" aria-hidden="true">
+            @for (profile of getLikedByPreviewProfiles(); track profile.uid ?? $index) {
+              <span class="promo-sheet__likes-avatar">
+                <img
+                  [src]="getLikedByProfileImage(profile)"
+                  [alt]="t('discover.likesYou.lockedAvatarAlt')"
+                />
+              </span>
+            }
+            <span class="promo-sheet__likes-lock">
+              <ion-icon name="lock-closed-outline" aria-hidden="true"></ion-icon>
+            </span>
+          </div>
 
-      <h2 class="promo-sheet__title">
-        @if (promo['titleKey']) {
-          {{ t(promo['titleKey']) }}
-        } @else {
-          {{ promo['title'] }}
-        }
-      </h2>
+          <p>{{ t('discover.likesYou.lockedCount', { count: getLikedByCount() }) }}</p>
+        </div>
+      } @else {
+        <div class="promo-sheet__icon">
+          <ion-icon [name]="getIconName(promo)" aria-hidden="true"></ion-icon>
+        </div>
+
+        <p class="promo-sheet__eyebrow">
+          @if (promo['eyebrowKey']) {
+            {{ t(promo['eyebrowKey']) }}
+          } @else {
+            {{ promo['category'] }}
+          }
+        </p>
+
+        <h2 class="promo-sheet__title">
+          @if (promo['titleKey']) {
+            {{ t(promo['titleKey']) }}
+          } @else {
+            {{ promo['title'] }}
+          }
+        </h2>
+      }
 
       <p class="promo-sheet__offer">
         @if (promo['offerKey']) {

@@ -94,57 +94,72 @@
 
     @if(getLikedByCount()) {
       <section class="liked-by-card" [class.is-locked]="!isPremium">
-        <div class="liked-by-card-head">
+        <div class="liked-by-card-copy">
           <span>{{ t('discover.likesYou.eyebrow') }}</span>
           <strong>{{ t('discover.likesYou.title') }}</strong>
+          <p>{{ t('discover.likesYou.subtitle') }}</p>
         </div>
 
-        <div class="liked-by-avatars" [class.is-blurred]="!isPremium">
-          @for(profile of getLikedByPreviewSlots(); track profile?.uid ?? $index) {
+        <div class="liked-by-premium-row">
+          <div class="liked-by-showcase">
+            <div class="liked-by-avatars" [class.is-blurred]="!isPremium">
+              @for(profile of getLikedByPreviewSlots(); track profile?.uid ?? $index) {
+                <button
+                  type="button"
+                  class="liked-by-avatar"
+                  (click)="openLikedByProfile(profile)"
+                  [attr.aria-label]="isPremium ? getMatchName(profile) : t('discover.likesYou.unlock')"
+                >
+                  <img
+                    [src]="getMatchImage(profile)"
+                    [alt]="isPremium ? getMatchName(profile) : t('discover.likesYou.lockedAvatarAlt')"
+                  />
+                  @if(!isPremium) {
+                    <span aria-hidden="true"></span>
+                  }
+                </button>
+              }
+            </div>
+
+            <p class="liked-by-count-pill">
+              {{
+                isPremium
+                  ? t('discover.likesYou.unlockedCount', { count: getLikedByCount() })
+                  : t(getHiddenLikeCountKey(), { count: getLikedByCount() })
+              }}
+            </p>
+          </div>
+
+          @if(!isPremium) {
             <button
               type="button"
-              class="liked-by-avatar"
-              (click)="openLikedByProfile(profile)"
-              [attr.aria-label]="isPremium ? getMatchName(profile) : t('discover.likesYou.unlock')"
+              class="liked-by-unlock-button"
+              (click)="likedByUnlockRequested.emit()"
             >
-              <img
-                [src]="getMatchImage(profile)"
-                [alt]="isPremium ? getMatchName(profile) : t('discover.likesYou.lockedAvatarAlt')"
-              />
-              @if(!isPremium) {
-                <span aria-hidden="true"></span>
-              }
+              <ion-icon name="lock-closed-outline"></ion-icon>
+              {{ t('discover.likesYou.unlockGold') }}
             </button>
           }
         </div>
 
-        @if(isPremium) {
-          <p>{{ t('discover.likesYou.unlockedCount', { count: getLikedByCount() }) }}</p>
-          <div class="liked-by-list">
-            @for(profile of getLikedByPreviewProfiles(); track profile.uid) {
-              <button type="button" (click)="openLikedByProfile(profile)">
-                <img [src]="getMatchImage(profile)" [alt]="getMatchName(profile)" />
-                <span>
-                  <strong>{{ getMatchName(profile) || profile.firstName }}</strong>
-                  @if(profile.age) {
-                    <small>{{ profile.age }}</small>
-                  }
-                </span>
-                <ion-icon name="chevron-forward-outline"></ion-icon>
-              </button>
-            }
-          </div>
+        @if(!isPremium) {
+          <p class="liked-by-footer">{{ t('discover.likesYou.footer') }}</p>
         } @else {
-          <p>{{ t('discover.likesYou.lockedCount', { count: getLikedByCount() }) }}</p>
-          <button
-            type="button"
-            class="liked-by-unlock-button"
-            (click)="likedByUnlockRequested.emit()"
-          >
-            <ion-icon name="lock-closed-outline"></ion-icon>
-            {{ t('discover.likesYou.unlock') }}
-          </button>
-        }
+            <div class="liked-by-list">
+              @for(profile of getLikedByPreviewProfiles(); track profile.uid) {
+                <button type="button" (click)="openLikedByProfile(profile)">
+                  <img [src]="getMatchImage(profile)" [alt]="getMatchName(profile)" />
+                  <span>
+                    <strong>{{ getMatchName(profile) || profile.firstName }}</strong>
+                    @if(profile.age) {
+                      <small>{{ profile.age }}</small>
+                    }
+                  </span>
+                  <ion-icon name="chevron-forward-outline"></ion-icon>
+                </button>
+              }
+            </div>
+          }
       </section>
     }
 

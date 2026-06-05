@@ -1,4 +1,14 @@
-import { Component, EventEmitter, Input, Output } from '@angular/core';
+import {
+  AfterViewChecked,
+  Component,
+  ElementRef,
+  EventEmitter,
+  Input,
+  OnChanges,
+  Output,
+  SimpleChanges,
+  ViewChild,
+} from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { RouterLink } from '@angular/router';
 import {
@@ -95,7 +105,10 @@ export type ProfileChoiceSelectedEvent = {
     IonTextarea,
   ],
 })
-export class DiscoverProfilePanelComponent {
+export class DiscoverProfilePanelComponent implements AfterViewChecked, OnChanges {
+  @ViewChild('profileEditorPanel')
+  private profileEditorPanel?: ElementRef<HTMLElement>;
+
   readonly choiceLabel = translatedChoiceLabel;
   readonly fieldLabel = translatedFieldLabel;
   readonly fieldPlaceholder = translatedFieldPlaceholder;
@@ -127,7 +140,6 @@ export class DiscoverProfilePanelComponent {
   @Output() profilePhotoDeleted = new EventEmitter<number>();
   @Output() profileUpdated = new EventEmitter<void>();
   @Output() profileDeleted = new EventEmitter<void>();
-  @Output() signOutRequested = new EventEmitter<void>();
   @Output() choicesSelected = new EventEmitter<ProfileChoiceSelectedEvent>();
 
   constructor() {
@@ -150,6 +162,30 @@ export class DiscoverProfilePanelComponent {
   }
 
   readonly maxPhotos = 6;
+  private pendingEditorScroll = false;
+
+  ngOnChanges(changes: SimpleChanges) {
+    if (changes['startUpdate']?.currentValue === true) {
+      this.pendingEditorScroll = true;
+    }
+  }
+
+  ngAfterViewChecked() {
+    if (!this.pendingEditorScroll || !this.profileEditorPanel) {
+      return;
+    }
+
+    this.pendingEditorScroll = false;
+    this.profileEditorPanel.nativeElement.scrollIntoView({
+      behavior: 'smooth',
+      block: 'start',
+    });
+  }
+
+  requestProfileEdit() {
+    this.pendingEditorScroll = true;
+    this.startUpdateRequested.emit();
+  }
 
   profileCompletionPercent() {
     return getProfileCompleteness(this.userProfile);

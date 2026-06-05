@@ -19,6 +19,7 @@ type PromoDecisionInput = {
     userProfile?: UserClass;
     possibleMatchIds: string[];
     matches: UserClass[];
+    incomingLikeCount: number;
     isMatchPlaceHolder: boolean;
 };
 
@@ -154,16 +155,19 @@ function getPromoBottomSheetCandidates(
     const orderedIds: string[] = [];
     const likedCount = input.userProfile?.matchParts?.liked?.length ?? 0;
     const notLikedCount = input.userProfile?.matchParts?.notLiked?.length ?? 0;
-    const hiddenLikesCount = getHiddenLikesCount(input.userProfile);
+    const hiddenLikesCount = Math.max(
+        getHiddenLikesCount(input.userProfile),
+        input.incomingLikeCount
+    );
     const possibleCount = input.possibleMatchIds.length;
     const matchCount = input.matches.length;
 
-    if (isFirstDay) {
-        orderedIds.push('firstMonth');
-    }
-
     if (hiddenLikesCount > 0) {
         orderedIds.push('seeLikes');
+    }
+
+    if (isFirstDay) {
+        orderedIds.push('firstMonth');
     }
 
     if (likedCount >= 8 || (likedCount >= 3 && possibleCount <= 1)) {

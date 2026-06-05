@@ -107,6 +107,13 @@
 
             @if (isConversationMenuOpen) {
               <div class="conversation-menu" role="menu">
+                <button type="button" role="menuitem" class="is-profile" (click)="openMatchProfile()">
+                  <ion-icon name="person-circle-outline"></ion-icon>
+                  <span>
+                    <strong>{{ t('messages.viewProfile') }}</strong>
+                    <small>{{ t('messages.viewProfileHint') }}</small>
+                  </span>
+                </button>
                 @if (isCurrentMatchBlocked) {
                   <button type="button" role="menuitem" class="is-positive" (click)="unblockUser()">
                     <ion-icon name="lock-open-outline"></ion-icon>
@@ -143,6 +150,226 @@
           </div>
         </header>
 
+        @if (isMatchProfileOpen && matchProfile) {
+          <section class="match-profile-view">
+            <article
+              class="match-profile-hero"
+              [style.background-image]="'url(' + getProfileImage(matchProfile) + ')'"
+            >
+              <button
+                type="button"
+                class="match-profile-photo-open"
+                (click)="openMatchPhotoViewer(0)"
+                [attr.aria-label]="t('messages.photoViewerOpen')"
+              ></button>
+
+              <button
+                type="button"
+                class="match-profile-back"
+                (click)="closeMatchProfile()"
+              >
+                <ion-icon name="arrow-back-outline" aria-hidden="true"></ion-icon>
+                {{ t('messages.profileBack') }}
+              </button>
+
+              <div class="match-profile-hero-copy">
+                <small>{{ t('messages.profileSubtitle') }}</small>
+                <h3>
+                  {{ getDisplayName(matchProfile) || matchProfile.firstName }}
+                  @if (matchProfile.age) {
+                    <span>{{ matchProfile.age }}</span>
+                  }
+                </h3>
+                @if (matchProfile.currentPlace) {
+                  <p>
+                    <ion-icon name="location-outline" aria-hidden="true"></ion-icon>
+                    {{ matchProfile.currentPlace }}
+                  </p>
+                }
+              </div>
+            </article>
+
+            @if (getMatchPhotos(matchProfile).length > 1) {
+              <div class="match-profile-gallery" aria-label="Profile photos">
+                @for (photo of getMatchPhotos(matchProfile); track photo.url; let i = $index) {
+                  <button
+                    type="button"
+                    class="match-profile-gallery-button"
+                    (click)="openMatchPhotoViewer(i)"
+                    [attr.aria-label]="t('messages.photoViewerOpen')"
+                  >
+                    <img [src]="photo.url" [alt]="getDisplayName(matchProfile) || matchProfile.firstName" />
+                  </button>
+                }
+              </div>
+            }
+
+            <div class="match-profile-stat-grid">
+              @if (matchProfile.gender) {
+                <article>
+                  <ion-icon name="person-circle-outline" aria-hidden="true"></ion-icon>
+                  <span>{{ t('discover.profile.gender') }}</span>
+                  <strong>{{ profileValueText(t, matchProfile.gender) }}</strong>
+                </article>
+              }
+              @if (matchProfile.lookingForGender) {
+                <article>
+                  <ion-icon name="heart-outline" aria-hidden="true"></ion-icon>
+                  <span>{{ t('discover.profile.lookingFor') }}</span>
+                  <strong>{{ profileValueText(t, matchProfile.lookingForGender) }}</strong>
+                </article>
+              }
+              @if (matchProfile.lookingForAge) {
+                <article>
+                  <ion-icon name="calendar-outline" aria-hidden="true"></ion-icon>
+                  <span>{{ t('discover.profile.age') }}</span>
+                  <strong>{{ profileValueText(t, matchProfile.lookingForAge) }}</strong>
+                </article>
+              }
+              @if (matchProfile.job) {
+                <article>
+                  <ion-icon name="briefcase-outline" aria-hidden="true"></ion-icon>
+                  <span>{{ t('profile.fields.job') }}</span>
+                  <strong>{{ matchProfile.job }}</strong>
+                </article>
+              }
+              @if (matchProfile.highestSchool || matchProfile.currStudy) {
+                <article>
+                  <ion-icon name="school-outline" aria-hidden="true"></ion-icon>
+                  <span>{{ t('profile.fields.highestSchool') }}</span>
+                  <strong>{{ matchProfile.highestSchool || matchProfile.currStudy }}</strong>
+                </article>
+              }
+              @if (matchProfile.zodiacSign) {
+                <article>
+                  <ion-icon name="star-outline" aria-hidden="true"></ion-icon>
+                  <span>{{ t('profile.fields.zodiacSign') }}</span>
+                  <strong>{{ matchProfile.zodiacSign }}</strong>
+                </article>
+              }
+            </div>
+
+            @if (matchProfile.aboutMe) {
+              <article class="match-profile-copy-card">
+                <span>{{ t('discover.profile.aboutMe') }}</span>
+                <p>{{ matchProfile.aboutMe }}</p>
+              </article>
+            }
+
+            @if (matchProfile.lookingForType) {
+              <article class="match-profile-copy-card">
+                <span>{{ t('discover.profile.lookingForType') }}</span>
+                <p>{{ matchProfile.lookingForType }}</p>
+              </article>
+            }
+
+            @if (matchProfile.interests?.length) {
+              <section class="match-profile-chip-card">
+                <span>{{ t('discover.profile.interests') }}</span>
+                <div>
+                  @for (interest of matchProfile.interests; track $index) {
+                    <em>{{ profileValueText(t, interest) }}</em>
+                  }
+                </div>
+              </section>
+            }
+
+            @if (matchProfile.freeTimeAct?.length) {
+              <section class="match-profile-chip-card">
+                <span>{{ t('discover.profile.freeTime') }}</span>
+                <div>
+                  @for (activity of matchProfile.freeTimeAct; track $index) {
+                    <em>{{ profileValueText(t, activity) }}</em>
+                  }
+                </div>
+              </section>
+            }
+
+          </section>
+          @if (isMatchPhotoViewerOpen) {
+            <section
+              class="match-photo-viewer"
+              role="dialog"
+              aria-modal="true"
+              [attr.aria-label]="t('messages.photoViewerTitle')"
+            >
+              <header class="match-photo-viewer-header">
+                <div>
+                  <span>{{ t('messages.photoViewerTitle') }}</span>
+                  <strong>{{ activeMatchPhotoIndex + 1 }} / {{ getMatchPhotos(matchProfile).length }}</strong>
+                </div>
+                <button
+                  type="button"
+                  class="match-photo-viewer-close"
+                  (click)="closeMatchPhotoViewer()"
+                  [attr.aria-label]="t('messages.photoViewerClose')"
+                >
+                  <ion-icon name="close-outline" aria-hidden="true"></ion-icon>
+                </button>
+              </header>
+
+              <div class="match-photo-viewer-stage">
+                @if (getMatchPhotos(matchProfile).length > 1) {
+                  <button
+                    type="button"
+                    class="match-photo-viewer-nav is-prev"
+                    (click)="previousMatchPhoto()"
+                    [attr.aria-label]="t('messages.previousPhoto')"
+                  >
+                    <ion-icon name="chevron-back-outline" aria-hidden="true"></ion-icon>
+                  </button>
+                }
+
+                <swiper-container
+                  class="match-photo-viewer-swiper"
+                  [grabCursor]="true"
+                  [pagination]="true"
+                  [navigation]="false"
+                  [zoom]="true"
+                  #matchPhotoSwiper
+                  (swiperslidechange)="onMatchPhotoSlideChange()"
+                >
+                  @for (photo of getMatchPhotos(matchProfile); track photo.url) {
+                    <swiper-slide class="match-photo-viewer-slide">
+                      <div class="match-photo-viewer-frame">
+                        <img
+                          [src]="photo.url"
+                          [alt]="photo.name || getDisplayName(matchProfile) || matchProfile.firstName"
+                          draggable="false"
+                        />
+                      </div>
+                    </swiper-slide>
+                  }
+                </swiper-container>
+
+                @if (getMatchPhotos(matchProfile).length > 1) {
+                  <button
+                    type="button"
+                    class="match-photo-viewer-nav is-next"
+                    (click)="nextMatchPhoto()"
+                    [attr.aria-label]="t('messages.nextPhoto')"
+                  >
+                    <ion-icon name="chevron-forward-outline" aria-hidden="true"></ion-icon>
+                  </button>
+                }
+              </div>
+
+              @if (getMatchPhotos(matchProfile).length > 1) {
+                <div class="match-photo-viewer-strip">
+                  @for (photo of getMatchPhotos(matchProfile); track photo.url; let i = $index) {
+                    <button
+                      type="button"
+                      [class.is-active]="i === activeMatchPhotoIndex"
+                      (click)="selectMatchPhoto(i)"
+                    >
+                      <img [src]="photo.url" [alt]="photo.name || t('messages.photoViewerTitle')" />
+                    </button>
+                  }
+                </div>
+              }
+            </section>
+          }
+        } @else {
         @if (matchProfile) {
           <section class="conversation-hero">
             <div>
@@ -151,7 +378,17 @@
                 {{ t('messages.readReceiptText', { name: matchProfile.firstName }) }}
               </p>
             </div>
-            <ion-button fill="solid">{{ t('messages.enableReadReceipt') }}</ion-button>
+            <ion-button
+              fill="solid"
+              [disabled]="readReceiptsSaving || hasReadReceiptsEnabled()"
+              (click)="enableReadReceipts()"
+            >
+              {{
+                hasReadReceiptsEnabled()
+                  ? t('messages.readReceiptEnabled')
+                  : t('messages.enableReadReceipt')
+              }}
+            </ion-button>
           </section>
         }
 
@@ -236,6 +473,7 @@
             <ion-icon name="send-outline"></ion-icon>
           </ion-button>
         </form>
+        }
       </section>
     }
   </div>

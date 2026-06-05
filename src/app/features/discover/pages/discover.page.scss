@@ -82,6 +82,12 @@ app-discover {
     overflow-y: auto;
   }
 
+  @media screen and (min-width: 769px) {
+    #main-view-container.is-profile-view {
+      padding-right: clamp(152px, 9vw, 184px);
+    }
+  }
+
   #main-view-container.is-message-view {
     height: 100dvh;
     min-height: 0;
@@ -1485,12 +1491,6 @@ app-discover {
     --background: rgba(255, 93, 112, 0.24);
     --background-hover: rgba(255, 93, 112, 0.34);
     --color: var(--amor-text);
-  }
-
-  .profile-signout-button {
-    --border-color: rgba(255, 255, 255, 0.18);
-    --color: var(--amor-text);
-    --background: rgba(255, 255, 255, 0.04);
   }
 
   .profile-safety-button {

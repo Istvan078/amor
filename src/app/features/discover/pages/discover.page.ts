@@ -7,6 +7,7 @@ import {
   effect,
   inject,
 } from '@angular/core';
+import { DOCUMENT } from '@angular/common';
 import { ActivatedRoute, Router } from '@angular/router';
 import {
   AlertController,
@@ -63,6 +64,9 @@ import {
 import { ItsAMatchModalComponent } from '../ui/its-a-match-modal/its-a-match-modal.component';
 
 type ProfilePicture = NonNullable<UserClass['pictures']>[number];
+const FREE_DAILY_LIKE_LIMIT = 30;
+const FIRST_MONTH_DAILY_LIKE_LIMIT = 60;
+const FIRST_MONTH_PRODUCT_ID = 'amorino_gold_first_month';
 
 @Component({
   selector: 'app-discover',
@@ -154,6 +158,7 @@ export class DiscoverPage implements OnInit, OnDestroy {
   private alertCtrl = inject(AlertController);
   private discoverRepository = inject(DiscoverRepository);
   private profilePicturesRepository = inject(ProfilePicturesRepository);
+  private document = inject(DOCUMENT);
 
   constructor() {
     effect(() => {
@@ -200,6 +205,7 @@ export class DiscoverPage implements OnInit, OnDestroy {
       this.isUserCardOpen = this.discoverUiStore.isUserCardOpen();
       this.isShowMessages = this.discoverUiStore.isShowMessages();
       this.options.phoneView = this.discoverUiStore.phoneView();
+      this.syncMobilePromoSheetState();
 
       const selectedMessageProfile =
         this.discoverUiStore.selectedMessageProfile();
@@ -224,11 +230,6 @@ export class DiscoverPage implements OnInit, OnDestroy {
     });
   }
 
-  @HostListener('document:keydown.escape', ['$event'])
-  handleEscape(event: KeyboardEvent) {
-    this.signOut();
-  }
-
   @HostListener('window:resize')
   handleResize() {
     this.updatePhoneView();
@@ -251,6 +252,7 @@ export class DiscoverPage implements OnInit, OnDestroy {
     this.routeQueryParamSubscription?.unsubscribe();
     this.matchConversationPreviewsStore.stop();
     this.dailyUsageStore.clearDailyUsage();
+    this.document.body.classList.remove('is-mobile-promo-sheet-open');
     void this.onlinePresenceService.setOffline(this.user?.uid ?? this.authStore.user()?.uid);
   }
 
@@ -309,10 +311,22 @@ export class DiscoverPage implements OnInit, OnDestroy {
     this.isMatchPlaceHolder = false;
     this.progress = 0;
     this.buffer = 0;
-    this.promoBottomSheetOpen = false;
+    this.setPromoBottomSheetOpen(false);
     this.promoBottomSheetPromotions = [];
     this.rewindStack = [];
     this.syncMatchActionState();
+  }
+
+  private setPromoBottomSheetOpen(isOpen: boolean) {
+    this.promoBottomSheetOpen = isOpen;
+    this.syncMobilePromoSheetState();
+  }
+
+  private syncMobilePromoSheetState() {
+    this.document.body.classList.toggle(
+      'is-mobile-promo-sheet-open',
+      this.promoBottomSheetOpen && !!this.options.phoneView
+    );
   }
 
   private subscribeToDeepLinkQueryParams() {
@@ -470,6 +484,7 @@ export class DiscoverPage implements OnInit, OnDestroy {
       [
         profile?.uid,
         ...(profile?.matchParts?.matches ?? []),
+        ...this.matches.map((match) => match.uid),
         ...(profile?.matchParts?.liked ?? []),
         ...(profile?.matchParts?.notLiked ?? []),
         ...(profile?.blockedUsers ?? []),
@@ -540,7 +555,7 @@ export class DiscoverPage implements OnInit, OnDestroy {
       this.promoStore.recordDismiss(uid, event.reason);
     }
 
-    this.promoBottomSheetOpen = false;
+    this.setPromoBottomSheetOpen(false);
 
     if (event.reason === 'cta' && event.promotion) {
       void this.handlePromotionSelected(event.promotion);
@@ -573,6 +588,7 @@ export class DiscoverPage implements OnInit, OnDestroy {
       userProfile: this.userProf,
       possibleMatchIds: this.possibleMatchIds,
       matches: this.matches,
+      incomingLikeCount: this.likedByProfiles.length,
       isMatchPlaceHolder: this.isMatchPlaceHolder,
     });
 
@@ -582,7 +598,7 @@ export class DiscoverPage implements OnInit, OnDestroy {
 
     this.promoBottomSheetPromotions = decision.promotions;
     this.promoBottomSheetActiveIndex = decision.activeIndex;
-    this.promoBottomSheetOpen = true;
+    this.setPromoBottomSheetOpen(true);
     this.promoBottomSheetShownForUid = uid;
   }
 
@@ -616,7 +632,7 @@ export class DiscoverPage implements OnInit, OnDestroy {
 
     this.promoBottomSheetPromotions = [promotion];
     this.promoBottomSheetActiveIndex = 0;
-    this.promoBottomSheetOpen = true;
+    this.setPromoBottomSheetOpen(true);
   }
 
   async handlePromotionSelected(promotion: Promotions) {
@@ -630,6 +646,17 @@ export class DiscoverPage implements OnInit, OnDestroy {
 
   openSeeLikesPaywall() {
     const promotion = this.getPromoById('seeLikes');
+
+    if (promotion) {
+      this.openActionPromoBottomSheet(promotion);
+      return;
+    }
+
+    void this.openPaywall();
+  }
+
+  openReadReceiptsPremiumPromotion() {
+    const promotion = this.getPromoById('amorinoGold');
 
     if (promotion) {
       this.openActionPromoBottomSheet(promotion);
@@ -701,6 +728,55 @@ export class DiscoverPage implements OnInit, OnDestroy {
     });
 
     return true;
+  }
+
+  private async canUseDailyLike(uid: string, likeLimit: number) {
+    if (!Number.isFinite(likeLimit)) {
+      return true;
+    }
+
+    await this.dailyUsageStore.loadDailyUsage(uid);
+
+    return this.dailyUsageStore.getActionCount(uid, 'like') < likeLimit;
+  }
+
+  private getDailyLikeLimit() {
+    if (this.isFirstMonthPremiumActive()) {
+      return FIRST_MONTH_DAILY_LIKE_LIMIT;
+    }
+
+    if (this.billingStore.isPremium()) {
+      return Number.POSITIVE_INFINITY;
+    }
+
+    return FREE_DAILY_LIKE_LIMIT;
+  }
+
+  private openDailyLikeLimitPromotion() {
+    const promotion = this.isFirstMonthPremiumActive()
+      ? this.getPromoById('amorinoGold')
+      : this.getPromoById('firstMonth') ?? this.getPromoById('amorinoGold');
+
+    if (promotion) {
+      this.openActionPromoBottomSheet(promotion);
+      return;
+    }
+
+    void this.openPaywall();
+  }
+
+  private isFirstMonthPremiumActive() {
+    const billing = this.billingStore.current();
+    const productIds = [
+      billing?.productId,
+      ...(billing?.activeSubscriptions ?? []),
+    ].filter((productId): productId is string => !!productId);
+
+    return productIds.some(
+      (productId) =>
+        productId === FIRST_MONTH_PRODUCT_ID ||
+        productId.includes('first_month')
+    );
   }
 
   setUProfLabels() {
@@ -801,7 +877,7 @@ export class DiscoverPage implements OnInit, OnDestroy {
     isLike?: boolean,
     isDontLike?: boolean
   ) {
-    await this.matchActionsStore.likeOrDontUser(
+    return this.matchActionsStore.likeOrDontUser(
       this.userProf,
       usr,
       isLike,
@@ -836,8 +912,29 @@ export class DiscoverPage implements OnInit, OnDestroy {
 
   async likeCurrentMatch() {
     const likedProfile = this.matchProf;
+    const uid = this.userProf?.uid ?? this.user?.uid;
 
-    await this.likeOrDontUser(likedProfile, true);
+    if (!likedProfile?.uid || !uid) {
+      return;
+    }
+
+    const likeLimit = this.getDailyLikeLimit();
+
+    if (!(await this.canUseDailyLike(uid, likeLimit))) {
+      this.openDailyLikeLimitPromotion();
+      return;
+    }
+
+    const liked = await this.likeOrDontUser(likedProfile, true);
+
+    if (!liked) {
+      return;
+    }
+
+    if (Number.isFinite(likeLimit)) {
+      await this.dailyUsageStore.incrementDailyUsage(uid, 'like');
+    }
+
     const newMatch = await this.completeMutualMatchIfNeeded(likedProfile);
     this.removeLikedByProfile(likedProfile?.uid);
 
@@ -1394,54 +1491,5 @@ export class DiscoverPage implements OnInit, OnDestroy {
 
   handleChoiceSelected(choice: ProfileChoiceSelectedEvent) {
     this.onSelectChoices(choice.event, choice.labelKey);
-  }
-
-  async signOutAlert() {
-    const alert = await this.alertCtrl.create({
-      header: this.transloco.translate('auth.signOut.title'),
-      message: this.transloco.translate('auth.signOut.message'),
-      cssClass: 'signout-alert',
-      buttons: [
-        {
-          text: this.transloco.translate('auth.signOut.confirm'),
-          role: 'confirm',
-          handler: () => this.signOut(),
-          cssClass: 'signout-alert-button',
-        },
-        {
-          text: this.transloco.translate('common.cancel'),
-          role: 'cancel',
-          cssClass: 'signout-alert-cancel-button',
-        },
-      ],
-    });
-    await alert.present();
-  }
-
-  async signOut() {
-    const autoFillEmail = this.userProf?.email;
-
-    await this.onlinePresenceService.setOffline(this.user?.uid ?? this.authStore.user()?.uid);
-    await this.authStore.signOut();
-    this.authStore.setAutoFillEmail(autoFillEmail);
-    this.profileStore.clearProfile();
-    this.discoverStore.clearDiscoverData();
-    this.discoverUiStore.reset();
-
-    this.user = null;
-    this.userProf = undefined;
-    this.matchProf = undefined;
-    this.selectedMessProf = undefined;
-    this.matches = [];
-    this.possibleMatchIds = [];
-    this.matchProfiles = [];
-    this.isMatchPlaceHolder = false;
-    this.isShowMessages = false;
-    this.possMatchDetLists = [];
-    this.matchConversationPreviewsStore.stop();
-    this.loadedDiscoverUid = null;
-    this.loadingDiscoverUid = null;
-    this.promoBottomSheetShownForUid = null;
-    this.router.navigate(['/amor/login']);
   }
 }

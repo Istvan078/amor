@@ -28,6 +28,7 @@
 }
 
 .conversation-card {
+  position: relative;
   display: flex;
   flex-direction: column;
   width: 100%;
@@ -269,6 +270,10 @@
   color: #8bf3c0;
 }
 
+.conversation-menu button.is-profile ion-icon {
+  color: #f2c76e;
+}
+
 .conversation-menu button.is-danger ion-icon {
   color: #ff6f86;
 }
@@ -302,6 +307,415 @@
   font-weight: 900;
   letter-spacing: 0;
   text-transform: none;
+}
+
+.match-profile-view {
+  position: relative;
+  flex: 1 1 auto;
+  min-height: 0;
+  padding: 18px;
+  overflow-x: hidden;
+  overflow-y: auto;
+  background:
+    radial-gradient(circle at 100% 0%, rgba(242, 199, 110, 0.12), transparent 34%),
+    radial-gradient(circle at 0% 30%, rgba(255, 93, 143, 0.12), transparent 32%);
+  -webkit-overflow-scrolling: touch;
+}
+
+.match-profile-hero {
+  position: relative;
+  min-height: clamp(360px, 46dvh, 540px);
+  overflow: hidden;
+  border: 1px solid rgba(255, 255, 255, 0.13);
+  border-radius: 8px;
+  background-position: center;
+  background-size: cover;
+  box-shadow: 0 24px 64px rgba(0, 0, 0, 0.34);
+}
+
+.match-profile-hero::before {
+  position: absolute;
+  inset: 0;
+  content: "";
+  background:
+    linear-gradient(180deg, rgba(8, 10, 18, 0.18), rgba(8, 10, 18, 0.16) 38%, rgba(8, 10, 18, 0.9)),
+    radial-gradient(circle at 18% 16%, rgba(255, 93, 143, 0.28), transparent 34%);
+}
+
+.match-profile-photo-open {
+  position: absolute;
+  inset: 0;
+  z-index: 1;
+  padding: 0;
+  background: transparent;
+  border: 0;
+  cursor: zoom-in;
+}
+
+.match-profile-back {
+  position: absolute;
+  top: 16px;
+  left: 16px;
+  z-index: 2;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  min-height: 40px;
+  padding: 0 14px;
+  color: #ffffff;
+  background: rgba(12, 16, 30, 0.66);
+  border: 1px solid rgba(255, 255, 255, 0.16);
+  border-radius: 999px;
+  box-shadow: 0 14px 34px rgba(0, 0, 0, 0.24);
+  backdrop-filter: blur(16px);
+  cursor: pointer;
+  font-size: 0.84rem;
+  font-weight: 900;
+}
+
+.match-profile-back ion-icon {
+  font-size: 18px;
+}
+
+.match-profile-hero-copy {
+  position: absolute;
+  right: 22px;
+  bottom: 22px;
+  left: 22px;
+  z-index: 2;
+}
+
+.match-profile-hero-copy small,
+.match-profile-copy-card span,
+.match-profile-chip-card > span,
+.match-profile-stat-grid article span {
+  color: #f2c76e;
+  font-size: 0.72rem;
+  font-weight: 900;
+  letter-spacing: 0;
+  text-transform: uppercase;
+}
+
+.match-profile-hero-copy h3 {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 12px;
+  margin: 8px 0 8px;
+  color: #ffffff;
+  font-size: clamp(2.2rem, 5vw, 4.4rem);
+  font-weight: 950;
+  line-height: 0.96;
+}
+
+.match-profile-hero-copy h3 span {
+  color: #f2c76e;
+  font-size: 0.68em;
+}
+
+.match-profile-hero-copy p {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  margin: 0;
+  color: rgba(255, 255, 255, 0.82);
+  font-size: 0.98rem;
+  font-weight: 850;
+}
+
+.match-profile-gallery {
+  display: grid;
+  grid-auto-columns: minmax(106px, 132px);
+  grid-auto-flow: column;
+  gap: 10px;
+  margin-top: 12px;
+  overflow-x: auto;
+  padding-bottom: 2px;
+}
+
+.match-profile-gallery-button {
+  width: 100%;
+  padding: 0;
+  overflow: hidden;
+  background: transparent;
+  border: 0;
+  border-radius: 8px;
+  cursor: zoom-in;
+}
+
+.match-profile-gallery-button img {
+  display: block;
+  width: 100%;
+  aspect-ratio: 1 / 1.15;
+  border: 1px solid rgba(255, 255, 255, 0.14);
+  border-radius: 8px;
+  object-fit: cover;
+  box-shadow: 0 14px 34px rgba(0, 0, 0, 0.22);
+}
+
+.match-photo-viewer {
+  position: absolute;
+  inset: 0;
+  z-index: 20;
+  display: grid;
+  grid-template-rows: auto minmax(0, 1fr) auto;
+  gap: 14px;
+  min-height: 0;
+  padding: 18px;
+  background:
+    radial-gradient(circle at 14% 0%, rgba(255, 93, 143, 0.2), transparent 34%),
+    radial-gradient(circle at 84% 8%, rgba(242, 199, 110, 0.12), transparent 30%),
+    rgba(7, 10, 18, 0.96);
+  backdrop-filter: blur(18px);
+}
+
+.match-photo-viewer-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  min-height: 48px;
+}
+
+.match-photo-viewer-header div {
+  display: grid;
+  gap: 4px;
+  min-width: 0;
+}
+
+.match-photo-viewer-header span {
+  color: #f2c76e;
+  font-size: 0.72rem;
+  font-weight: 900;
+  letter-spacing: 0;
+  text-transform: uppercase;
+}
+
+.match-photo-viewer-header strong {
+  color: #ffffff;
+  font-size: clamp(1.15rem, 2vw, 1.55rem);
+  font-weight: 900;
+}
+
+.match-photo-viewer-close,
+.match-photo-viewer-nav,
+.match-photo-viewer-strip button {
+  display: grid;
+  place-items: center;
+  color: #ffffff;
+  background: rgba(255, 255, 255, 0.08);
+  border: 1px solid rgba(255, 255, 255, 0.14);
+  cursor: pointer;
+}
+
+.match-photo-viewer-close {
+  width: 44px;
+  height: 44px;
+  flex: 0 0 auto;
+  border-radius: 999px;
+  box-shadow: 0 16px 34px rgba(0, 0, 0, 0.26);
+}
+
+.match-photo-viewer-close ion-icon {
+  font-size: 23px;
+}
+
+.match-photo-viewer-stage {
+  position: relative;
+  display: grid;
+  min-height: 0;
+}
+
+.match-photo-viewer-swiper {
+  --swiper-pagination-color: #ff6f9d;
+  --swiper-pagination-bullet-inactive-color: rgba(255, 255, 255, 0.32);
+  --swiper-pagination-bullet-inactive-opacity: 1;
+  width: min(100%, 1120px);
+  height: 100%;
+  min-height: 340px;
+  margin: 0 auto;
+  overflow: hidden;
+  border: 1px solid rgba(255, 255, 255, 0.13);
+  border-radius: 8px;
+  background:
+    radial-gradient(circle at 50% 100%, rgba(255, 93, 143, 0.16), transparent 36%),
+    rgba(255, 255, 255, 0.05);
+  box-shadow: 0 28px 78px rgba(0, 0, 0, 0.42);
+}
+
+.match-photo-viewer-slide {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: clamp(10px, 2vw, 24px);
+}
+
+.match-photo-viewer-frame {
+  display: grid;
+  width: 100%;
+  height: 100%;
+  place-items: center;
+  overflow: hidden;
+  border-radius: 8px;
+  background: rgba(4, 8, 18, 0.76);
+}
+
+.match-photo-viewer-frame img {
+  display: block;
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+  user-select: none;
+}
+
+.match-photo-viewer-nav {
+  position: absolute;
+  top: 50%;
+  z-index: 2;
+  width: 48px;
+  height: 48px;
+  border-radius: 999px;
+  box-shadow: 0 18px 38px rgba(0, 0, 0, 0.3);
+  transform: translateY(-50%);
+  backdrop-filter: blur(12px);
+}
+
+.match-photo-viewer-nav.is-prev {
+  left: 16px;
+}
+
+.match-photo-viewer-nav.is-next {
+  right: 16px;
+}
+
+.match-photo-viewer-nav ion-icon {
+  font-size: 25px;
+}
+
+.match-photo-viewer-strip {
+  display: grid;
+  grid-auto-columns: 72px;
+  grid-auto-flow: column;
+  gap: 9px;
+  max-width: min(100%, 1120px);
+  margin: 0 auto;
+  overflow-x: auto;
+  padding: 2px 0 4px;
+}
+
+.match-photo-viewer-strip button {
+  width: 72px;
+  height: 78px;
+  padding: 0;
+  overflow: hidden;
+  border-radius: 8px;
+  opacity: 0.58;
+}
+
+.match-photo-viewer-strip button.is-active {
+  border-color: rgba(255, 111, 157, 0.9);
+  opacity: 1;
+  box-shadow: 0 0 0 2px rgba(255, 111, 157, 0.2);
+}
+
+.match-photo-viewer-strip img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.match-profile-stat-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 10px;
+  margin-top: 14px;
+}
+
+.match-profile-stat-grid article,
+.match-profile-copy-card,
+.match-profile-chip-card {
+  border: 1px solid rgba(255, 255, 255, 0.11);
+  border-radius: 8px;
+  background:
+    linear-gradient(135deg, rgba(255, 255, 255, 0.08), rgba(255, 255, 255, 0.035)),
+    rgba(18, 23, 40, 0.82);
+  box-shadow: 0 16px 38px rgba(4, 8, 18, 0.18);
+}
+
+.match-profile-stat-grid article {
+  display: grid;
+  gap: 8px;
+  min-height: 112px;
+  padding: 14px;
+}
+
+.match-profile-stat-grid article ion-icon {
+  color: #ff8fb1;
+  font-size: 22px;
+}
+
+.match-profile-stat-grid article strong {
+  min-width: 0;
+  overflow-wrap: anywhere;
+  color: #ffffff;
+  font-size: 1rem;
+  font-weight: 900;
+  line-height: 1.18;
+}
+
+.match-profile-copy-card,
+.match-profile-chip-card {
+  display: grid;
+  gap: 10px;
+  margin-top: 12px;
+  padding: 16px;
+}
+
+.match-profile-copy-card p {
+  margin: 0;
+  color: rgba(248, 245, 239, 0.78);
+  font-size: 0.96rem;
+  line-height: 1.55;
+}
+
+.match-profile-chip-card div {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.match-profile-chip-card em {
+  display: inline-flex;
+  align-items: center;
+  min-height: 32px;
+  padding: 7px 11px;
+  color: #ffffff;
+  background: rgba(255, 255, 255, 0.08);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  border-radius: 999px;
+  font-size: 0.8rem;
+  font-style: normal;
+  font-weight: 850;
+}
+
+.match-profile-view::-webkit-scrollbar,
+.match-profile-gallery::-webkit-scrollbar,
+.match-photo-viewer-strip::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+
+.match-profile-view::-webkit-scrollbar-track,
+.match-profile-gallery::-webkit-scrollbar-track,
+.match-photo-viewer-strip::-webkit-scrollbar-track {
+  background: rgba(255, 255, 255, 0.04);
+}
+
+.match-profile-view::-webkit-scrollbar-thumb,
+.match-profile-gallery::-webkit-scrollbar-thumb,
+.match-photo-viewer-strip::-webkit-scrollbar-thumb {
+  border-radius: 999px;
+  background: rgba(255, 93, 143, 0.35);
 }
 
 .message-thread {
@@ -750,6 +1164,96 @@
 
   .conversation-menu {
     right: -4px;
+  }
+
+  .match-profile-view {
+    padding: 12px;
+  }
+
+  .match-profile-hero {
+    min-height: min(66dvh, 520px);
+  }
+
+  .match-profile-back {
+    top: 12px;
+    left: 12px;
+    min-height: 38px;
+    padding: 0 12px;
+    font-size: 0.78rem;
+  }
+
+  .match-profile-hero-copy {
+    right: 16px;
+    bottom: 16px;
+    left: 16px;
+  }
+
+  .match-profile-hero-copy h3 {
+    font-size: clamp(2rem, 12vw, 3.35rem);
+  }
+
+  .match-profile-gallery {
+    grid-auto-columns: minmax(88px, 34vw);
+  }
+
+  .match-photo-viewer {
+    gap: 10px;
+    padding: 12px;
+  }
+
+  .match-photo-viewer-header {
+    min-height: 42px;
+  }
+
+  .match-photo-viewer-close {
+    width: 40px;
+    height: 40px;
+  }
+
+  .match-photo-viewer-swiper {
+    min-height: 260px;
+  }
+
+  .match-photo-viewer-slide {
+    padding: 8px;
+  }
+
+  .match-photo-viewer-nav {
+    width: 40px;
+    height: 40px;
+  }
+
+  .match-photo-viewer-nav.is-prev {
+    left: 8px;
+  }
+
+  .match-photo-viewer-nav.is-next {
+    right: 8px;
+  }
+
+  .match-photo-viewer-strip {
+    grid-auto-columns: 58px;
+    gap: 7px;
+    padding-bottom: calc(4px + env(safe-area-inset-bottom));
+  }
+
+  .match-photo-viewer-strip button {
+    width: 58px;
+    height: 64px;
+  }
+
+  .match-profile-stat-grid {
+    grid-template-columns: 1fr 1fr;
+  }
+
+  .match-profile-stat-grid article {
+    min-height: 98px;
+    padding: 12px;
+  }
+
+  .match-profile-copy-card,
+  .match-profile-chip-card {
+    padding: 14px;
   }
 
   .message-thread {

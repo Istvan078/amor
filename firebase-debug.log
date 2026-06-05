@@ -1,0 +1,39 @@
+[debug] [2026-06-05T09:48:20.953Z] ----------------------------------------------------------------------
+[debug] [2026-06-05T09:48:20.956Z] Command:       C:\Program Files\nodejs\node.exe C:\Users\RogLaptop\AppData\Roaming\npm\node_modules\firebase-tools\lib\bin\firebase.js deploy
+[debug] [2026-06-05T09:48:20.957Z] CLI Version:   15.14.0
+[debug] [2026-06-05T09:48:20.957Z] Platform:      win32
+[debug] [2026-06-05T09:48:20.957Z] Node Version:  v22.15.0
+[debug] [2026-06-05T09:48:20.958Z] Time:          Fri Jun 05 2026 10:48:20 GMT+0100 (British Summer Time)
+[debug] [2026-06-05T09:48:20.958Z] ----------------------------------------------------------------------
+[debug] 
+[debug] [2026-06-05T09:48:34.735Z] > command requires scopes: ["email","openid","https://www.googleapis.com/auth/cloudplatformprojects.readonly","https://www.googleapis.com/auth/firebase","https://www.googleapis.com/auth/cloud-platform"]
+[debug] [2026-06-05T09:48:34.736Z] > authorizing via signed-in user (kalmaristvan078@gmail.com)
+[debug] [2026-06-05T09:48:34.736Z] [iam] checking project amor-spark for permissions ["cloudfunctions.functions.create","cloudfunctions.functions.delete","cloudfunctions.functions.get","cloudfunctions.functions.list","cloudfunctions.functions.update","cloudfunctions.operations.get","datastore.indexes.create","datastore.indexes.delete","datastore.indexes.list","datastore.indexes.update","firebase.projects.get","firebasehosting.sites.update","firebaserules.releases.create","firebaserules.releases.update","firebaserules.rulesets.create"]
+[debug] [2026-06-05T09:48:34.737Z] Checked if tokens are valid: false, expires at: 1780618973736
+[debug] [2026-06-05T09:48:34.737Z] Checked if tokens are valid: false, expires at: 1780618973736
+[debug] [2026-06-05T09:48:34.737Z] > refreshing access token with scopes: []
+[debug] [2026-06-05T09:48:34.739Z] >>> [apiv2][query] POST https://www.googleapis.com/oauth2/v3/token [none]
+[debug] [2026-06-05T09:48:34.739Z] >>> [apiv2][body] POST https://www.googleapis.com/oauth2/v3/token [omitted]
+[debug] [2026-06-05T09:48:34.907Z] <<< [apiv2][status] POST https://www.googleapis.com/oauth2/v3/token 200
+[debug] [2026-06-05T09:48:34.908Z] <<< [apiv2][body] POST https://www.googleapis.com/oauth2/v3/token [omitted]
+[debug] [2026-06-05T09:48:34.914Z] >>> [apiv2][query] POST https://cloudresourcemanager.googleapis.com/v1/projects/amor-spark:testIamPermissions [none]
+[debug] [2026-06-05T09:48:34.914Z] >>> [apiv2][(partial)header] POST https://cloudresourcemanager.googleapis.com/v1/projects/amor-spark:testIamPermissions  x-goog-user-project=amor-spark
+[debug] [2026-06-05T09:48:34.914Z] >>> [apiv2][body] POST https://cloudresourcemanager.googleapis.com/v1/projects/amor-spark:testIamPermissions {"permissions":["cloudfunctions.functions.create","cloudfunctions.functions.delete","cloudfunctions.functions.get","cloudfunctions.functions.list","cloudfunctions.functions.update","cloudfunctions.operations.get","datastore.indexes.create","datastore.indexes.delete","datastore.indexes.list","datastore.indexes.update","firebase.projects.get","firebasehosting.sites.update","firebaserules.releases.create","firebaserules.releases.update","firebaserules.rulesets.create"]}
+[debug] [2026-06-05T09:48:35.134Z] <<< [apiv2][status] POST https://cloudresourcemanager.googleapis.com/v1/projects/amor-spark:testIamPermissions 200
+[debug] [2026-06-05T09:48:35.134Z] <<< [apiv2][body] POST https://cloudresourcemanager.googleapis.com/v1/projects/amor-spark:testIamPermissions {"permissions":["cloudfunctions.functions.create","cloudfunctions.functions.delete","cloudfunctions.functions.get","cloudfunctions.functions.list","cloudfunctions.functions.update","cloudfunctions.operations.get","datastore.indexes.create","datastore.indexes.delete","datastore.indexes.list","datastore.indexes.update","firebase.projects.get","firebasehosting.sites.update","firebaserules.releases.create","firebaserules.releases.update","firebaserules.rulesets.create"]}
+[debug] [2026-06-05T09:48:35.135Z] Checked if tokens are valid: true, expires at: 1780656513908
+[debug] [2026-06-05T09:48:35.135Z] Checked if tokens are valid: true, expires at: 1780656513908
+[debug] [2026-06-05T09:48:35.135Z] >>> [apiv2][query] POST https://iam.googleapis.com/v1/projects/amor-spark/serviceAccounts/amor-spark@appspot.gserviceaccount.com:testIamPermissions [none]
+[debug] [2026-06-05T09:48:35.135Z] >>> [apiv2][body] POST https://iam.googleapis.com/v1/projects/amor-spark/serviceAccounts/amor-spark@appspot.gserviceaccount.com:testIamPermissions {"permissions":["iam.serviceAccounts.actAs"]}
+[debug] [2026-06-05T09:48:35.360Z] <<< [apiv2][status] POST https://iam.googleapis.com/v1/projects/amor-spark/serviceAccounts/amor-spark@appspot.gserviceaccount.com:testIamPermissions 200
+[debug] [2026-06-05T09:48:35.360Z] <<< [apiv2][body] POST https://iam.googleapis.com/v1/projects/amor-spark/serviceAccounts/amor-spark@appspot.gserviceaccount.com:testIamPermissions {"permissions":["iam.serviceAccounts.actAs"]}
+[debug] [2026-06-05T09:48:35.361Z] Checked if tokens are valid: true, expires at: 1780656513908
+[debug] [2026-06-05T09:48:35.361Z] Checked if tokens are valid: true, expires at: 1780656513908
+[debug] [2026-06-05T09:48:35.361Z] >>> [apiv2][query] GET https://firebase.googleapis.com/v1beta1/projects/amor-spark [none]
+[debug] [2026-06-05T09:48:35.665Z] <<< [apiv2][status] GET https://firebase.googleapis.com/v1beta1/projects/amor-spark 200
+[debug] [2026-06-05T09:48:35.665Z] <<< [apiv2][body] GET https://firebase.googleapis.com/v1beta1/projects/amor-spark {"projectId":"amor-spark","projectNumber":"84652710650","displayName":"Amor","name":"projects/amor-spark","resources":{"hostingSite":"amor-spark","realtimeDatabaseInstance":"amor-spark-default-rtdb"},"state":"ACTIVE","etag":"1_15b28dba-1a90-4268-a075-ee9c1880d62d"}
+[info] 
+[info] === Deploying to 'amor-spark'...
+[info] 
+[info] i  deploying storage, firestore, functions, hosting 
+[info] Running command: npm --prefix "$RESOURCE_DIR" run build

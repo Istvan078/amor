@@ -34,19 +34,11 @@
           <div class="profile-actions">
             <ion-button
               class="profile-edit-button"
-              (click)="startUpdateRequested.emit()"
+              (click)="requestProfileEdit()"
               fill="solid"
             >
               <ion-icon name="create-outline" slot="start"></ion-icon>
               {{ t('discover.profile.edit') }}
-            </ion-button>
-            <ion-button
-              class="profile-signout-button"
-              (click)="signOutRequested.emit()"
-              fill="outline"
-            >
-              <ion-icon name="exit-outline" slot="start"></ion-icon>
-              {{ t('common.signOut') }}
             </ion-button>
             <ion-button class="profile-settings-button" routerLink="/amor/settings" fill="outline">
               <ion-icon name="settings-outline" slot="start"></ion-icon>
@@ -128,7 +120,7 @@
               <ion-button
                 class="profile-completion-button"
                 fill="solid"
-                (click)="startUpdateRequested.emit()"
+                (click)="requestProfileEdit()"
               >
                 {{ t('profile.completion.cta') }}
               </ion-button>
@@ -215,7 +207,7 @@
           </section>
 
           @if (startUpdate) {
-            <section class="profile-editor-panel">
+            <section class="profile-editor-panel" #profileEditorPanel>
               <div class="profile-section-heading">
                 <span>{{ t('discover.profile.editing') }}</span>
               </div>

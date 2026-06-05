@@ -1,6 +1,7 @@
 import {
   AfterViewChecked,
   Component,
+  CUSTOM_ELEMENTS_SCHEMA,
   ElementRef,
   EventEmitter,
   Input,
@@ -26,21 +27,32 @@ import { addIcons } from 'ionicons';
 import {
   arrowBackOutline,
   banOutline,
+  briefcaseOutline,
+  calendarOutline,
   chatbubbleEllipsesOutline,
+  chevronBackOutline,
   chevronForwardOutline,
+  closeOutline,
   ellipsisHorizontal,
   flagOutline,
+  heartOutline,
+  locationOutline,
   lockOpenOutline,
+  personCircleOutline,
   removeCircleOutline,
+  schoolOutline,
   sendOutline,
   shieldCheckmarkOutline,
   sparklesOutline,
+  starOutline,
   trashOutline,
 } from 'ionicons/icons';
+import { SwiperContainer } from 'swiper/element';
 
 import { Message } from '../../../../shared/models/message.model';
 import { Options } from '../../../../shared/models/options.model';
 import { UserClass } from '../../../../shared/models/user.model';
+import { translatedProfileValue } from '../../../../shared/i18n/profile-value-labels';
 import { ModerationStore } from '../../../moderation/store/moderation.store';
 import { ProfileStore } from '../../../profile/store/profile.store';
 import { MessagesStore } from '../../store/messages.store';
@@ -50,6 +62,7 @@ import { MessagesStore } from '../../store/messages.store';
   templateUrl: './message.component.html',
   styleUrls: ['./message.component.scss'],
   standalone: true,
+  schemas: [CUSTOM_ELEMENTS_SCHEMA],
   imports: [
     FormsModule,
     IonTextarea,
@@ -62,10 +75,13 @@ import { MessagesStore } from '../../store/messages.store';
 export class MessageComponent implements AfterViewChecked, OnChanges, OnDestroy {
   @ViewChild('messageThread', { read: ElementRef })
   private messageThread?: ElementRef<HTMLElement>;
+  @ViewChild('matchPhotoSwiper')
+  private matchPhotoSwiper?: ElementRef<SwiperContainer>;
 
   @Input() matches: UserClass[] = [];
   @Input() matchProfile?: UserClass;
   @Input() options?: Options;
+  @Input() hasPremiumAccess = false;
   @Input() conversationPreviews: Record<
     string,
     {
@@ -80,6 +96,7 @@ export class MessageComponent implements AfterViewChecked, OnChanges, OnDestroy 
     message: Message;
   }>();
   @Output() matchRemoved = new EventEmitter<UserClass>();
+  @Output() readReceiptsPremiumRequested = new EventEmitter<void>();
 
   readonly messagesStore = inject(MessagesStore);
 
@@ -94,7 +111,12 @@ export class MessageComponent implements AfterViewChecked, OnChanges, OnDestroy 
   private typingStopTimer: ReturnType<typeof setTimeout> | null = null;
   private lastTypingWriteAt = 0;
   isConversationMenuOpen = false;
+  isMatchProfileOpen = false;
+  isMatchPhotoViewerOpen = false;
+  activeMatchPhotoIndex = 0;
   moderationNoticeKey?: string;
+  readReceiptsSaving = false;
+  readonly profileValueText = translatedProfileValue;
   readonly fallbackAvatar =
     'https://img.freepik.com/free-vector/user-circles-set_78370-4704.jpg?t=st=1741696833~exp=1741700433~hmac=5c4d9770452bab7cb12b3a38cead02ffcd3f50b45d75a0da6324820dc1bd3df2&w=740';
 
@@ -102,15 +124,24 @@ export class MessageComponent implements AfterViewChecked, OnChanges, OnDestroy 
     addIcons({
       arrowBackOutline,
       banOutline,
+      briefcaseOutline,
+      calendarOutline,
       chatbubbleEllipsesOutline,
+      chevronBackOutline,
       chevronForwardOutline,
+      closeOutline,
       ellipsisHorizontal,
       flagOutline,
+      heartOutline,
+      locationOutline,
       lockOpenOutline,
+      personCircleOutline,
       removeCircleOutline,
+      schoolOutline,
       sendOutline,
       shieldCheckmarkOutline,
       sparklesOutline,
+      starOutline,
       trashOutline,
     });
 
@@ -145,6 +176,8 @@ export class MessageComponent implements AfterViewChecked, OnChanges, OnDestroy 
         changes['matchProfile'].previousValue as UserClass | undefined
       );
       this.isConversationMenuOpen = false;
+      this.isMatchProfileOpen = false;
+      this.closeMatchPhotoViewer();
       this.moderationNoticeKey = undefined;
       void this.loadMessages();
     }
@@ -181,7 +214,36 @@ export class MessageComponent implements AfterViewChecked, OnChanges, OnDestroy 
   }
 
   isReadReceiptVisible(message: Message) {
-    return this.isOwnMessage(message) && message.isRead === true;
+    return (
+      this.hasReadReceiptsEnabled() &&
+      this.isOwnMessage(message) &&
+      message.isRead === true
+    );
+  }
+
+  hasReadReceiptsEnabled() {
+    return this.userProfile?.readReceiptsEnabled === true;
+  }
+
+  async enableReadReceipts() {
+    if (!this.hasPremiumAccess) {
+      this.readReceiptsPremiumRequested.emit();
+      return;
+    }
+
+    if (!this.userProfile?.uid || this.hasReadReceiptsEnabled()) {
+      return;
+    }
+
+    this.readReceiptsSaving = true;
+
+    try {
+      await this.profileStore.updateProfile(this.userProfile.uid, {
+        readReceiptsEnabled: true,
+      });
+    } finally {
+      this.readReceiptsSaving = false;
+    }
   }
 
   formatMessageTime(date?: Date) {
@@ -259,6 +321,8 @@ export class MessageComponent implements AfterViewChecked, OnChanges, OnDestroy 
     this.clearLocalTypingStatus(this.matchProfile);
     this.matchProfile = match;
     this.isConversationMenuOpen = false;
+    this.isMatchProfileOpen = false;
+    this.closeMatchPhotoViewer();
     this.moderationNoticeKey = undefined;
 
     if (this.options) {
@@ -271,6 +335,8 @@ export class MessageComponent implements AfterViewChecked, OnChanges, OnDestroy 
 
   backToMsgs() {
     this.isConversationMenuOpen = false;
+    this.isMatchProfileOpen = false;
+    this.closeMatchPhotoViewer();
 
     if (this.options) {
       this.options.isSelectedMatch = false;
@@ -285,6 +351,78 @@ export class MessageComponent implements AfterViewChecked, OnChanges, OnDestroy 
 
   closeConversationMenu() {
     this.isConversationMenuOpen = false;
+  }
+
+  openMatchProfile() {
+    if (!this.matchProfile) {
+      return;
+    }
+
+    this.isMatchProfileOpen = true;
+    this.closeConversationMenu();
+  }
+
+  closeMatchProfile() {
+    this.isMatchProfileOpen = false;
+    this.closeMatchPhotoViewer();
+  }
+
+  getMatchPhotos(profile = this.matchProfile) {
+    return profile?.pictures?.length
+      ? profile.pictures
+      : [{ name: 'fallback', url: this.fallbackAvatar }];
+  }
+
+  openMatchPhotoViewer(index = 0) {
+    if (!this.matchProfile) {
+      return;
+    }
+
+    const photos = this.getMatchPhotos(this.matchProfile);
+
+    this.activeMatchPhotoIndex = this.clampPhotoIndex(index, photos.length);
+    this.isMatchPhotoViewerOpen = true;
+
+    queueMicrotask(() => {
+      this.matchPhotoSwiper?.nativeElement.swiper?.slideTo(
+        this.activeMatchPhotoIndex,
+        0
+      );
+    });
+  }
+
+  closeMatchPhotoViewer() {
+    this.isMatchPhotoViewerOpen = false;
+  }
+
+  selectMatchPhoto(index: number) {
+    const photoCount = this.getMatchPhotos(this.matchProfile).length;
+    this.activeMatchPhotoIndex = this.clampPhotoIndex(index, photoCount);
+    this.matchPhotoSwiper?.nativeElement.swiper?.slideTo(
+      this.activeMatchPhotoIndex
+    );
+  }
+
+  onMatchPhotoSlideChange() {
+    this.activeMatchPhotoIndex =
+      this.matchPhotoSwiper?.nativeElement.swiper?.activeIndex ??
+      this.activeMatchPhotoIndex;
+  }
+
+  previousMatchPhoto() {
+    if (this.getMatchPhotos(this.matchProfile).length < 2) {
+      return;
+    }
+
+    this.matchPhotoSwiper?.nativeElement.swiper?.slidePrev();
+  }
+
+  nextMatchPhoto() {
+    if (this.getMatchPhotos(this.matchProfile).length < 2) {
+      return;
+    }
+
+    this.matchPhotoSwiper?.nativeElement.swiper?.slideNext();
   }
 
   async blockUser() {
@@ -469,6 +607,14 @@ export class MessageComponent implements AfterViewChecked, OnChanges, OnDestroy 
     }
 
     return undefined;
+  }
+
+  private clampPhotoIndex(index: number, photoCount: number) {
+    if (photoCount < 1) {
+      return 0;
+    }
+
+    return Math.min(Math.max(index, 0), photoCount - 1);
   }
 
   private syncMobileMessageViewState() {

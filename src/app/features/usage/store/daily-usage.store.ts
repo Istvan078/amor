@@ -15,6 +15,7 @@ import {
 type DailyUsageState = {
   uid: string | null;
   date: string;
+  likesUsed: number;
   superLikesUsed: number;
   rewindsUsed: number;
   boostsUsed: number;
@@ -25,6 +26,7 @@ type DailyUsageState = {
 const initialState: DailyUsageState = {
   uid: null,
   date: getDailyUsageDateKey(),
+  likesUsed: 0,
   superLikesUsed: 0,
   rewindsUsed: 0,
   boostsUsed: 0,
@@ -58,6 +60,7 @@ export const DailyUsageStore = signalStore(
         patchState(store, {
           uid,
           date,
+          likesUsed: usage.likesUsed,
           superLikesUsed: usage.superLikesUsed,
           rewindsUsed: usage.rewindsUsed,
           boostsUsed: usage.boostsUsed,
@@ -82,6 +85,7 @@ export const DailyUsageStore = signalStore(
         patchState(store, {
           uid,
           date,
+          likesUsed: usage.likesUsed,
           superLikesUsed: usage.superLikesUsed,
           rewindsUsed: usage.rewindsUsed,
           boostsUsed: usage.boostsUsed,
@@ -107,6 +111,10 @@ export const DailyUsageStore = signalStore(
 
       if (action === 'super-like') {
         return Number(store.superLikesUsed() ?? 0);
+      }
+
+      if (action === 'like') {
+        return Number(store.likesUsed() ?? 0);
       }
 
       if (action === 'boost') {

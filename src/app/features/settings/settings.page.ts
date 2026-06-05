@@ -1,12 +1,13 @@
 import { Component, OnInit, inject } from '@angular/core';
-import { RouterLink } from '@angular/router';
+import { Router, RouterLink } from '@angular/router';
 import {
+  AlertController,
   IonButton,
   IonContent,
   IonIcon,
   IonToggle,
 } from '@ionic/angular/standalone';
-import { TranslocoDirective } from '@jsverse/transloco';
+import { TranslocoDirective, TranslocoService } from '@jsverse/transloco';
 import { addIcons } from 'ionicons';
 import {
   alertCircleOutline,
@@ -16,6 +17,7 @@ import {
   chevronForwardOutline,
   checkmarkCircleOutline,
   diamondOutline,
+  exitOutline,
   eyeOutline,
   heartOutline,
   languageOutline,
@@ -42,7 +44,11 @@ import {
   UserClass,
 } from '../../shared/models/user.model';
 import { AuthStore } from '../auth/store/auth.store';
+import { DiscoverStore } from '../discover/store/discover.store';
+import { DiscoverUiStore } from '../discover/store/discover-ui.store';
+import { OnlinePresenceService } from '../presence/data-access/online-presence.service';
 import { ProfileStore } from '../profile/store/profile.store';
+import { DailyUsageStore } from '../usage/store/daily-usage.store';
 
 type VisibilitySettingKey =
   | 'isVisible'
@@ -76,6 +82,13 @@ type NotificationSaveKey =
 export class SettingsPage implements OnInit {
   readonly profileStore = inject(ProfileStore);
   private authStore = inject(AuthStore);
+  private discoverStore = inject(DiscoverStore);
+  private discoverUiStore = inject(DiscoverUiStore);
+  private dailyUsageStore = inject(DailyUsageStore);
+  private onlinePresenceService = inject(OnlinePresenceService);
+  private alertCtrl = inject(AlertController);
+  private router = inject(Router);
+  private transloco = inject(TranslocoService);
 
   readonly visibilitySettings: Array<{
     key: VisibilitySettingKey;
@@ -200,6 +213,7 @@ export class SettingsPage implements OnInit {
       chevronForwardOutline,
       checkmarkCircleOutline,
       diamondOutline,
+      exitOutline,
       eyeOutline,
       heartOutline,
       languageOutline,
@@ -411,6 +425,44 @@ export class SettingsPage implements OnInit {
       },
       `quiet-hours-${key}`
     );
+  }
+
+  async signOutAlert() {
+    const alert = await this.alertCtrl.create({
+      header: this.transloco.translate('auth.signOut.title'),
+      message: this.transloco.translate('auth.signOut.message'),
+      cssClass: 'signout-alert',
+      buttons: [
+        {
+          text: this.transloco.translate('auth.signOut.confirm'),
+          role: 'confirm',
+          handler: () => {
+            void this.signOut();
+          },
+          cssClass: 'signout-alert-button',
+        },
+        {
+          text: this.transloco.translate('common.cancel'),
+          role: 'cancel',
+          cssClass: 'signout-alert-cancel-button',
+        },
+      ],
+    });
+
+    await alert.present();
+  }
+
+  private async signOut() {
+    const autoFillEmail = this.profileStore.profile()?.email;
+
+    await this.onlinePresenceService.setOffline(this.authStore.uid());
+    await this.authStore.signOut();
+    this.authStore.setAutoFillEmail(autoFillEmail);
+    this.profileStore.clearProfile();
+    this.discoverStore.clearDiscoverData();
+    this.discoverUiStore.reset();
+    this.dailyUsageStore.clearDailyUsage();
+    await this.router.navigate(['/amor/login'], { replaceUrl: true });
   }
 
   private async saveQuietHours(

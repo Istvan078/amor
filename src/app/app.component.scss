@@ -83,7 +83,8 @@
     font-size: 19px;
   }
 
-  :host-context(body.is-mobile-message-view) .notification-center-link {
+  :host-context(body.is-mobile-message-view) .notification-center-link,
+  :host-context(body.is-mobile-promo-sheet-open) .notification-center-link {
     display: none;
   }
 }

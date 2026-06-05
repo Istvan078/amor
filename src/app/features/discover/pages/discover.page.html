@@ -22,7 +22,12 @@
       (promotionSelected)="handlePromotionSelected($event)"
     ></app-discover-sidebar>
 
-    <div id="main-view-container" class="m-0 p-0" [class.is-message-view]="isShowMessages">
+    <div
+      id="main-view-container"
+      class="m-0 p-0"
+      [class.is-message-view]="isShowMessages"
+      [class.is-profile-view]="isUserCardOpen"
+    >
       @if(!isUserCardOpen) {
       <ion-grid class="m-0 p-0">
         <ion-row class="m-0 p-0 ion-justify-content-center">
@@ -34,8 +39,10 @@
                 [options]="options"
                 [matchProfile]="selectedMessProf"
                 [conversationPreviews]="matchConversationPreviewsStore.previews()"
+                [hasPremiumAccess]="billingStore.isPremium()"
                 (messageSent)="handleMessageSent($event)"
                 (matchRemoved)="handleMatchRemoved($event)"
+                (readReceiptsPremiumRequested)="openReadReceiptsPremiumPromotion()"
               ></app-message>
             </ion-card>
             } @if(!isShowMessages && userProf && !isProfileReadyForDiscovery(userProf)) {
@@ -112,7 +119,6 @@
         (profilePhotoDeleted)="deleteProfilePhoto($event)"
         (profileUpdated)="updateUserProf()"
         (profileDeleted)="confirmDeleteUserProf()"
-        (signOutRequested)="signOutAlert()"
         (choicesSelected)="handleChoiceSelected($event)"
       ></app-discover-profile-panel>
       }
@@ -123,6 +129,7 @@
       [isOpen]="promoBottomSheetOpen"
       [promotions]="promoBottomSheetPromotions"
       [activeIndex]="promoBottomSheetActiveIndex"
+      [likedByProfiles]="likedByProfiles"
       (dismissed)="handlePromoBottomSheetDismiss($event)"
     ></app-promo-bottom-sheet>
     }

@@ -172,6 +172,13 @@
   text-decoration: none;
 }
 
+.settings-row-button {
+  width: 100%;
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+
 .settings-row strong {
   display: block;
   margin-bottom: 3px;
