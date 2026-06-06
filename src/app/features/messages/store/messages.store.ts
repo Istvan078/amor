@@ -185,6 +185,37 @@ export const MessagesStore = signalStore(
                     matchUid: matchProfile.uid,
                     characterCount: message.message.trim().length,
                     hasAttachments: !!message.attachments?.length,
+                    hasGif: message.messageType === 'gif',
+                    messageType: message.messageType ?? 'text',
+                });
+            },
+
+            async toggleMessageReaction(
+                userProfile: UserClass,
+                matchProfile: UserClass,
+                message: Message,
+                emoji: string
+            ) {
+                if (!userProfile.uid || !matchProfile.uid || !message.id) {
+                    return;
+                }
+
+                const reactions = await repository.toggleMessageReaction(
+                    userProfile.uid,
+                    matchProfile.uid,
+                    message,
+                    emoji
+                );
+
+                patchState(store, {
+                    messages: store.messages().map((storedMessage) =>
+                        storedMessage.id === message.id
+                            ? {
+                                ...storedMessage,
+                                reactions,
+                            }
+                            : storedMessage
+                    ),
                 });
             },
 

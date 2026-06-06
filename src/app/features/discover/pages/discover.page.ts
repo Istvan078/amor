@@ -9,6 +9,7 @@ import {
 } from '@angular/core';
 import { DOCUMENT } from '@angular/common';
 import { ActivatedRoute, Router } from '@angular/router';
+import { Auth } from '@angular/fire/auth';
 import {
   IonCard,
   IonCol,
@@ -137,8 +138,10 @@ export class DiscoverPage implements OnInit, OnDestroy {
   private promoBottomSheetQueued = false;
   private promoBottomSheetShownForUid: string | null = null;
   private boostCountdownInterval: ReturnType<typeof setInterval> | null = null;
+  private adminAccessCheckedUid: string | null = null;
 
   private authStore = inject(AuthStore);
+  private firebaseAuth = inject(Auth);
   private analytics = inject(AnalyticsService);
   private profileStore = inject(ProfileStore);
   readonly discoverStore = inject(DiscoverStore);
@@ -163,7 +166,8 @@ export class DiscoverPage implements OnInit, OnDestroy {
   constructor() {
     effect(() => {
       this.user = this.authStore.user();
-      this.canOpenAdminPanelResult = this.authStore.canModerate();
+      const canModerate = this.authStore.canModerate();
+      this.canOpenAdminPanelResult = canModerate;
 
       const uid = this.user?.uid ?? null;
 
@@ -175,8 +179,14 @@ export class DiscoverPage implements OnInit, OnDestroy {
         this.promoBottomSheetShownForUid = null;
         this.likedByProfiles = [];
         this.profileBoostedUntil = null;
+        this.adminAccessCheckedUid = null;
         this.stopBoostCountdownTimer();
         return;
+      }
+
+      if (!canModerate && this.adminAccessCheckedUid !== uid) {
+        this.adminAccessCheckedUid = uid;
+        void this.refreshAdminAccessFromToken(uid);
       }
 
       queueMicrotask(() => {
@@ -469,6 +479,38 @@ export class DiscoverPage implements OnInit, OnDestroy {
     this.syncMatchActionState();
     void this.resolvePendingMessageDeepLink();
     void this.resolvePendingTargetProfileDeepLink();
+  }
+
+  private async refreshAdminAccessFromToken(uid: string) {
+    try {
+      const tokenResult = await this.firebaseAuth.currentUser?.getIdTokenResult(true);
+      const hasAdminAccess =
+        tokenResult?.claims?.['admin'] === true ||
+        tokenResult?.claims?.['moderator'] === true;
+
+      if (!hasAdminAccess || this.authStore.user()?.uid !== uid) {
+        return;
+      }
+
+      const currentUser = this.authStore.user();
+
+      this.canOpenAdminPanelResult = true;
+
+      if (!currentUser) {
+        return;
+      }
+
+      this.authStore.setUser({
+        ...currentUser,
+        claims: {
+          ...(currentUser.claims ?? {}),
+          ...(tokenResult.claims['admin'] === true ? { admin: true } : {}),
+          ...(tokenResult.claims['moderator'] === true ? { moderator: true } : {}),
+        },
+      });
+    } catch (error) {
+      console.warn('Admin token claims could not be refreshed.', error);
+    }
   }
 
   private async loadLikedByProfiles(uid: string) {

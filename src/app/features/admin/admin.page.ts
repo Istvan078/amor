@@ -194,7 +194,11 @@ export class AdminPage implements OnInit {
       const [users, conversations, auditLog] = await Promise.all([
         this.adminRepository.loadUsers(reports),
         this.adminRepository.loadReportedConversationSummaries(reports),
-        this.adminRepository.loadAuditLog(),
+        this.adminRepository.loadAuditLog().catch((auditError) => {
+          console.warn('Audit log could not be loaded.', auditError);
+
+          return [];
+        }),
       ]);
 
       this.reports.set(reports);

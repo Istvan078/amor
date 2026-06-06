@@ -1,0 +1,39 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 320 220" role="img" aria-label="Cheers">
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#27162b"/>
+      <stop offset="1" stop-color="#0f1b2c"/>
+    </linearGradient>
+    <linearGradient id="glass" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#fff4c4"/>
+      <stop offset="1" stop-color="#f2c76e"/>
+    </linearGradient>
+  </defs>
+  <rect width="320" height="220" rx="22" fill="url(#bg)"/>
+  <g transform="translate(120 122) rotate(-10)">
+    <animateTransform attributeName="transform" type="rotate" values="-10;-18;-10" dur="1.25s" repeatCount="indefinite" additive="sum"/>
+    <path d="M-26 -70 L30 -70 L20 12 Q2 28 -16 12Z" fill="rgba(255,255,255,.16)" stroke="#ffffff" stroke-width="4"/>
+    <path d="M-17 -35 L23 -35 L16 8 Q2 20 -9 8Z" fill="url(#glass)" opacity=".92"/>
+    <path d="M1 22 L1 62 M-24 62 L25 62" stroke="#ffffff" stroke-width="5" stroke-linecap="round"/>
+  </g>
+  <g transform="translate(200 122) rotate(10)">
+    <animateTransform attributeName="transform" type="rotate" values="10;18;10" dur="1.25s" repeatCount="indefinite" additive="sum"/>
+    <path d="M-30 -70 L26 -70 L16 12 Q-2 28 -20 12Z" fill="rgba(255,255,255,.16)" stroke="#ffffff" stroke-width="4"/>
+    <path d="M-23 -35 L17 -35 L10 8 Q-2 20 -13 8Z" fill="url(#glass)" opacity=".92"/>
+    <path d="M-1 22 L-1 62 M-26 62 L23 62" stroke="#ffffff" stroke-width="5" stroke-linecap="round"/>
+  </g>
+  <g fill="#ff8fb1">
+    <circle cx="87" cy="58" r="4">
+      <animate attributeName="cy" values="76;45;76" dur="1.45s" repeatCount="indefinite"/>
+      <animate attributeName="opacity" values=".2;1;.2" dur="1.45s" repeatCount="indefinite"/>
+    </circle>
+    <circle cx="236" cy="54" r="5">
+      <animate attributeName="cy" values="80;42;80" dur="1.7s" repeatCount="indefinite"/>
+      <animate attributeName="opacity" values=".2;1;.2" dur="1.7s" repeatCount="indefinite"/>
+    </circle>
+    <circle cx="163" cy="42" r="4" fill="#35c6bd">
+      <animate attributeName="cy" values="70;36;70" dur="1.55s" repeatCount="indefinite"/>
+      <animate attributeName="opacity" values=".2;1;.2" dur="1.55s" repeatCount="indefinite"/>
+    </circle>
+  </g>
+</svg>

@@ -418,16 +418,74 @@
               <p>{{ t('messages.loading') }}</p>
             </div>
           } @else {
-            @for (mess of messagesStore.messages(); track mess.number) {
+            @for (mess of messagesStore.messages(); track getMessageTrackId(mess, $index)) {
               <div class="message-row" [class.own-message]="isOwnMessage(mess)">
-                <span class="message-bubble">
-                  {{ mess.message || ' ' }}
-                  @if (isReadReceiptVisible(mess)) {
-                    <small class="message-read-state">
-                      {{ t('messages.readAt', { time: formatMessageTime(mess.readAt) }) }}
-                    </small>
-                  }
-                </span>
+                <div class="message-stack">
+                  <span class="message-bubble" [class.has-gif]="isGifMessage(mess)">
+                    @if (isGifMessage(mess)) {
+                      <span class="message-gif-card">
+                        <img
+                          [src]="mess.gif?.url"
+                          [alt]="getMessageGifAlt(mess)"
+                          loading="lazy"
+                        />
+                        <span>{{ mess.gif?.title || t('messages.gifMessageLabel') }}</span>
+                      </span>
+                    } @else {
+                      {{ mess.message || ' ' }}
+                    }
+
+                    @if (isReadReceiptVisible(mess)) {
+                      <small class="message-read-state">
+                        {{ t('messages.readAt', { time: formatMessageTime(mess.readAt) }) }}
+                      </small>
+                    }
+                  </span>
+
+                  <div
+                    class="message-reaction-controls"
+                    [class.is-open]="isReactionPickerOpen(mess)"
+                  >
+                    <button
+                      type="button"
+                      class="message-reaction-trigger"
+                      [class.has-selected]="hasMessageReactions(mess)"
+                      [disabled]="isCurrentMatchBlocked || !mess.id || isAnyReactionPending(mess)"
+                      (click)="toggleReactionPicker(mess)"
+                      [attr.aria-label]="
+                        hasMessageReactions(mess)
+                          ? t('messages.changeReactionPicker')
+                          : t('messages.openReactionPicker')
+                      "
+                    >
+                      @if (getDisplayReaction(mess); as reaction) {
+                        <span>{{ reaction.emoji }}</span>
+                        @if (getReactionCountText(reaction)) {
+                          <small>{{ getReactionCountText(reaction) }}</small>
+                        }
+                      } @else {
+                        <ion-icon name="heart-outline"></ion-icon>
+                      }
+                    </button>
+
+                    @if (isReactionPickerOpen(mess)) {
+                      <div class="message-reaction-picker" [attr.aria-label]="t('messages.reactionPickerAria')">
+                        @for (emoji of quickReactionEmojis; track emoji) {
+                          <button
+                            type="button"
+                            [class.is-active]="hasReactionFromUser(mess, emoji)"
+                            [disabled]="isCurrentMatchBlocked || !mess.id || isReactionPending(mess, emoji)"
+                            (click)="toggleMessageReaction(mess, emoji)"
+                            [attr.aria-label]="t('messages.reactionAria', { emoji })"
+                          >
+                            {{ emoji }}
+                          </button>
+                        }
+                      </div>
+                    }
+                  </div>
+
+                </div>
               </div>
             } @empty {
               <div class="messages-empty compact">
@@ -454,7 +512,69 @@
           class="message-composer"
           [class.is-disabled]="isCurrentMatchBlocked"
         >
+          @if (activeComposerPanel === 'emoji') {
+            <div class="composer-panel emoji-panel">
+              <header>
+                <span>{{ t('messages.emojiPanelTitle') }}</span>
+              </header>
+              <div>
+                @for (emoji of composerEmojis; track emoji) {
+                  <button
+                    type="button"
+                    (click)="appendEmoji(form, emoji)"
+                    [attr.aria-label]="t('messages.emojiAria', { emoji })"
+                  >
+                    {{ emoji }}
+                  </button>
+                }
+              </div>
+            </div>
+          }
+
+          @if (activeComposerPanel === 'gif') {
+            <div class="composer-panel gif-panel">
+              <header>
+                <span>{{ t('messages.gifPanelTitle') }}</span>
+              </header>
+              <div>
+                @for (gif of localGifs; track gif.id) {
+                  <button
+                    type="button"
+                    (click)="sendGif(gif, form)"
+                    [attr.aria-label]="t('messages.sendGifAria', { title: gif.title })"
+                  >
+                    <img [src]="gif.previewUrl || gif.url" [alt]="gif.alt || gif.title" loading="lazy" />
+                    <span>{{ gif.title }}</span>
+                  </button>
+                }
+              </div>
+            </div>
+          }
+
+          <button
+            type="button"
+            class="composer-tool-button"
+            [class.is-active]="activeComposerPanel === 'emoji'"
+            [disabled]="isCurrentMatchBlocked"
+            (click)="toggleComposerPanel('emoji')"
+            [attr.aria-label]="t('messages.openEmojiPanel')"
+          >
+            <ion-icon name="happy-outline"></ion-icon>
+          </button>
+
+          <button
+            type="button"
+            class="composer-tool-button"
+            [class.is-active]="activeComposerPanel === 'gif'"
+            [disabled]="isCurrentMatchBlocked"
+            (click)="toggleComposerPanel('gif')"
+            [attr.aria-label]="t('messages.openGifPanel')"
+          >
+            <ion-icon name="images-outline"></ion-icon>
+          </button>
+
           <ion-textarea
+            #composerTextarea
             ngModel
             name="message"
             id="message"

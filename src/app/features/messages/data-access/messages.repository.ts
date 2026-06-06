@@ -10,13 +10,18 @@ import {
     onSnapshot,
     orderBy,
     query,
+    runTransaction,
     serverTimestamp,
     setDoc,
     where,
     writeBatch,
 } from '@angular/fire/firestore';
 
-import { Message } from '../../../shared/models/message.model';
+import {
+    Message,
+    MessageGif,
+    MessageReaction,
+} from '../../../shared/models/message.model';
 
 export type ConversationPreviewData = {
     hasMessages: boolean;
@@ -108,7 +113,10 @@ export class MessagesRepository {
                     onMessages(
                         snapshot.docs
                             .map((messageSnapshot) =>
-                                this.mapConversationMessage(messageSnapshot.data())
+                                this.mapConversationMessage(
+                                    messageSnapshot.id,
+                                    messageSnapshot.data()
+                                )
                             )
                             .reverse()
                     );
@@ -200,8 +208,9 @@ export class MessagesRepository {
                         ? {
                             senderUid: lastMessage.senderUid,
                             sentToUid: lastMessage.sentToUid,
-                            text: lastMessage.message,
+                            text: this.getMessagePreviewText(lastMessage),
                             number: lastMessage.number,
+                            type: lastMessage.messageType ?? 'text',
                         }
                         : null,
                     updatedAt: serverTimestamp(),
@@ -251,8 +260,9 @@ export class MessagesRepository {
                     lastMessage: {
                         senderUid: message.senderUid,
                         sentToUid: message.sentToUid,
-                        text: message.message,
+                        text: this.getMessagePreviewText(message),
                         number: message.number,
+                        type: message.messageType ?? 'text',
                         sentAt,
                     },
                     unreadCounts: {
@@ -320,6 +330,47 @@ export class MessagesRepository {
         });
     }
 
+    async toggleMessageReaction(
+        myUid: string,
+        matchUid: string,
+        message: Message,
+        emoji: string
+    ) {
+        if (!message.id) {
+            return message.reactions ?? [];
+        }
+
+        const conversationId = this.getConversationId(myUid, matchUid);
+        return this.runInFirebaseContext(async () => {
+            const messageRef = doc(
+                this.firestore,
+                `conversations/${conversationId}/messages/${message.id}`
+            );
+
+            return runTransaction(this.firestore, async (transaction) => {
+                const snapshot = await transaction.get(messageRef);
+                const currentReactions = snapshot.exists()
+                    ? this.mapMessageReactions(snapshot.data()['reactions'])
+                    : message.reactions ?? [];
+                const reactions = this.toggleReaction(
+                    currentReactions,
+                    myUid,
+                    emoji
+                );
+
+                transaction.update(messageRef, {
+                    reactions: reactions.map((reaction) => ({
+                        emoji: reaction.emoji,
+                        userUids: reaction.userUids,
+                        updatedAt: reaction.updatedAt ?? new Date(),
+                    })),
+                });
+
+                return reactions;
+            });
+        });
+    }
+
     private async getConversationMessages(myUid: string, matchUid: string) {
         const conversationId = this.getConversationId(myUid, matchUid);
 
@@ -339,7 +390,10 @@ export class MessagesRepository {
 
         return snapshot.docs
             .map((messageSnapshot) =>
-                this.mapConversationMessage(messageSnapshot.data())
+                this.mapConversationMessage(
+                    messageSnapshot.id,
+                    messageSnapshot.data()
+                )
             )
             .reverse();
     }
@@ -361,23 +415,32 @@ export class MessagesRepository {
             senderUid: message.senderUid,
             sentToUid: message.sentToUid,
             text: message.message,
+            type: message.messageType ?? 'text',
             number: message.number,
             sentAt: message.sentAt ?? serverTimestamp(),
             readAt: message.readAt ?? null,
             isRead: message.isRead ?? false,
             attachments: message.attachments ?? [],
+            gif: message.gif ? this.mapGifForConversation(message.gif) : null,
+            reactions: (message.reactions ?? []).map((reaction) => ({
+                emoji: reaction.emoji,
+                userUids: reaction.userUids,
+                updatedAt: reaction.updatedAt ?? new Date(),
+            })),
             isDeleted: message.isDeleted ?? false,
             isStarred: message.isStarred ?? false,
             isEdited: message.isEdited ?? false,
         };
     }
 
-    private mapConversationMessage(data: Record<string, unknown>) {
+    private mapConversationMessage(id: string, data: Record<string, unknown>) {
         const message = new Message();
 
+        message.id = id;
         message.senderUid = String(data['senderUid'] ?? '');
         message.sentToUid = String(data['sentToUid'] ?? '');
         message.message = String(data['text'] ?? data['message'] ?? '');
+        message.messageType = data['type'] === 'gif' ? 'gif' : 'text';
         message.number = Number(data['number'] ?? 0);
         message.sentAt = this.toDate(data['sentAt']) ?? new Date();
         message.readAt = this.toDate(data['readAt']);
@@ -388,8 +451,148 @@ export class MessagesRepository {
         message.isDeleted = data['isDeleted'] === true;
         message.isStarred = data['isStarred'] === true;
         message.isEdited = data['isEdited'] === true;
+        message.gif = this.mapMessageGif(data['gif']);
+        message.reactions = this.mapMessageReactions(data['reactions']);
 
         return message;
+    }
+
+    private getMessagePreviewText(message: Message) {
+        if (message.message.trim()) {
+            return message.message.trim();
+        }
+
+        if (message.messageType === 'gif' && message.gif?.title) {
+            return message.gif.title;
+        }
+
+        return 'GIF';
+    }
+
+    private mapGifForConversation(gif: MessageGif) {
+        return {
+            id: gif.id,
+            title: gif.title,
+            url: gif.url,
+            previewUrl: gif.previewUrl ?? gif.url,
+            alt: gif.alt ?? gif.title,
+            source: gif.source,
+        };
+    }
+
+    private mapMessageGif(value: unknown): MessageGif | undefined {
+        if (!value || typeof value !== 'object') {
+            return undefined;
+        }
+
+        const gif = value as Record<string, unknown>;
+        const id = String(gif['id'] ?? '');
+        const title = String(gif['title'] ?? '');
+        const url = String(gif['url'] ?? '');
+
+        if (!id || !url) {
+            return undefined;
+        }
+
+        return {
+            id,
+            title: title || 'GIF',
+            url,
+            previewUrl:
+                typeof gif['previewUrl'] === 'string'
+                    ? gif['previewUrl']
+                    : undefined,
+            alt:
+                typeof gif['alt'] === 'string'
+                    ? gif['alt']
+                    : title || 'GIF',
+            source: 'local',
+        };
+    }
+
+    private mapMessageReactions(value: unknown): MessageReaction[] {
+        if (!Array.isArray(value)) {
+            return [];
+        }
+
+        return value
+            .map((reaction): MessageReaction | undefined => {
+                if (!reaction || typeof reaction !== 'object') {
+                    return undefined;
+                }
+
+                const reactionData = reaction as Record<string, unknown>;
+                const emoji = String(reactionData['emoji'] ?? '');
+                const userUids = Array.isArray(reactionData['userUids'])
+                    ? reactionData['userUids'].filter(
+                        (uid): uid is string => typeof uid === 'string'
+                    )
+                    : [];
+
+                if (!emoji || !userUids.length) {
+                    return undefined;
+                }
+
+                const mappedReaction: MessageReaction = {
+                    emoji,
+                    userUids,
+                };
+                const updatedAt = this.toDate(reactionData['updatedAt']);
+
+                if (updatedAt) {
+                    mappedReaction.updatedAt = updatedAt;
+                }
+
+                return mappedReaction;
+            })
+            .filter((reaction): reaction is MessageReaction => !!reaction);
+    }
+
+    private toggleReaction(
+        reactions: MessageReaction[],
+        uid: string,
+        emoji: string
+    ) {
+        const hadSelectedReaction = reactions.some(
+            (reaction) =>
+                reaction.emoji === emoji && reaction.userUids.includes(uid)
+        );
+        const reactionsWithoutUser = reactions
+            .map((reaction) => ({
+                ...reaction,
+                userUids: reaction.userUids.filter((userUid) => userUid !== uid),
+                updatedAt: new Date(),
+            }))
+            .filter((reaction) => reaction.userUids.length > 0);
+
+        if (hadSelectedReaction) {
+            return reactionsWithoutUser;
+        }
+
+        const existingReaction = reactionsWithoutUser.find(
+            (reaction) => reaction.emoji === emoji
+        );
+
+        if (existingReaction) {
+            return reactionsWithoutUser.map((reaction) =>
+                reaction.emoji === emoji
+                    ? {
+                        ...reaction,
+                        userUids: [...new Set([...reaction.userUids, uid])],
+                        updatedAt: new Date(),
+                    }
+                    : reaction
+            );
+        }
+
+        return [
+            ...reactionsWithoutUser,
+            {
+                emoji,
+                userUids: [uid],
+                updatedAt: new Date(),
+            },
+        ];
     }
 
     private emptyConversationPreview(): ConversationPreviewData {

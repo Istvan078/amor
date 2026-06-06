@@ -257,14 +257,21 @@ export const AuthStore = signalStore(
                     repository.setCustomClaims(uid, claims, user.idToken)
                 );
 
+                const currentClaims = store.claims() ?? user.claims ?? {};
+                const nextClaims = {
+                    ...claims,
+                    ...(currentClaims.admin === true ? { admin: true } : {}),
+                    ...(currentClaims.moderator === true ? { moderator: true } : {}),
+                };
+
                 const nextUser = {
                     ...user,
-                    claims,
+                    claims: nextClaims,
                 };
 
                 patchState(store, {
                     user: nextUser,
-                    claims,
+                    claims: nextClaims,
                 });
             },
 

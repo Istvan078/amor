@@ -36,6 +36,8 @@ import {
   ellipsisHorizontal,
   flagOutline,
   heartOutline,
+  happyOutline,
+  imagesOutline,
   locationOutline,
   lockOpenOutline,
   personCircleOutline,
@@ -49,7 +51,12 @@ import {
 } from 'ionicons/icons';
 import { SwiperContainer } from 'swiper/element';
 
-import { Message } from '../../../../shared/models/message.model';
+import {
+  Message,
+  MessageGif,
+  MessageReaction,
+  MessageType,
+} from '../../../../shared/models/message.model';
 import { Options } from '../../../../shared/models/options.model';
 import { UserClass } from '../../../../shared/models/user.model';
 import { translatedProfileValue } from '../../../../shared/i18n/profile-value-labels';
@@ -75,6 +82,8 @@ import { MessagesStore } from '../../store/messages.store';
 export class MessageComponent implements AfterViewChecked, OnChanges, OnDestroy {
   @ViewChild('messageThread', { read: ElementRef })
   private messageThread?: ElementRef<HTMLElement>;
+  @ViewChild('composerTextarea')
+  private composerTextarea?: IonTextarea;
   @ViewChild('matchPhotoSwiper')
   private matchPhotoSwiper?: ElementRef<SwiperContainer>;
 
@@ -110,13 +119,57 @@ export class MessageComponent implements AfterViewChecked, OnChanges, OnDestroy 
   private lastRenderedMessageSignature = '';
   private typingStopTimer: ReturnType<typeof setTimeout> | null = null;
   private lastTypingWriteAt = 0;
+  private pendingReactionKeys = new Set<string>();
   isConversationMenuOpen = false;
   isMatchProfileOpen = false;
   isMatchPhotoViewerOpen = false;
+  activeComposerPanel: 'emoji' | 'gif' | null = null;
+  activeReactionPickerMessageId?: string;
   activeMatchPhotoIndex = 0;
   moderationNoticeKey?: string;
   readReceiptsSaving = false;
   readonly profileValueText = translatedProfileValue;
+  readonly quickReactionEmojis = ['❤️', '😂', '😍', '🔥', '👏', '😮'];
+  readonly composerEmojis = [
+    '❤️',
+    '😍',
+    '😘',
+    '😂',
+    '🔥',
+    '✨',
+    '😉',
+    '😊',
+    '🥰',
+    '👏',
+    '💯',
+    '😇',
+  ];
+  readonly localGifs: MessageGif[] = [
+    {
+      id: 'amor-heartbeat',
+      title: 'Heartbeat',
+      url: 'assets/gifs/amor-heartbeat.svg',
+      previewUrl: 'assets/gifs/amor-heartbeat.svg',
+      alt: 'Animated heartbeat card',
+      source: 'local',
+    },
+    {
+      id: 'amor-spark',
+      title: 'First spark',
+      url: 'assets/gifs/amor-spark.svg',
+      previewUrl: 'assets/gifs/amor-spark.svg',
+      alt: 'Animated first spark card',
+      source: 'local',
+    },
+    {
+      id: 'amor-cheers',
+      title: 'Cheers',
+      url: 'assets/gifs/amor-cheers.svg',
+      previewUrl: 'assets/gifs/amor-cheers.svg',
+      alt: 'Animated celebration card',
+      source: 'local',
+    },
+  ];
   readonly fallbackAvatar =
     'https://img.freepik.com/free-vector/user-circles-set_78370-4704.jpg?t=st=1741696833~exp=1741700433~hmac=5c4d9770452bab7cb12b3a38cead02ffcd3f50b45d75a0da6324820dc1bd3df2&w=740';
 
@@ -132,7 +185,9 @@ export class MessageComponent implements AfterViewChecked, OnChanges, OnDestroy 
       closeOutline,
       ellipsisHorizontal,
       flagOutline,
+      happyOutline,
       heartOutline,
+      imagesOutline,
       locationOutline,
       lockOpenOutline,
       personCircleOutline,
@@ -156,7 +211,10 @@ export class MessageComponent implements AfterViewChecked, OnChanges, OnDestroy 
 
     const messageSignature = this.messagesStore
       .messages()
-      .map((message) => `${message.number}:${message.message}`)
+      .map(
+        (message) =>
+          `${message.id ?? message.number}:${message.messageType}:${message.message}:${message.gif?.id ?? ''}`
+      )
       .join('|');
 
     if (messageSignature !== this.lastRenderedMessageSignature) {
@@ -177,6 +235,8 @@ export class MessageComponent implements AfterViewChecked, OnChanges, OnDestroy 
       );
       this.isConversationMenuOpen = false;
       this.isMatchProfileOpen = false;
+      this.activeComposerPanel = null;
+      this.activeReactionPickerMessageId = undefined;
       this.closeMatchPhotoViewer();
       this.moderationNoticeKey = undefined;
       void this.loadMessages();
@@ -257,6 +317,162 @@ export class MessageComponent implements AfterViewChecked, OnChanges, OnDestroy 
     }).format(date);
   }
 
+  getMessageTrackId(message: Message, index: number) {
+    return message.id ?? `${message.senderUid}-${message.number}-${index}`;
+  }
+
+  isGifMessage(message: Message) {
+    return message.messageType === 'gif' && !!message.gif?.url;
+  }
+
+  getMessageGifAlt(message: Message) {
+    return message.gif?.alt || message.gif?.title || 'GIF';
+  }
+
+  getVisibleReactions(message: Message) {
+    return (message.reactions ?? []).filter(
+      (reaction) => reaction.userUids.length > 0
+    );
+  }
+
+  getDisplayReaction(message: Message) {
+    const visibleReactions = this.getVisibleReactions(message);
+
+    if (!visibleReactions.length) {
+      return undefined;
+    }
+
+    if (this.userProfile?.uid) {
+      const ownReaction = visibleReactions.find((reaction) =>
+        reaction.userUids.includes(this.userProfile!.uid!)
+      );
+
+      if (ownReaction) {
+        return ownReaction;
+      }
+    }
+
+    return [...visibleReactions].sort(
+      (reactionA, reactionB) =>
+        (reactionB.updatedAt?.getTime() ?? 0) -
+        (reactionA.updatedAt?.getTime() ?? 0)
+    )[0];
+  }
+
+  hasMessageReactions(message: Message) {
+    return !!this.getDisplayReaction(message);
+  }
+
+  hasReactionFromUser(message: Message, emoji: string) {
+    return !!(
+      this.userProfile?.uid &&
+      message.reactions?.some(
+        (reaction) =>
+          reaction.emoji === emoji &&
+          reaction.userUids.includes(this.userProfile!.uid!)
+      )
+    );
+  }
+
+  getReactionCountText(reaction: MessageReaction) {
+    return reaction.userUids.length > 1 ? String(reaction.userUids.length) : '';
+  }
+
+  isReactionPending(message: Message, emoji: string) {
+    return !!message.id && this.pendingReactionKeys.has(`${message.id}:${emoji}`);
+  }
+
+  isAnyReactionPending(message: Message) {
+    return !!(
+      message.id &&
+      this.quickReactionEmojis.some((emoji) =>
+        this.pendingReactionKeys.has(`${message.id}:${emoji}`)
+      )
+    );
+  }
+
+  isReactionPickerOpen(message: Message) {
+    return !!message.id && this.activeReactionPickerMessageId === message.id;
+  }
+
+  toggleReactionPicker(message: Message) {
+    if (this.isCurrentMatchBlocked || !message.id) {
+      return;
+    }
+
+    this.activeComposerPanel = null;
+    this.activeReactionPickerMessageId =
+      this.activeReactionPickerMessageId === message.id
+        ? undefined
+        : message.id;
+  }
+
+  async toggleMessageReaction(message: Message, emoji: string) {
+    if (
+      this.isCurrentMatchBlocked ||
+      !this.userProfile ||
+      !this.matchProfile ||
+      !message.id
+    ) {
+      return;
+    }
+
+    const reactionKey = `${message.id}:${emoji}`;
+
+    if (this.pendingReactionKeys.has(reactionKey)) {
+      return;
+    }
+
+    this.pendingReactionKeys.add(reactionKey);
+
+    try {
+      await this.messagesStore.toggleMessageReaction(
+        this.userProfile,
+        this.matchProfile,
+        message,
+        emoji
+      );
+      this.activeReactionPickerMessageId = undefined;
+    } finally {
+      this.pendingReactionKeys.delete(reactionKey);
+    }
+  }
+
+  toggleComposerPanel(panel: 'emoji' | 'gif') {
+    if (this.isCurrentMatchBlocked) {
+      return;
+    }
+
+    this.activeComposerPanel =
+      this.activeComposerPanel === panel ? null : panel;
+    this.activeReactionPickerMessageId = undefined;
+  }
+
+  appendEmoji(form: NgForm, emoji: string) {
+    if (this.isCurrentMatchBlocked) {
+      return;
+    }
+
+    const control = form.controls['message'];
+    const currentMessage = String(control?.value ?? '');
+
+    control?.setValue(`${currentMessage}${emoji}`);
+    this.onMessageInput();
+    this.focusComposer();
+  }
+
+  async sendGif(gif: MessageGif, form: NgForm) {
+    if (this.isCurrentMatchBlocked) {
+      this.moderationNoticeKey = 'messages.blockedComposerNotice';
+      return;
+    }
+
+    await this.sendComposedMessage(gif.title, 'gif', gif);
+    form.controls['message']?.setValue('');
+    this.activeComposerPanel = null;
+    this.clearLocalTypingStatus();
+  }
+
   get isCurrentMatchBlocked() {
     return !!(
       this.userProfile?.blockedUsers?.length &&
@@ -322,6 +538,8 @@ export class MessageComponent implements AfterViewChecked, OnChanges, OnDestroy 
     this.matchProfile = match;
     this.isConversationMenuOpen = false;
     this.isMatchProfileOpen = false;
+    this.activeComposerPanel = null;
+    this.activeReactionPickerMessageId = undefined;
     this.closeMatchPhotoViewer();
     this.moderationNoticeKey = undefined;
 
@@ -336,6 +554,8 @@ export class MessageComponent implements AfterViewChecked, OnChanges, OnDestroy 
   backToMsgs() {
     this.isConversationMenuOpen = false;
     this.isMatchProfileOpen = false;
+    this.activeComposerPanel = null;
+    this.activeReactionPickerMessageId = undefined;
     this.closeMatchPhotoViewer();
 
     if (this.options) {
@@ -495,13 +715,31 @@ export class MessageComponent implements AfterViewChecked, OnChanges, OnDestroy 
       return;
     }
 
-    if (!messageText || !this.userProfile || !this.matchProfile) {
+    if (!messageText) {
+      return;
+    }
+
+    await this.sendComposedMessage(messageText, 'text');
+    form.resetForm();
+    this.activeComposerPanel = null;
+    this.clearLocalTypingStatus();
+    this.pendingScrollToBottom = true;
+  }
+
+  private async sendComposedMessage(
+    messageText: string,
+    messageType: MessageType,
+    gif?: MessageGif
+  ) {
+    if (!this.userProfile || !this.matchProfile) {
       return;
     }
 
     const lastMessage = this.messagesStore.messages().at(-1);
     const message: Message = {
       message: messageText,
+      messageType,
+      gif,
       senderUid: this.userProfile.uid!,
       sentToUid: this.matchProfile.uid!,
       number: (lastMessage?.number ?? 0) + 1,
@@ -518,10 +756,6 @@ export class MessageComponent implements AfterViewChecked, OnChanges, OnDestroy 
       matchProfile: this.matchProfile,
       message,
     });
-
-    form.resetForm();
-    this.clearLocalTypingStatus();
-    this.pendingScrollToBottom = true;
   }
 
   onMessageInput() {
@@ -558,6 +792,12 @@ export class MessageComponent implements AfterViewChecked, OnChanges, OnDestroy 
       }
 
       element.scrollTop = element.scrollHeight;
+    });
+  }
+
+  private focusComposer() {
+    queueMicrotask(() => {
+      void this.composerTextarea?.setFocus();
     });
   }
 

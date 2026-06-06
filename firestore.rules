@@ -117,7 +117,9 @@ service cloud.firestore {
 
       match /notifications/{notificationId} {
         allow read: if isOwner(uid) || isAdminOrModerator();
-        allow create: if signedIn()
+        allow create: if isAdminOrModerator()
+          || (
+            signedIn()
           && request.auth.uid != uid
           && request.resource.data.keys().hasOnly([
             'type',
@@ -141,11 +143,18 @@ service cloud.firestore {
           && request.resource.data.title is string
           && request.resource.data.body is string
           && request.resource.data.isRead == false
-          && request.resource.data.createdAt is timestamp;
+          && request.resource.data.createdAt is timestamp
+          );
         allow update: if isOwner(uid)
           && request.resource.data.diff(resource.data).changedKeys().hasOnly(['isRead'])
           && request.resource.data.isRead is bool;
         allow delete: if isOwner(uid) || isAdminOrModerator();
+      }
+
+      match /warnings/{warningId} {
+        allow read: if isOwner(uid) || isAdminOrModerator();
+        allow create: if isAdminOrModerator();
+        allow update, delete: if false;
       }
 
       match /pushTokens/{tokenId} {
@@ -173,8 +182,17 @@ service cloud.firestore {
       allow create: if signedIn() && validReportCreate(reportId);
       allow read, delete: if isAdminOrModerator();
       allow update: if isAdminOrModerator()
-        && request.resource.data.diff(resource.data).changedKeys().hasOnly(['status'])
+        && request.resource.data.diff(resource.data).changedKeys().hasOnly([
+          'status',
+          'statusHistory',
+          'updatedAt'
+        ])
         && validReportStatus(request.resource.data.status);
+    }
+
+    match /moderationAudit/{auditId} {
+      allow read, create: if isAdminOrModerator();
+      allow update, delete: if false;
     }
 
     match /conversations/{conversationId} {

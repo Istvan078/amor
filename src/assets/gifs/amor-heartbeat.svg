@@ -1,0 +1,35 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 320 220" role="img" aria-label="Heartbeat">
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#24142f"/>
+      <stop offset="1" stop-color="#101827"/>
+    </linearGradient>
+    <linearGradient id="heart" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#ff5d8f"/>
+      <stop offset="1" stop-color="#ff8a5b"/>
+    </linearGradient>
+    <filter id="softGlow" x="-40%" y="-40%" width="180%" height="180%">
+      <feGaussianBlur stdDeviation="10" result="blur"/>
+      <feMerge>
+        <feMergeNode in="blur"/>
+        <feMergeNode in="SourceGraphic"/>
+      </feMerge>
+    </filter>
+  </defs>
+  <rect width="320" height="220" rx="22" fill="url(#bg)"/>
+  <path d="M43 137 C78 104 93 156 125 121 C154 89 169 123 188 105 C211 82 235 92 278 52" fill="none" stroke="#ffd36d" stroke-width="7" stroke-linecap="round" opacity=".9">
+    <animate attributeName="stroke-dasharray" values="8 220;90 80;8 220" dur="1.8s" repeatCount="indefinite"/>
+    <animate attributeName="stroke-dashoffset" values="0;-90;-220" dur="1.8s" repeatCount="indefinite"/>
+  </path>
+  <g transform="translate(160 108)" filter="url(#softGlow)">
+    <path d="M0 52 C-58 16 -76 -16 -52 -42 C-33 -62 -8 -52 0 -30 C8 -52 33 -62 52 -42 C76 -16 58 16 0 52Z" fill="url(#heart)">
+      <animateTransform attributeName="transform" type="scale" values="1;1.12;1" dur="1.05s" repeatCount="indefinite"/>
+    </path>
+  </g>
+  <circle cx="66" cy="56" r="4" fill="#ffffff" opacity=".72">
+    <animate attributeName="opacity" values=".18;.85;.18" dur="1.4s" repeatCount="indefinite"/>
+  </circle>
+  <circle cx="260" cy="162" r="5" fill="#35c6bd" opacity=".65">
+    <animate attributeName="opacity" values=".1;.78;.1" dur="1.8s" repeatCount="indefinite"/>
+  </circle>
+</svg>
