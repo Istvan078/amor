@@ -5,18 +5,25 @@ import { AlertController, IonIcon } from '@ionic/angular/standalone';
 import { addIcons } from 'ionicons';
 import {
   banOutline,
+  barChartOutline,
   cardOutline,
   chatbubblesOutline,
   checkmarkDoneOutline,
   closeCircleOutline,
   eyeOutline,
+  eyeOffOutline,
   flagOutline,
+  notificationsOutline,
   peopleOutline,
+  radioButtonOnOutline,
   shieldCheckmarkOutline,
+  timeOutline,
   trashOutline,
+  warningOutline,
 } from 'ionicons/icons';
 
 import {
+  AdminAuditLogEntry,
   AdminBillingSnapshot,
   AdminConversation,
   AdminConversationSummary,
@@ -26,7 +33,13 @@ import {
 } from './data-access/admin.repository';
 import { ModerationReportStatus } from '../moderation/models/moderation.model';
 
-type AdminPanel = 'reports' | 'users' | 'conversations' | 'billing';
+type AdminPanel =
+  | 'reports'
+  | 'users'
+  | 'conversations'
+  | 'billing'
+  | 'audit'
+  | 'analytics';
 type ReportStatusFilter = ModerationReportStatus | 'all';
 
 @Component({
@@ -45,6 +58,7 @@ export class AdminPage implements OnInit {
   readonly selectedBilling = signal<AdminBillingSnapshot | null>(null);
   readonly selectedConversation = signal<AdminConversation | null>(null);
   readonly conversations = signal<AdminConversationSummary[]>([]);
+  readonly auditLog = signal<AdminAuditLogEntry[]>([]);
   readonly loading = signal(false);
   readonly error = signal<string | null>(null);
   readonly userSearch = signal('');
@@ -56,6 +70,67 @@ export class AdminPage implements OnInit {
   readonly premiumUsers = computed(
     () => this.users().filter((user) => user.isPremium).length
   );
+  readonly bannedUsers = computed(
+    () => this.users().filter((user) => user.isBanned).length
+  );
+  readonly hiddenProfiles = computed(
+    () =>
+      this.users().filter(
+        (user) => user.isShadowBanned || user.isVisible === false
+      ).length
+  );
+  readonly selectedReporter = computed(() => {
+    const report = this.selectedReport();
+
+    return report ? this.findUser(report.reporterUid) : null;
+  });
+  readonly selectedReportedUser = computed(() => {
+    const report = this.selectedReport();
+
+    return report ? this.findUser(report.reportedUid) : null;
+  });
+  readonly selectedReportConversationSummary = computed(() => {
+    const report = this.selectedReport();
+
+    if (!report?.reporterUid || !report.reportedUid) {
+      return null;
+    }
+
+    const conversationId = this.getConversationId(
+      report.reporterUid,
+      report.reportedUid
+    );
+
+    return (
+      this.conversations().find(
+        (conversation) => conversation.id === conversationId
+      ) ?? null
+    );
+  });
+  readonly reportReasonAnalytics = computed(() => {
+    const counts = new Map<string, number>();
+
+    this.reports().forEach((report) => {
+      counts.set(report.reason, (counts.get(report.reason) ?? 0) + 1);
+    });
+
+    return [...counts.entries()]
+      .map(([reason, count]) => ({ reason, count }))
+      .sort((a, b) => b.count - a.count || a.reason.localeCompare(b.reason));
+  });
+  readonly moderationAnalytics = computed(() => {
+    const reports = this.reports();
+    const users = this.users();
+
+    return {
+      reviewedReports: reports.filter((report) => report.status === 'reviewed').length,
+      dismissedReports: reports.filter((report) => report.status === 'dismissed').length,
+      actionTakenReports: reports.filter((report) => report.status === 'action_taken').length,
+      warningCount: users.reduce((total, user) => total + user.warningCount, 0),
+      reportedConversationCount: this.conversations().length,
+      auditEvents: this.auditLog().length,
+    };
+  });
   readonly filteredReports = computed(() => {
     const status = this.reportStatusFilter();
 
@@ -86,15 +161,21 @@ export class AdminPage implements OnInit {
   constructor() {
     addIcons({
       banOutline,
+      barChartOutline,
       cardOutline,
       chatbubblesOutline,
       checkmarkDoneOutline,
       closeCircleOutline,
       eyeOutline,
+      eyeOffOutline,
       flagOutline,
+      notificationsOutline,
       peopleOutline,
+      radioButtonOnOutline,
       shieldCheckmarkOutline,
+      timeOutline,
       trashOutline,
+      warningOutline,
     });
   }
 
@@ -110,14 +191,16 @@ export class AdminPage implements OnInit {
       const previousSelectedReportId = this.selectedReport()?.id;
       const previousSelectedConversationId = this.selectedConversation()?.id;
       const reports = await this.adminRepository.loadReports();
-      const [users, conversations] = await Promise.all([
+      const [users, conversations, auditLog] = await Promise.all([
         this.adminRepository.loadUsers(reports),
         this.adminRepository.loadReportedConversationSummaries(reports),
+        this.adminRepository.loadAuditLog(),
       ]);
 
       this.reports.set(reports);
       this.users.set(users);
       this.conversations.set(conversations);
+      this.auditLog.set(auditLog);
       this.selectedReport.set(
         reports.find((report) => report.id === previousSelectedReportId) ??
         reports[0] ??
@@ -212,6 +295,65 @@ export class AdminPage implements OnInit {
     await this.loadDashboard();
   }
 
+  async toggleReportedUserBan(report: AdminReport) {
+    const reportedUser = this.findUser(report.reportedUid);
+    const shouldBan = !reportedUser?.isBanned;
+    const confirmed = await this.confirmAdminAction(
+      shouldBan ? 'Ban reported user?' : 'Unban reported user?',
+      shouldBan
+        ? 'This removes the profile from discovery and marks the account as banned.'
+        : 'This removes the banned flag and allows the profile to be restored by moderation.',
+      shouldBan ? 'Ban user' : 'Unban user'
+    );
+
+    if (!confirmed) {
+      return;
+    }
+
+    await this.adminRepository.setUserBan(report.reportedUid, shouldBan, report);
+    await this.loadDashboard();
+  }
+
+  async toggleReportedProfileHidden(report: AdminReport) {
+    const reportedUser = this.findUser(report.reportedUid);
+    const shouldHide = !(
+      reportedUser?.isShadowBanned || reportedUser?.isVisible === false
+    );
+    const confirmed = await this.confirmAdminAction(
+      shouldHide ? 'Hide reported profile?' : 'Restore profile visibility?',
+      shouldHide
+        ? 'This shadow hides the profile from discovery without deleting the account.'
+        : 'This restores the profile visibility flag in users and match index.',
+      shouldHide ? 'Hide profile' : 'Restore profile'
+    );
+
+    if (!confirmed) {
+      return;
+    }
+
+    await this.adminRepository.setProfileHidden(
+      report.reportedUid,
+      shouldHide,
+      report
+    );
+    await this.loadDashboard();
+  }
+
+  async sendWarning(report: AdminReport) {
+    const message = await this.promptWarningMessage();
+
+    if (!message) {
+      return;
+    }
+
+    await this.adminRepository.sendWarning(
+      report.reportedUid,
+      message,
+      report
+    );
+    await this.loadDashboard();
+  }
+
   async openConversation(report: AdminReport) {
     this.selectedReport.set(report);
     this.activePanel.set('conversations');
@@ -290,6 +432,21 @@ export class AdminPage implements OnInit {
     return message.id;
   }
 
+  trackStatusHistory(
+    _index: number,
+    history: { action: string; createdAt: string }
+  ) {
+    return `${history.action}-${history.createdAt}`;
+  }
+
+  trackAudit(_index: number, audit: AdminAuditLogEntry) {
+    return audit.id;
+  }
+
+  trackReason(_index: number, reason: { reason: string }) {
+    return reason.reason;
+  }
+
   formatDate(value: unknown) {
     const date = this.toDate(value);
 
@@ -305,6 +462,26 @@ export class AdminPage implements OnInit {
 
   getUserName(uid: string) {
     return this.users().find((user) => user.uid === uid)?.displayName ?? uid;
+  }
+
+  getLastMessageText(conversation: AdminConversationSummary | null) {
+    return conversation?.lastMessage?.text?.trim() || 'No messages found.';
+  }
+
+  getModerationState(user: AdminUser | null) {
+    if (!user) {
+      return 'Unknown profile';
+    }
+
+    if (user.isBanned) {
+      return 'Banned';
+    }
+
+    if (user.isShadowBanned || user.isVisible === false) {
+      return 'Hidden';
+    }
+
+    return 'Visible';
   }
 
   setSearch(value: string) {
@@ -342,6 +519,52 @@ export class AdminPage implements OnInit {
     await alert.onDidDismiss();
 
     return confirmed;
+  }
+
+  private async promptWarningMessage() {
+    let warningMessage = '';
+    const alert = await this.alertCtrl.create({
+      header: 'Send warning',
+      message: 'Write the warning the user will receive in Amor notifications.',
+      cssClass: 'premium-moderation-alert admin-confirm-alert',
+      inputs: [
+        {
+          name: 'message',
+          type: 'textarea',
+          placeholder: 'Explain the policy or safety issue clearly.',
+        },
+      ],
+      buttons: [
+        {
+          text: 'Cancel',
+          role: 'cancel',
+          cssClass: 'premium-alert-cancel-button',
+        },
+        {
+          text: 'Send warning',
+          role: 'confirm',
+          cssClass: 'premium-alert-confirm-button',
+          handler: (data) => {
+            warningMessage = String(data?.message ?? '').trim();
+
+            return !!warningMessage;
+          },
+        },
+      ],
+    });
+
+    await alert.present();
+    await alert.onDidDismiss();
+
+    return warningMessage;
+  }
+
+  private findUser(uid: string) {
+    return this.users().find((user) => user.uid === uid) ?? null;
+  }
+
+  getConversationId(uidA: string, uidB: string) {
+    return [uidA, uidB].sort((a, b) => a.localeCompare(b)).join('_');
   }
 
   private toDate(value: unknown) {

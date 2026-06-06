@@ -20,6 +20,7 @@ import { TranslocoDirective } from '@jsverse/transloco';
 import { addIcons } from 'ionicons';
 import {
   closeOutline,
+  flashOutline,
   heartOutline,
   lockClosedOutline,
   returnUpBackOutline,
@@ -56,6 +57,8 @@ export class DiscoverMatchCardComponent implements OnChanges {
   @Input() isRewindLocked = true;
   @Input() freeRewindsRemaining = 0;
   @Input() canSuperLike = false;
+  @Input() isProfileBoostActive = false;
+  @Input() profileBoostMinutesLeft = 0;
 
   @Output() detailsToggled = new EventEmitter<void>();
   @Output() rewindRequested = new EventEmitter<void>();
@@ -69,6 +72,7 @@ export class DiscoverMatchCardComponent implements OnChanges {
   swipeIntent: 'pass' | 'like' | 'super-like' | null = null;
   isSwipeDragging = false;
   isSwipeAnimating = false;
+  isRewindAnimating = false;
 
   private readonly swipeCommitDistance = 118;
   private readonly swipeSuperLikeDistance = 105;
@@ -80,6 +84,7 @@ export class DiscoverMatchCardComponent implements OnChanges {
   constructor() {
     addIcons({
       closeOutline,
+      flashOutline,
       heartOutline,
       lockClosedOutline,
       returnUpBackOutline,
@@ -182,6 +187,22 @@ export class DiscoverMatchCardComponent implements OnChanges {
       action === 'super-like' ? Math.abs(this.swipeY) : Math.abs(this.swipeX);
 
     return Math.min(distance / this.swipePreviewDistance, 1);
+  }
+
+  requestRewind() {
+    if (this.isRewindAnimating) {
+      return;
+    }
+
+    this.isRewindAnimating = true;
+
+    window.setTimeout(() => {
+      this.rewindRequested.emit();
+    }, 260);
+
+    window.setTimeout(() => {
+      this.isRewindAnimating = false;
+    }, 820);
   }
 
   private resolveSwipeIntent(swipeX: number, swipeY: number) {

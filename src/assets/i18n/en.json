@@ -133,6 +133,10 @@
       "superLike": "Send Super Like",
       "superLikeShort": "Super Like"
     },
+    "boost": {
+      "active": "Boost active",
+      "minutesLeft": "{{count}} minutes left"
+    },
     "profile": {
       "myProfile": "My profile",
       "edit": "Edit details",
@@ -297,6 +301,10 @@
       "editProfile": {
         "title": "Edit profile",
         "copy": "Update photos, details, preferences and profile readiness."
+      },
+      "deleteProfile": {
+        "title": "Delete Amor profile",
+        "copy": "Permanently remove your profile, matches and account access."
       }
     },
     "language": {
@@ -617,10 +625,12 @@
       "gold": "Amorino Gold",
       "superLikePack": "Super Like Pack",
       "profileBoostPack": "Profile Boost Pack",
+      "profileBoostActive": "Boost active",
       "activePackage": "Purchased package",
       "active": "Active now",
       "activeUntil": "Active until {{date}}",
       "superLikesBalance": "{{count}} Super Likes available",
+      "profileBoostMinutesLeft": "{{count}} minutes left",
       "profileBoostsBalance": "{{count}} boosts available"
     },
     "paywall": {

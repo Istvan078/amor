@@ -3,13 +3,19 @@ import { Injectable, Injector, inject, runInInjectionContext } from '@angular/co
 import { Auth } from '@angular/fire/auth';
 import {
   Firestore,
+  addDoc,
+  arrayUnion,
   collection,
   doc,
   getDoc,
   getDocs,
+  increment,
+  limit as firestoreLimit,
   orderBy,
   query,
   runTransaction,
+  serverTimestamp,
+  setDoc,
   updateDoc,
 } from '@angular/fire/firestore';
 import { firstValueFrom } from 'rxjs';
@@ -28,6 +34,16 @@ export type AdminReport = {
   description: string;
   createdAt: unknown;
   status: ModerationReportStatus;
+  statusHistory: AdminReportStatusHistory[];
+};
+
+export type AdminReportStatusHistory = {
+  status: ModerationReportStatus;
+  action: string;
+  note: string;
+  moderatorUid: string;
+  moderatorEmail: string;
+  createdAt: string;
 };
 
 export type AdminUser = {
@@ -35,6 +51,16 @@ export type AdminUser = {
   email: string;
   displayName: string;
   photoURL: string;
+  age?: number;
+  gender: string;
+  currentPlace: string;
+  aboutMe: string;
+  interests: string[];
+  isBanned: boolean;
+  isShadowBanned: boolean;
+  isVisible: boolean;
+  warningCount: number;
+  lastWarningAt: unknown;
   createdProfile: boolean;
   isPremium: boolean;
   blockedUsersCount: number;
@@ -75,6 +101,17 @@ export type AdminBillingSnapshot = {
   platform: string;
 };
 
+export type AdminAuditLogEntry = {
+  id: string;
+  action: string;
+  actorUid: string;
+  actorEmail: string;
+  targetUid: string;
+  reportId: string;
+  createdAt: unknown;
+  details: string;
+};
+
 @Injectable({
   providedIn: 'root',
 })
@@ -102,6 +139,7 @@ export class AdminRepository {
           description: data.description ?? '',
           createdAt: data.createdAt ?? null,
           status: data.status ?? 'open',
+          statusHistory: this.mapStatusHistory(data.statusHistory),
         };
       });
     });
@@ -181,6 +219,7 @@ export class AdminRepository {
               description: data.description ?? '',
               createdAt: data.createdAt ?? null,
               status: data.status ?? 'open',
+              statusHistory: this.mapStatusHistory(data.statusHistory),
             };
           }
         );
@@ -189,10 +228,8 @@ export class AdminRepository {
         ...new Set(
           sourceReports
             .filter((report) => report.reporterUid && report.reportedUid)
-            .map((report) => {
-              if (report.status === 'open')
-                this.getConversationId(report.reporterUid, report.reportedUid)
-            }
+            .map((report) =>
+              this.getConversationId(report.reporterUid, report.reportedUid)
             )
         ),
       ];
@@ -260,14 +297,24 @@ export class AdminRepository {
 
   async updateReportStatus(
     report: AdminReport,
-    status: ModerationReportStatus
+    status: ModerationReportStatus,
+    note = ''
   ) {
-    await this.runInFirebaseContext(() =>
-      updateDoc(doc(this.firestore, `reports/${report.id}`), { status })
+    await this.updateReportModerationState(
+      report,
+      status,
+      'report_status_updated',
+      note || `Report marked ${status}.`
     );
   }
 
   async blockReportedUser(report: AdminReport) {
+    const historyItem = this.createStatusHistoryItem(
+      'action_taken',
+      'reported_user_blocked',
+      'Reported user was blocked for the reporter.'
+    );
+
     await this.runInFirebaseContext(() =>
       runTransaction(this.firestore, async (transaction) => {
         const reporterRef = doc(this.firestore, `users/${report.reporterUid}`);
@@ -285,12 +332,27 @@ export class AdminRepository {
 
         transaction.update(doc(this.firestore, `reports/${report.id}`), {
           status: 'action_taken',
+          statusHistory: arrayUnion(historyItem),
+          updatedAt: serverTimestamp(),
         });
       })
     );
+
+    await this.writeAuditLog({
+      action: 'reported_user_blocked',
+      targetUid: report.reportedUid,
+      reportId: report.id,
+      details: 'Reported user was added to the reporter blocked list.',
+    });
   }
 
   async removeMatchForReport(report: AdminReport) {
+    const historyItem = this.createStatusHistoryItem(
+      'action_taken',
+      'match_removed',
+      'Match was removed for both users.'
+    );
+
     await this.runInFirebaseContext(() =>
       runTransaction(this.firestore, async (transaction) => {
         const reporterRef = doc(this.firestore, `users/${report.reporterUid}`);
@@ -342,9 +404,195 @@ export class AdminRepository {
 
         transaction.update(doc(this.firestore, `reports/${report.id}`), {
           status: 'action_taken',
+          statusHistory: arrayUnion(historyItem),
+          updatedAt: serverTimestamp(),
         });
       })
     );
+
+    await this.writeAuditLog({
+      action: 'match_removed',
+      targetUid: report.reportedUid,
+      reportId: report.id,
+      details: 'Match was removed for both users.',
+    });
+  }
+
+  async setUserBan(
+    uid: string,
+    isBanned: boolean,
+    report?: AdminReport | null
+  ) {
+    await this.runInFirebaseContext(async () => {
+      await updateDoc(doc(this.firestore, `users/${uid}`), {
+        isBanned,
+        ...(isBanned
+          ? {
+              isVisible: false,
+              bannedAt: serverTimestamp(),
+              bannedBy: this.getCurrentAdminUid(),
+            }
+          : {
+              unbannedAt: serverTimestamp(),
+              unbannedBy: this.getCurrentAdminUid(),
+            }),
+      });
+
+      await setDoc(
+        doc(this.firestore, `matchIndex/${uid}`),
+        {
+          isBanned,
+          ...(isBanned ? { isVisible: false } : {}),
+          lastModeratedAt: serverTimestamp(),
+        },
+        { merge: true }
+      );
+    });
+
+    if (report) {
+      await this.updateReportModerationState(
+        report,
+        'action_taken',
+        isBanned ? 'user_banned' : 'user_unbanned',
+        isBanned ? 'Reported user was banned.' : 'Reported user was unbanned.'
+      );
+      return;
+    }
+
+    await this.writeAuditLog({
+      action: isBanned ? 'user_banned' : 'user_unbanned',
+      targetUid: uid,
+      reportId: '',
+      details: isBanned ? 'User was banned.' : 'User was unbanned.',
+    });
+  }
+
+  async setProfileHidden(
+    uid: string,
+    isHidden: boolean,
+    report?: AdminReport | null
+  ) {
+    await this.runInFirebaseContext(async () => {
+      await updateDoc(doc(this.firestore, `users/${uid}`), {
+        isShadowBanned: isHidden,
+        isVisible: !isHidden,
+        hiddenByAdmin: isHidden,
+        lastModeratedAt: serverTimestamp(),
+        lastModeratedBy: this.getCurrentAdminUid(),
+      });
+
+      await setDoc(
+        doc(this.firestore, `matchIndex/${uid}`),
+        {
+          isShadowBanned: isHidden,
+          isVisible: !isHidden,
+          lastModeratedAt: serverTimestamp(),
+        },
+        { merge: true }
+      );
+    });
+
+    if (report) {
+      await this.updateReportModerationState(
+        report,
+        'action_taken',
+        isHidden ? 'profile_hidden' : 'profile_restored',
+        isHidden
+          ? 'Reported profile was hidden from discovery.'
+          : 'Reported profile visibility was restored.'
+      );
+      return;
+    }
+
+    await this.writeAuditLog({
+      action: isHidden ? 'profile_hidden' : 'profile_restored',
+      targetUid: uid,
+      reportId: '',
+      details: isHidden
+        ? 'Profile was hidden from discovery.'
+        : 'Profile visibility was restored.',
+    });
+  }
+
+  async sendWarning(
+    uid: string,
+    message: string,
+    report?: AdminReport | null
+  ) {
+    const trimmedMessage = message.trim();
+
+    if (!trimmedMessage) {
+      return;
+    }
+
+    await this.runInFirebaseContext(async () => {
+      const warningPayload = {
+        message: trimmedMessage,
+        reportId: report?.id ?? '',
+        moderatorUid: this.getCurrentAdminUid(),
+        moderatorEmail: this.getCurrentAdminEmail(),
+        createdAt: serverTimestamp(),
+      };
+
+      await addDoc(collection(this.firestore, `users/${uid}/warnings`), warningPayload);
+      await addDoc(collection(this.firestore, `users/${uid}/notifications`), {
+        type: 'moderation_warning',
+        title: 'Amor safety warning',
+        body: trimmedMessage,
+        isRead: false,
+        createdAt: serverTimestamp(),
+      });
+      await updateDoc(doc(this.firestore, `users/${uid}`), {
+        warningCount: increment(1),
+        lastWarningAt: serverTimestamp(),
+        lastModeratedAt: serverTimestamp(),
+        lastModeratedBy: this.getCurrentAdminUid(),
+      });
+    });
+
+    if (report) {
+      await this.updateReportModerationState(
+        report,
+        'action_taken',
+        'warning_sent',
+        'Warning was sent to the reported user.'
+      );
+      return;
+    }
+
+    await this.writeAuditLog({
+      action: 'warning_sent',
+      targetUid: uid,
+      reportId: '',
+      details: trimmedMessage,
+    });
+  }
+
+  async loadAuditLog(limit = 80): Promise<AdminAuditLogEntry[]> {
+    return this.runInFirebaseContext(async () => {
+      const auditRef = collection(this.firestore, 'moderationAudit');
+      const auditQuery = query(
+        auditRef,
+        orderBy('createdAt', 'desc'),
+        firestoreLimit(limit)
+      );
+      const snapshot = await getDocs(auditQuery);
+
+      return snapshot.docs.map((auditSnapshot) => {
+        const data = auditSnapshot.data() as Partial<AdminAuditLogEntry>;
+
+        return {
+          id: auditSnapshot.id,
+          action: data.action ?? '',
+          actorUid: data.actorUid ?? '',
+          actorEmail: data.actorEmail ?? '',
+          targetUid: data.targetUid ?? '',
+          reportId: data.reportId ?? '',
+          createdAt: data.createdAt ?? null,
+          details: data.details ?? '',
+        };
+      });
+    });
   }
 
   async loadConversationForReport(
@@ -472,6 +720,16 @@ export class AdminRepository {
         authUser?.photoURL ??
         String(profile?.['profilePicture'] ?? '') ??
         '',
+      age: this.toOptionalNumber(profile?.['age']),
+      gender: String(profile?.['gender'] ?? ''),
+      currentPlace: String(profile?.['currentPlace'] ?? ''),
+      aboutMe: String(profile?.['aboutMe'] ?? ''),
+      interests: this.toStringArray(profile?.['interests']),
+      isBanned: profile?.['isBanned'] === true,
+      isShadowBanned: profile?.['isShadowBanned'] === true,
+      isVisible: profile?.['isVisible'] !== false,
+      warningCount: Number(profile?.['warningCount'] ?? 0),
+      lastWarningAt: profile?.['lastWarningAt'] ?? null,
       createdProfile: !!profile && (!!firstName || !!lastName),
       isPremium: billing?.isPremium === true,
       blockedUsersCount: this.toStringArray(profile?.['blockedUsers']).length,
@@ -479,6 +737,103 @@ export class AdminRepository {
         (report) => report.reporterUid === uid || report.reportedUid === uid
       ).length,
     };
+  }
+
+  private async updateReportModerationState(
+    report: AdminReport,
+    status: ModerationReportStatus,
+    action: string,
+    note: string
+  ) {
+    const historyItem = this.createStatusHistoryItem(status, action, note);
+
+    await this.runInFirebaseContext(() =>
+      updateDoc(doc(this.firestore, `reports/${report.id}`), {
+        status,
+        statusHistory: arrayUnion(historyItem),
+        updatedAt: serverTimestamp(),
+      })
+    );
+
+    await this.writeAuditLog({
+      action,
+      targetUid: report.reportedUid,
+      reportId: report.id,
+      details: note,
+    });
+  }
+
+  private createStatusHistoryItem(
+    status: ModerationReportStatus,
+    action: string,
+    note: string
+  ): AdminReportStatusHistory {
+    return {
+      status,
+      action,
+      note,
+      moderatorUid: this.getCurrentAdminUid(),
+      moderatorEmail: this.getCurrentAdminEmail(),
+      createdAt: new Date().toISOString(),
+    };
+  }
+
+  private async writeAuditLog(input: {
+    action: string;
+    targetUid: string;
+    reportId?: string;
+    details?: string;
+  }) {
+    await this.runInFirebaseContext(() =>
+      addDoc(collection(this.firestore, 'moderationAudit'), {
+        action: input.action,
+        actorUid: this.getCurrentAdminUid(),
+        actorEmail: this.getCurrentAdminEmail(),
+        targetUid: input.targetUid,
+        reportId: input.reportId ?? '',
+        details: input.details ?? '',
+        createdAt: serverTimestamp(),
+      })
+    );
+  }
+
+  private getCurrentAdminUid() {
+    return this.auth.currentUser?.uid ?? 'unknown-admin';
+  }
+
+  private getCurrentAdminEmail() {
+    return this.auth.currentUser?.email ?? '';
+  }
+
+  private mapStatusHistory(value: unknown): AdminReportStatusHistory[] {
+    if (!Array.isArray(value)) {
+      return [];
+    }
+
+    return value
+      .filter((item): item is Record<string, unknown> => !!item && typeof item === 'object')
+      .map((item) => ({
+        status: this.toReportStatus(item['status']),
+        action: String(item['action'] ?? ''),
+        note: String(item['note'] ?? ''),
+        moderatorUid: String(item['moderatorUid'] ?? ''),
+        moderatorEmail: String(item['moderatorEmail'] ?? ''),
+        createdAt: String(item['createdAt'] ?? ''),
+      }))
+      .sort((a, b) => this.toMillis(b.createdAt) - this.toMillis(a.createdAt));
+  }
+
+  private toReportStatus(value: unknown): ModerationReportStatus {
+    if (
+      value === 'open' ||
+      value === 'reviewed' ||
+      value === 'dismissed' ||
+      value === 'action_taken'
+    ) {
+      return value;
+    }
+
+    return 'open';
   }
 
   private getConversationId(uidA: string, uidB: string) {
@@ -503,6 +858,12 @@ export class AdminRepository {
     return Array.isArray(values)
       ? values.filter((value): value is string => typeof value === 'string')
       : [];
+  }
+
+  private toOptionalNumber(value: unknown) {
+    const numberValue = Number(value);
+
+    return Number.isFinite(numberValue) ? numberValue : undefined;
   }
 
   private mapLastMessage(value: unknown): AdminConversationSummary['lastMessage'] {

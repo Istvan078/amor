@@ -10,7 +10,6 @@ import {
 import { DOCUMENT } from '@angular/common';
 import { ActivatedRoute, Router } from '@angular/router';
 import {
-  AlertController,
   IonCard,
   IonCol,
   IonContent,
@@ -18,7 +17,7 @@ import {
   IonRow,
   ModalController,
 } from '@ionic/angular/standalone';
-import { TranslocoPipe, TranslocoService } from '@jsverse/transloco';
+import { TranslocoPipe } from '@jsverse/transloco';
 import { Subscription } from 'rxjs';
 
 import { IonModalPage } from '../../../modals/ion-modal/ion-modal.page';
@@ -123,6 +122,8 @@ export class DiscoverPage implements OnInit, OnDestroy {
   freeRewindsRemaining = 0;
   isRewindLocked = false;
   canSuperLike = false;
+  profileBoostedUntil: unknown = null;
+  boostCountdownNow = Date.now();
 
   canOpenAdminPanelResult = false;
 
@@ -135,6 +136,7 @@ export class DiscoverPage implements OnInit, OnDestroy {
   private routeQueryParamSubscription?: Subscription;
   private promoBottomSheetQueued = false;
   private promoBottomSheetShownForUid: string | null = null;
+  private boostCountdownInterval: ReturnType<typeof setInterval> | null = null;
 
   private authStore = inject(AuthStore);
   private analytics = inject(AnalyticsService);
@@ -149,13 +151,11 @@ export class DiscoverPage implements OnInit, OnDestroy {
   private promoStore = inject(PromoStore);
   private dailyUsageStore = inject(DailyUsageStore);
   readonly billingStore = inject(BillingStore);
-  private transloco = inject(TranslocoService);
   private modalCtrl = inject(ModalController);
   private config = inject(ConfigService);
   private router = inject(Router);
   private route = inject(ActivatedRoute);
   private locationService = inject(LocationService);
-  private alertCtrl = inject(AlertController);
   private discoverRepository = inject(DiscoverRepository);
   private profilePicturesRepository = inject(ProfilePicturesRepository);
   private document = inject(DOCUMENT);
@@ -174,6 +174,8 @@ export class DiscoverPage implements OnInit, OnDestroy {
         this.loadingDiscoverUid = null;
         this.promoBottomSheetShownForUid = null;
         this.likedByProfiles = [];
+        this.profileBoostedUntil = null;
+        this.stopBoostCountdownTimer();
         return;
       }
 
@@ -252,6 +254,7 @@ export class DiscoverPage implements OnInit, OnDestroy {
     this.routeQueryParamSubscription?.unsubscribe();
     this.matchConversationPreviewsStore.stop();
     this.dailyUsageStore.clearDailyUsage();
+    this.stopBoostCountdownTimer();
     this.document.body.classList.remove('is-mobile-promo-sheet-open');
     void this.onlinePresenceService.setOffline(this.user?.uid ?? this.authStore.user()?.uid);
   }
@@ -283,6 +286,7 @@ export class DiscoverPage implements OnInit, OnDestroy {
 
       this.syncDiscoverState();
       await this.loadLikedByProfiles(uid);
+      await this.loadActiveProfileBoost(uid);
       await this.initMainView();
 
       if (!this.discoverStore.error()) {
@@ -478,6 +482,33 @@ export class DiscoverPage implements OnInit, OnDestroy {
     }
   }
 
+  private async loadActiveProfileBoost(uid: string) {
+    try {
+      this.profileBoostedUntil =
+        await this.matchIndexRepository.getProfileBoostedUntil(uid);
+    } catch (error) {
+      console.warn('Failed to load profile boost state.', error);
+      this.profileBoostedUntil = null;
+    }
+
+    this.syncBoostCountdownTimer();
+  }
+
+  isProfileBoostActive() {
+    return this.getProfileBoostExpiresAtMillis() > this.boostCountdownNow;
+  }
+
+  profileBoostMinutesLeft() {
+    const remainingMs =
+      this.getProfileBoostExpiresAtMillis() - this.boostCountdownNow;
+
+    if (remainingMs <= 0) {
+      return 0;
+    }
+
+    return Math.max(Math.ceil(remainingMs / 60000), 1);
+  }
+
   private filterLikedByProfiles(profiles: UserClass[]) {
     const profile = this.userProf ?? this.profileStore.profile() ?? undefined;
     const excludedUids = new Set(
@@ -513,6 +544,40 @@ export class DiscoverPage implements OnInit, OnDestroy {
     this.likedByProfiles = this.likedByProfiles.filter(
       (profile) => profile.uid !== uid
     );
+  }
+
+  private syncBoostCountdownTimer() {
+    this.boostCountdownNow = Date.now();
+
+    if (!this.isProfileBoostActive()) {
+      this.stopBoostCountdownTimer();
+      return;
+    }
+
+    if (this.boostCountdownInterval) {
+      return;
+    }
+
+    this.boostCountdownInterval = setInterval(() => {
+      this.boostCountdownNow = Date.now();
+
+      if (!this.isProfileBoostActive()) {
+        this.stopBoostCountdownTimer();
+      }
+    }, 1000);
+  }
+
+  private stopBoostCountdownTimer() {
+    if (!this.boostCountdownInterval) {
+      return;
+    }
+
+    clearInterval(this.boostCountdownInterval);
+    this.boostCountdownInterval = null;
+  }
+
+  private getProfileBoostExpiresAtMillis() {
+    return this.toTimestampMillis(this.profileBoostedUntil);
   }
 
   private syncMatchActionState() {
@@ -721,6 +786,8 @@ export class DiscoverPage implements OnInit, OnDestroy {
     }
 
     const boostedUntil = await this.matchIndexRepository.activateProfileBoost(uid);
+    this.profileBoostedUntil = boostedUntil.toISOString();
+    this.syncBoostCountdownTimer();
     await this.dailyUsageStore.incrementDailyUsage(uid, 'boost');
     void this.analytics.track(uid, 'boost_started', {
       boostedUntil: boostedUntil.toISOString(),
@@ -1276,42 +1343,6 @@ export class DiscoverPage implements OnInit, OnDestroy {
     };
   }
 
-  async deleteUserProf() {
-    if (this.userProf?.uid) {
-      await this.profileStore.deleteProfile(this.userProf.uid);
-      this.profileStore.clearProfile();
-      await this.authStore.deleteUser();
-      this.authStore.setAutoFillEmail(undefined);
-      this.authStore.clearUsers();
-      this.discoverStore.clearDiscoverData();
-      this.discoverUiStore.reset();
-      this.router.navigate(['/amor/register']);
-    }
-  }
-
-  async confirmDeleteUserProf() {
-    const alert = await this.alertCtrl.create({
-      header: this.transloco.translate('profile.deleteConfirm.title'),
-      message: this.transloco.translate('profile.deleteConfirm.message'),
-      cssClass: 'delete-profile-alert',
-      buttons: [
-        {
-          text: this.transloco.translate('common.cancel'),
-          role: 'cancel',
-          cssClass: 'delete-profile-alert-cancel-button',
-        },
-        {
-          text: this.transloco.translate('profile.deleteConfirm.confirm'),
-          role: 'destructive',
-          handler: () => this.deleteUserProf(),
-          cssClass: 'delete-profile-alert-confirm-button',
-        },
-      ],
-    });
-
-    await alert.present();
-  }
-
   onSelectChoices(eventObj: any, labelKey: any) {
     const { value } = eventObj.detail;
     const { checked: isChecked } = eventObj.detail;
@@ -1336,6 +1367,43 @@ export class DiscoverPage implements OnInit, OnDestroy {
         this.userProf![labelKey] = [value.value];
       }
     }
+  }
+
+  private toTimestampMillis(value: unknown) {
+    if (!value) {
+      return 0;
+    }
+
+    if (value instanceof Date) {
+      return value.getTime();
+    }
+
+    if (typeof value === 'number') {
+      return value;
+    }
+
+    if (typeof value === 'string') {
+      const date = new Date(value);
+
+      return Number.isNaN(date.getTime()) ? 0 : date.getTime();
+    }
+
+    if (typeof value === 'object') {
+      const maybeTimestamp = value as {
+        toDate?: () => Date;
+        toMillis?: () => number;
+      };
+
+      if (typeof maybeTimestamp.toMillis === 'function') {
+        return maybeTimestamp.toMillis();
+      }
+
+      if (typeof maybeTimestamp.toDate === 'function') {
+        return maybeTimestamp.toDate().getTime();
+      }
+    }
+
+    return 0;
   }
 
   private hasRequiredProfilePictures() {

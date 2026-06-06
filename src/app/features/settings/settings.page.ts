@@ -34,6 +34,7 @@ import {
   shieldCheckmarkOutline,
   sparklesOutline,
   starOutline,
+  trashOutline,
 } from 'ionicons/icons';
 
 import { LanguageSwitcherComponent } from '../../shared/ui/language-switcher/language-switcher.component';
@@ -230,6 +231,7 @@ export class SettingsPage implements OnInit {
       shieldCheckmarkOutline,
       sparklesOutline,
       starOutline,
+      trashOutline,
     });
   }
 
@@ -450,6 +452,50 @@ export class SettingsPage implements OnInit {
     });
 
     await alert.present();
+  }
+
+  async confirmDeleteProfile() {
+    const alert = await this.alertCtrl.create({
+      header: this.transloco.translate('profile.deleteConfirm.title'),
+      message: this.transloco.translate('profile.deleteConfirm.message'),
+      cssClass: 'delete-profile-alert',
+      buttons: [
+        {
+          text: this.transloco.translate('common.cancel'),
+          role: 'cancel',
+          cssClass: 'delete-profile-alert-cancel-button',
+        },
+        {
+          text: this.transloco.translate('profile.deleteConfirm.confirm'),
+          role: 'destructive',
+          handler: () => {
+            void this.deleteProfile();
+          },
+          cssClass: 'delete-profile-alert-confirm-button',
+        },
+      ],
+    });
+
+    await alert.present();
+  }
+
+  private async deleteProfile() {
+    const uid = this.profileStore.uid() ?? this.authStore.uid();
+
+    if (!uid) {
+      return;
+    }
+
+    await this.onlinePresenceService.setOffline(uid);
+    await this.profileStore.deleteProfile(uid);
+    this.profileStore.clearProfile();
+    await this.authStore.deleteUser();
+    this.authStore.setAutoFillEmail(undefined);
+    this.authStore.clearUsers();
+    this.discoverStore.clearDiscoverData();
+    this.discoverUiStore.reset();
+    this.dailyUsageStore.clearDailyUsage();
+    await this.router.navigate(['/amor/register'], { replaceUrl: true });
   }
 
   private async signOut() {

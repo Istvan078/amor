@@ -193,6 +193,21 @@
   font-size: 22px;
 }
 
+.settings-danger-row {
+  border-color: rgba(255, 93, 112, 0.24);
+  background:
+    linear-gradient(135deg, rgba(255, 93, 112, 0.13), rgba(255, 122, 89, 0.06)),
+    rgba(255, 255, 255, 0.045);
+}
+
+.settings-danger-row strong {
+  color: #ffd0da;
+}
+
+.settings-danger-row ion-icon {
+  color: #ff8fa4;
+}
+
 .settings-language-row {
   justify-content: flex-start;
 }

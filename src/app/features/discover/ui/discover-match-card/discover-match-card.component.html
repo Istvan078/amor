@@ -4,6 +4,7 @@
     [class.is-swipeable]="canSwipeCard()"
     [class.is-swiping]="isSwipeDragging"
     [class.is-swipe-animating]="isSwipeAnimating"
+    [class.is-rewind-returning]="isRewindAnimating"
     [class.has-swipe-intent]="!!swipeIntent"
     [style.--swipe-x]="swipeX + 'px'"
     [style.--swipe-y]="swipeY + 'px'"
@@ -24,6 +25,14 @@
     }
 
     @if(progress === 100) {
+    @if(isProfileBoostActive) {
+      <div class="profile-boost-active-badge">
+        <ion-icon name="flash-outline"></ion-icon>
+        <strong>{{ t('discover.boost.active') }}</strong>
+        <span>{{ t('discover.boost.minutesLeft', { count: profileBoostMinutesLeft }) }}</span>
+      </div>
+    }
+
     <swiper-container
       class="possible-match-img-cont"
       [grabCursor]="true"
@@ -144,16 +153,21 @@
         @if(!isMatchPlaceHolder) {
         <ion-buttons style="padding: 20px">
           <ion-button
-            (click)="rewindRequested.emit()"
+            (click)="requestRewind()"
             fill="solid"
             shape="round"
             class="action-button rewind"
+            [class.is-rewind-animating]="isRewindAnimating"
             [class.locked]="isRewindLocked || !hasRewindCandidate"
             [class.free-trial]="
               hasRewindCandidate && !isRewindLocked && freeRewindsRemaining > 0
             "
             [attr.aria-label]="t('discover.actions.rewind')"
           >
+            <span class="rewind-aura" aria-hidden="true"></span>
+            <span class="rewind-spark rewind-spark-one" aria-hidden="true"></span>
+            <span class="rewind-spark rewind-spark-two" aria-hidden="true"></span>
+            <span class="rewind-spark rewind-spark-three" aria-hidden="true"></span>
             <ion-icon
               slot="icon-only"
               size="large"

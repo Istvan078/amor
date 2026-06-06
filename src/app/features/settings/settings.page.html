@@ -44,6 +44,17 @@
             </div>
             <ion-icon name="exit-outline"></ion-icon>
           </button>
+          <button
+            class="settings-row settings-row-button settings-danger-row"
+            type="button"
+            (click)="confirmDeleteProfile()"
+          >
+            <div>
+              <strong>{{ t('settings.account.deleteProfile.title') }}</strong>
+              <span>{{ t('settings.account.deleteProfile.copy') }}</span>
+            </div>
+            <ion-icon name="trash-outline"></ion-icon>
+          </button>
         </article>
 
         <article class="settings-card settings-visibility-card">

@@ -96,6 +96,8 @@ export class DiscoverSidebarComponent implements AfterViewInit, OnChanges {
   @Input() activeEntitlements: string[] = [];
   @Input() superLikesBalance = 0;
   @Input() profileBoostsBalance = 0;
+  @Input() isProfileBoostActive = false;
+  @Input() profileBoostMinutesLeft = 0;
 
   @Output() profileOpened = new EventEmitter<void>();
   @Output() messageOpened = new EventEmitter<UserClass>();
@@ -238,11 +240,16 @@ export class DiscoverSidebarComponent implements AfterViewInit, OnChanges {
       this.activeEntitlements.length ||
       this.superLikesBalance > 0 ||
       this.profileBoostsBalance > 0 ||
+      this.isProfileBoostActive ||
       this.billingCurrent?.productId
     );
   }
 
   billingTitleKey() {
+    if (this.isProfileBoostActive) {
+      return 'billing.status.profileBoostActive';
+    }
+
     if (this.isPremium) {
       return 'billing.status.gold';
     }
@@ -259,6 +266,10 @@ export class DiscoverSidebarComponent implements AfterViewInit, OnChanges {
   }
 
   billingSubtitleKey() {
+    if (this.isProfileBoostActive) {
+      return 'billing.status.profileBoostMinutesLeft';
+    }
+
     if (this.isPremium && this.billingCurrent?.expiresAt) {
       return 'billing.status.activeUntil';
     }
@@ -277,7 +288,9 @@ export class DiscoverSidebarComponent implements AfterViewInit, OnChanges {
   billingSubtitleParams() {
     return {
       date: this.formatBillingDate(this.billingCurrent?.expiresAt),
-      count: this.superLikesBalance || this.profileBoostsBalance,
+      count: this.isProfileBoostActive
+        ? this.profileBoostMinutesLeft
+        : this.superLikesBalance || this.profileBoostsBalance,
     };
   }
 

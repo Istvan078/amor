@@ -24,6 +24,7 @@ export type AppNotificationType =
     | 'promotion'
     | 'profile_boost_ended'
     | 'premium_expiry'
+    | 'moderation_warning'
     | 'report_status';
 
 export type AppNotification = {
@@ -240,6 +241,7 @@ export class NotificationsRepository {
             value === 'promotion' ||
             value === 'profile_boost_ended' ||
             value === 'premium_expiry' ||
+            value === 'moderation_warning' ||
             value === 'report_status'
         ) {
             return value;

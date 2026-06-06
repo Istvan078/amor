@@ -79,7 +79,7 @@
 
 .admin-stats {
   display: grid;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
+  grid-template-columns: repeat(4, minmax(0, 1fr));
   gap: 14px;
   margin: 18px 0;
 }
@@ -181,6 +181,29 @@
   background: rgba(6, 10, 23, 0.32);
 }
 
+.admin-list-heading {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 14px;
+  padding: 12px 14px;
+  border: 1px solid rgba(255, 255, 255, 0.09);
+  border-radius: 18px;
+  background: rgba(6, 10, 23, 0.32);
+}
+
+.admin-list-heading span {
+  color: #ffd76b;
+  font-size: 0.78rem;
+  font-weight: 900;
+  text-transform: uppercase;
+}
+
+.admin-list-heading strong {
+  color: rgba(255, 255, 255, 0.78);
+  font-size: 0.9rem;
+}
+
 .admin-status-filter button {
   border: 1px solid rgba(255, 255, 255, 0.11);
   border-radius: 999px;
@@ -217,6 +240,13 @@
 
 .admin-report-card strong {
   font-size: 1.05rem;
+}
+
+.admin-report-card em {
+  color: #ffd76b;
+  font-size: 0.76rem;
+  font-style: normal;
+  font-weight: 900;
 }
 
 .admin-report-card small,
@@ -298,6 +328,162 @@
 .admin-card-actions button {
   background: rgba(255, 255, 255, 0.1);
   border: 1px solid rgba(255, 255, 255, 0.14);
+}
+
+.admin-profile-preview,
+.admin-conversation-preview,
+.admin-history {
+  margin-top: 16px;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 20px;
+  background:
+    linear-gradient(135deg, rgba(255, 255, 255, 0.07), rgba(255, 255, 255, 0.035));
+}
+
+.admin-profile-preview {
+  display: grid;
+  grid-template-columns: 112px minmax(0, 1fr);
+  gap: 16px;
+  padding: 16px;
+}
+
+.admin-profile-preview img {
+  width: 112px;
+  height: 142px;
+  border-radius: 16px;
+  object-fit: cover;
+  background: rgba(255, 255, 255, 0.12);
+}
+
+.admin-profile-preview h3 {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  align-items: center;
+  margin: 6px 0 8px;
+  color: #ffffff;
+  font-size: 1.35rem;
+}
+
+.admin-profile-preview h3 span {
+  color: rgba(255, 255, 255, 0.66);
+  font-size: 1rem;
+}
+
+.admin-profile-preview p {
+  margin: 0;
+  color: rgba(255, 255, 255, 0.68);
+  line-height: 1.45;
+}
+
+.admin-profile-meta,
+.admin-profile-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-top: 12px;
+}
+
+.admin-profile-meta span,
+.admin-profile-chips span,
+.admin-state-pill {
+  border: 1px solid rgba(255, 255, 255, 0.11);
+  border-radius: 999px;
+  padding: 7px 10px;
+  background: rgba(255, 255, 255, 0.06);
+  color: rgba(255, 255, 255, 0.74);
+  font-size: 0.76rem;
+  font-weight: 900;
+}
+
+.admin-state-pill {
+  color: #8ff2dc;
+  border-color: rgba(53, 198, 189, 0.24);
+  background: rgba(53, 198, 189, 0.09);
+}
+
+.admin-state-pill.is-warning {
+  color: #ffd76b;
+  border-color: rgba(255, 215, 107, 0.26);
+  background: rgba(255, 215, 107, 0.1);
+}
+
+.admin-state-pill.is-danger {
+  color: #ff9bb2;
+  border-color: rgba(255, 91, 137, 0.3);
+  background: rgba(255, 91, 137, 0.1);
+}
+
+.admin-conversation-preview {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 14px;
+  padding: 16px;
+}
+
+.admin-conversation-preview div {
+  display: grid;
+  gap: 5px;
+  min-width: 0;
+}
+
+.admin-conversation-preview strong,
+.admin-conversation-preview span {
+  overflow-wrap: anywhere;
+}
+
+.admin-conversation-preview span {
+  color: rgba(255, 255, 255, 0.66);
+}
+
+.admin-conversation-preview button {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  flex: 0 0 auto;
+  border: 1px solid rgba(255, 255, 255, 0.14);
+  border-radius: 999px;
+  padding: 11px 15px;
+  background: rgba(255, 255, 255, 0.1);
+  color: #ffffff;
+  font-weight: 900;
+  cursor: pointer;
+}
+
+.admin-history {
+  display: grid;
+  gap: 10px;
+  padding: 16px;
+}
+
+.admin-history .admin-eyebrow {
+  margin: 0;
+}
+
+.admin-history article {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr);
+  gap: 12px;
+  align-items: start;
+  padding: 12px;
+  border-radius: 16px;
+  background: rgba(6, 10, 23, 0.28);
+}
+
+.admin-history strong,
+.admin-history small,
+.admin-history p {
+  display: block;
+}
+
+.admin-history small {
+  color: rgba(255, 255, 255, 0.58);
+}
+
+.admin-history p {
+  margin: 6px 0 0;
+  color: rgba(255, 255, 255, 0.68);
 }
 
 .admin-search {
@@ -409,6 +595,96 @@
   overflow-wrap: anywhere;
 }
 
+.admin-analytics-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(190px, 1fr));
+  gap: 14px;
+  margin-top: 16px;
+}
+
+.admin-analytics-grid article {
+  min-height: 128px;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 20px;
+  padding: 18px;
+  background:
+    radial-gradient(circle at 100% 0%, rgba(255, 215, 107, 0.12), transparent 34%),
+    rgba(255, 255, 255, 0.06);
+}
+
+.admin-analytics-grid span,
+.admin-reason-table span,
+.admin-audit-list time {
+  color: rgba(255, 255, 255, 0.62);
+  font-weight: 900;
+}
+
+.admin-analytics-grid strong {
+  display: block;
+  margin-top: 12px;
+  color: #ffffff;
+  font-size: 2rem;
+}
+
+.admin-reason-table,
+.admin-audit-list {
+  display: grid;
+  gap: 10px;
+  margin-top: 18px;
+}
+
+.admin-reason-table .admin-eyebrow {
+  margin: 0;
+}
+
+.admin-reason-table div,
+.admin-audit-list article {
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 18px;
+  background: rgba(255, 255, 255, 0.055);
+}
+
+.admin-reason-table div {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 14px;
+  padding: 14px 16px;
+}
+
+.admin-reason-table strong {
+  color: #ffd76b;
+  font-size: 1.1rem;
+}
+
+.admin-audit-list article {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 12px;
+  padding: 16px;
+}
+
+.admin-audit-list article > div {
+  display: grid;
+  gap: 6px;
+}
+
+.admin-audit-list strong,
+.admin-audit-list small,
+.admin-audit-list p {
+  overflow-wrap: anywhere;
+}
+
+.admin-audit-list small,
+.admin-audit-list p {
+  color: rgba(255, 255, 255, 0.66);
+}
+
+.admin-audit-list p {
+  grid-column: 1 / -1;
+  margin: 0;
+}
+
 :host::-webkit-scrollbar,
 .admin-list::-webkit-scrollbar,
 .admin-message-list::-webkit-scrollbar {
@@ -455,6 +731,26 @@
 
   .admin-list {
     max-height: none;
+  }
+
+  .admin-profile-preview,
+  .admin-conversation-preview,
+  .admin-audit-list article {
+    grid-template-columns: 1fr;
+  }
+
+  .admin-profile-preview img {
+    width: 100%;
+    height: 260px;
+  }
+
+  .admin-conversation-preview {
+    align-items: stretch;
+    flex-direction: column;
+  }
+
+  .admin-conversation-preview button {
+    justify-content: center;
   }
 
   .admin-conversation {

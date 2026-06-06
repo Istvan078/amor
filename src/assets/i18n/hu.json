@@ -133,6 +133,10 @@
       "superLike": "Super Like küldése",
       "superLikeShort": "Super Like"
     },
+    "boost": {
+      "active": "Boost aktív",
+      "minutesLeft": "{{count}} perc van hátra"
+    },
     "profile": {
       "myProfile": "Profilom",
       "settings": "Beállítások",
@@ -297,6 +301,10 @@
       "editProfile": {
         "title": "Profil szerkesztése",
         "copy": "Frissítsd a képeket, adatokat, preferenciákat és a profilkészültséget."
+      },
+      "deleteProfile": {
+        "title": "Amor profil törlése",
+        "copy": "Végleg eltávolítja a profilodat, a matcheket és a fiókhozzáférést."
       }
     },
     "language": {
@@ -617,10 +625,12 @@
       "gold": "Amorino Gold",
       "superLikePack": "Super Like Pack",
       "profileBoostPack": "Profile Boost csomag",
+      "profileBoostActive": "Boost aktív",
       "activePackage": "Megvásárolt csomag",
       "active": "Jelenleg aktív",
       "activeUntil": "Aktív eddig: {{date}}",
       "superLikesBalance": "{{count}} Super Like elérhető",
+      "profileBoostMinutesLeft": "{{count}} perc van hátra",
       "profileBoostsBalance": "{{count}} kiemelés elérhető"
     },
     "paywall": {

@@ -127,6 +127,8 @@ export class DiscoverProfilePanelComponent implements AfterViewChecked, OnChange
   @Input() isPremium = false;
   @Input() activeEntitlements: string[] = [];
   @Input() superLikesBalance = 0;
+  @Input() isProfileBoostActive = false;
+  @Input() profileBoostMinutesLeft = 0;
   @Input() canOpenAdmin = false;
 
   @Output() startUpdateRequested = new EventEmitter<void>();
@@ -139,7 +141,6 @@ export class DiscoverProfilePanelComponent implements AfterViewChecked, OnChange
   @Output() profilePhotoPrimarySelected = new EventEmitter<number>();
   @Output() profilePhotoDeleted = new EventEmitter<number>();
   @Output() profileUpdated = new EventEmitter<void>();
-  @Output() profileDeleted = new EventEmitter<void>();
   @Output() choicesSelected = new EventEmitter<ProfileChoiceSelectedEvent>();
 
   constructor() {
@@ -330,11 +331,16 @@ export class DiscoverProfilePanelComponent implements AfterViewChecked, OnChange
       this.isPremium ||
       this.activeEntitlements.length ||
       this.superLikesBalance > 0 ||
+      this.isProfileBoostActive ||
       this.billingCurrent?.productId
     );
   }
 
   billingTitleKey() {
+    if (this.isProfileBoostActive) {
+      return 'billing.status.profileBoostActive';
+    }
+
     if (this.isPremium) {
       return 'billing.status.gold';
     }
@@ -347,6 +353,10 @@ export class DiscoverProfilePanelComponent implements AfterViewChecked, OnChange
   }
 
   billingSubtitleKey() {
+    if (this.isProfileBoostActive) {
+      return 'billing.status.profileBoostMinutesLeft';
+    }
+
     if (this.isPremium && this.billingCurrent?.expiresAt) {
       return 'billing.status.activeUntil';
     }
@@ -361,7 +371,9 @@ export class DiscoverProfilePanelComponent implements AfterViewChecked, OnChange
   billingSubtitleParams() {
     return {
       date: this.formatBillingDate(this.billingCurrent?.expiresAt),
-      count: this.superLikesBalance,
+      count: this.isProfileBoostActive
+        ? this.profileBoostMinutesLeft
+        : this.superLikesBalance,
     };
   }
 

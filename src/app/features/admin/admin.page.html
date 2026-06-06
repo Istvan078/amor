@@ -25,6 +25,10 @@
       <span>Premium users</span>
       <strong>{{ premiumUsers() }}</strong>
     </article>
+    <article>
+      <span>Banned / hidden</span>
+      <strong>{{ bannedUsers() }} / {{ hiddenProfiles() }}</strong>
+    </article>
   </section>
 
   <nav class="admin-tabs" aria-label="Admin sections">
@@ -63,6 +67,22 @@
       <ion-icon name="card-outline"></ion-icon>
       Billing
     </button>
+    <button
+      type="button"
+      [class.is-active]="activePanel() === 'analytics'"
+      (click)="setPanel('analytics')"
+    >
+      <ion-icon name="bar-chart-outline"></ion-icon>
+      Analytics
+    </button>
+    <button
+      type="button"
+      [class.is-active]="activePanel() === 'audit'"
+      (click)="setPanel('audit')"
+    >
+      <ion-icon name="time-outline"></ion-icon>
+      Audit log
+    </button>
   </nav>
 
   @if (error()) {
@@ -76,6 +96,10 @@
   @if (activePanel() === 'reports') {
     <section class="admin-panel admin-panel--split">
       <div class="admin-list">
+        <div class="admin-list-heading">
+          <span>Reports queue</span>
+          <strong>{{ filteredReports().length }} cases</strong>
+        </div>
         <div class="admin-status-filter" aria-label="Report status filter">
           <button
             type="button"
@@ -125,6 +149,7 @@
               {{ report.status }}
             </span>
             <strong>{{ report.reason }}</strong>
+            <em>Queue #{{ $index + 1 }}</em>
             <small>{{ getUserName(report.reporterUid) }} reported {{ getUserName(report.reportedUid) }}</small>
           </button>
         } @empty {
@@ -157,6 +182,83 @@
             </div>
           </dl>
 
+          @if (selectedReportedUser(); as reportedUser) {
+            <section class="admin-profile-preview">
+              <img [src]="reportedUser.photoURL || 'assets/icon/user-icon.png'" alt="" />
+              <div>
+                <p class="admin-eyebrow">Reported profile preview</p>
+                <h3>
+                  {{ reportedUser.displayName }}
+                  @if (reportedUser.age) {
+                    <span>{{ reportedUser.age }}</span>
+                  }
+                </h3>
+                <p>{{ reportedUser.aboutMe || 'No bio provided.' }}</p>
+                <div class="admin-profile-meta">
+                  <span>{{ reportedUser.gender || 'Gender unknown' }}</span>
+                  <span>{{ reportedUser.currentPlace || 'Location unknown' }}</span>
+                  <span>{{ reportedUser.warningCount }} warnings</span>
+                  <span
+                    class="admin-state-pill"
+                    [class.is-danger]="reportedUser.isBanned"
+                    [class.is-warning]="reportedUser.isShadowBanned || reportedUser.isVisible === false"
+                  >
+                    {{ getModerationState(reportedUser) }}
+                  </span>
+                </div>
+                @if (reportedUser.interests.length) {
+                  <div class="admin-profile-chips">
+                    @for (interest of reportedUser.interests; track interest) {
+                      <span>{{ interest }}</span>
+                    }
+                  </div>
+                }
+              </div>
+            </section>
+          }
+
+          <section class="admin-conversation-preview">
+            <div>
+              <p class="admin-eyebrow">Reported conversation preview</p>
+              <strong>
+                {{
+                  selectedReportConversationSummary()?.id ||
+                    getConversationId(report.reporterUid, report.reportedUid)
+                }}
+              </strong>
+              <span>{{ getLastMessageText(selectedReportConversationSummary()) }}</span>
+            </div>
+            <button type="button" class="is-soft" (click)="openConversation(report)">
+              <ion-icon name="eye-outline"></ion-icon>
+              Open conversation
+            </button>
+          </section>
+
+          <section class="admin-history">
+            <p class="admin-eyebrow">Report status history</p>
+            @for (history of report.statusHistory; track trackStatusHistory($index, history)) {
+              <article>
+                <span class="admin-status" [class]="'is-' + history.status">
+                  {{ history.status }}
+                </span>
+                <div>
+                  <strong>{{ history.action || 'status updated' }}</strong>
+                  <small>
+                    {{ formatDate(history.createdAt) }}
+                    @if (history.moderatorEmail || history.moderatorUid) {
+                      by {{ history.moderatorEmail || history.moderatorUid }}
+                    }
+                  </small>
+                  @if (history.note) {
+                    <p>{{ history.note }}</p>
+                  }
+                </div>
+              </article>
+            } @empty {
+              <p class="admin-empty">No status history recorded yet.</p>
+            }
+          </section>
+
           <div class="admin-actions">
             <button type="button" (click)="markReviewed(report)">
               <ion-icon name="checkmark-done-outline"></ion-icon>
@@ -168,7 +270,23 @@
             </button>
             <button type="button" class="is-danger" (click)="blockReportedUser(report)">
               <ion-icon name="ban-outline"></ion-icon>
-              Block reported user
+              Block for reporter
+            </button>
+            <button type="button" class="is-danger" (click)="toggleReportedUserBan(report)">
+              <ion-icon name="ban-outline"></ion-icon>
+              {{ selectedReportedUser()?.isBanned ? 'Unban user' : 'Ban user' }}
+            </button>
+            <button type="button" class="is-soft" (click)="toggleReportedProfileHidden(report)">
+              <ion-icon [name]="(selectedReportedUser()?.isShadowBanned || selectedReportedUser()?.isVisible === false) ? 'eye-outline' : 'eye-off-outline'"></ion-icon>
+              {{
+                (selectedReportedUser()?.isShadowBanned || selectedReportedUser()?.isVisible === false)
+                  ? 'Restore profile'
+                  : 'Hide profile'
+              }}
+            </button>
+            <button type="button" class="is-soft" (click)="sendWarning(report)">
+              <ion-icon name="warning-outline"></ion-icon>
+              Send warning
             </button>
             <button type="button" class="is-danger" (click)="removeMatch(report)">
               <ion-icon name="trash-outline"></ion-icon>
@@ -322,6 +440,86 @@
           } @else {
             <p class="admin-empty">No billing cache exists for this user.</p>
           }
+        }
+      </div>
+    </section>
+  }
+
+  @if (activePanel() === 'analytics') {
+    <section class="admin-panel">
+      <div class="admin-list-heading">
+        <span>Admin-only analytics dashboard</span>
+        <strong>Moderation health</strong>
+      </div>
+
+      <div class="admin-analytics-grid">
+        <article>
+          <span>Reviewed reports</span>
+          <strong>{{ moderationAnalytics().reviewedReports }}</strong>
+        </article>
+        <article>
+          <span>Dismissed reports</span>
+          <strong>{{ moderationAnalytics().dismissedReports }}</strong>
+        </article>
+        <article>
+          <span>Action taken</span>
+          <strong>{{ moderationAnalytics().actionTakenReports }}</strong>
+        </article>
+        <article>
+          <span>Warnings sent</span>
+          <strong>{{ moderationAnalytics().warningCount }}</strong>
+        </article>
+        <article>
+          <span>Reported conversations</span>
+          <strong>{{ moderationAnalytics().reportedConversationCount }}</strong>
+        </article>
+        <article>
+          <span>Audit events loaded</span>
+          <strong>{{ moderationAnalytics().auditEvents }}</strong>
+        </article>
+      </div>
+
+      <section class="admin-reason-table">
+        <p class="admin-eyebrow">Top report reasons</p>
+        @for (reason of reportReasonAnalytics(); track trackReason($index, reason)) {
+          <div>
+            <span>{{ reason.reason }}</span>
+            <strong>{{ reason.count }}</strong>
+          </div>
+        } @empty {
+          <p class="admin-empty">No report analytics yet.</p>
+        }
+      </section>
+    </section>
+  }
+
+  @if (activePanel() === 'audit') {
+    <section class="admin-panel">
+      <div class="admin-list-heading">
+        <span>Audit log</span>
+        <strong>{{ auditLog().length }} latest events</strong>
+      </div>
+
+      <div class="admin-audit-list">
+        @for (audit of auditLog(); track trackAudit($index, audit)) {
+          <article>
+            <div>
+              <span class="admin-status">{{ audit.action }}</span>
+              <strong>{{ audit.actorEmail || audit.actorUid }}</strong>
+              <small>
+                moderated {{ getUserName(audit.targetUid) || audit.targetUid }}
+                @if (audit.reportId) {
+                  - report {{ audit.reportId }}
+                }
+              </small>
+            </div>
+            <time>{{ formatDate(audit.createdAt) }}</time>
+            @if (audit.details) {
+              <p>{{ audit.details }}</p>
+            }
+          </article>
+        } @empty {
+          <p class="admin-empty">No audit events recorded yet.</p>
         }
       </div>
     </section>

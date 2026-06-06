@@ -4,6 +4,7 @@ import {
   collection,
   deleteDoc,
   doc,
+  getDoc,
   getDocs,
   limit,
   query,
@@ -154,6 +155,20 @@ export class MatchIndexRepository {
     });
 
     return boostedUntil;
+  }
+
+  async getProfileBoostedUntil(uid: string) {
+    const snapshot = await this.runInFirebaseContext(() => {
+      const indexRef = doc(this.firestore, `matchIndex/${uid}`);
+
+      return getDoc(indexRef);
+    });
+
+    if (!snapshot.exists()) {
+      return null;
+    }
+
+    return (snapshot.data() as MatchIndexEntry).boostedUntil ?? null;
   }
 
   async loadCandidates(profile: UserClass, resultLimit = 80) {
