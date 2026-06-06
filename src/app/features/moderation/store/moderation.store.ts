@@ -6,6 +6,7 @@ import {
     withState,
 } from '@ngrx/signals';
 
+import { Message } from '../../../shared/models/message.model';
 import { MatchParts, UserClass } from '../../../shared/models/user.model';
 import { ProfileStore } from '../../profile/store/profile.store';
 import {
@@ -33,6 +34,19 @@ function appendUnique(values: string[] | undefined, value: string) {
     return currentValues.includes(value)
         ? currentValues
         : [...currentValues, value];
+}
+
+function getConversationId(uidA: string, uidB: string) {
+    return [uidA, uidB].sort((a, b) => a.localeCompare(b)).join('_');
+}
+
+function getMessageExcerpt(message: Message) {
+    const content =
+        message.messageType === 'gif'
+            ? message.gif?.title ?? 'GIF'
+            : message.message;
+
+    return content.trim().slice(0, 500);
 }
 
 export const ModerationStore = signalStore(
@@ -169,6 +183,69 @@ export const ModerationStore = signalStore(
                 return report;
             } catch (error) {
                 patchState(store, setModerationError('Failed to report user.'));
+                throw error;
+            }
+        },
+
+        async reportMessage(
+            userProfile: UserClass,
+            matchProfile: UserClass,
+            message: Message,
+            reason = 'conversation_report',
+            reasonLabel?: string
+        ) {
+            if (
+                !userProfile.uid ||
+                !matchProfile.uid ||
+                !message.id ||
+                message.senderUid !== matchProfile.uid ||
+                message.sentToUid !== userProfile.uid
+            ) {
+                return undefined;
+            }
+
+            const reportedUsers = appendUnique(
+                userProfile.reportedUsers,
+                matchProfile.uid
+            );
+            const messageText = getMessageExcerpt(message);
+            const conversationId = getConversationId(
+                userProfile.uid,
+                matchProfile.uid
+            );
+            const reportDescription = [
+                `Message report: ${reasonLabel || reason}.`,
+                `Message: "${messageText || 'No text content'}"`,
+                `Message id: ${message.id}`,
+                `Conversation id: ${conversationId}`,
+            ].join('\n');
+
+            patchState(store, setModerationLoading());
+
+            try {
+                const report = await repository.createReport({
+                    reporterUid: userProfile.uid,
+                    reportedUid: matchProfile.uid,
+                    reason,
+                    description: reportDescription,
+                    source: 'message',
+                    conversationId,
+                    messageId: message.id,
+                    messageText,
+                    messageSentAt: message.sentAt?.toISOString?.() ?? '',
+                    messageSenderUid: message.senderUid,
+                });
+
+                await profileStore.updateProfile(userProfile.uid, {
+                    reportedUsers,
+                });
+
+                userProfile.reportedUsers = reportedUsers;
+                patchState(store, setModerationLastReport(report));
+
+                return report;
+            } catch (error) {
+                patchState(store, setModerationError('Failed to report message.'));
                 throw error;
             }
         },

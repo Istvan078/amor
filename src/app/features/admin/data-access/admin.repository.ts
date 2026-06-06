@@ -32,6 +32,12 @@ export type AdminReport = {
   reportedUid: string;
   reason: string;
   description: string;
+  source?: 'profile' | 'conversation' | 'message';
+  conversationId?: string;
+  messageId?: string;
+  messageText?: string;
+  messageSentAt?: string;
+  messageSenderUid?: string;
   createdAt: unknown;
   status: ModerationReportStatus;
   statusHistory: AdminReportStatusHistory[];
@@ -137,6 +143,12 @@ export class AdminRepository {
           reportedUid: data.reportedUid ?? '',
           reason: data.reason ?? 'other',
           description: data.description ?? '',
+          source: data.source,
+          conversationId: data.conversationId ?? '',
+          messageId: data.messageId ?? '',
+          messageText: data.messageText ?? '',
+          messageSentAt: data.messageSentAt ?? '',
+          messageSenderUid: data.messageSenderUid ?? '',
           createdAt: data.createdAt ?? null,
           status: data.status ?? 'open',
           statusHistory: this.mapStatusHistory(data.statusHistory),

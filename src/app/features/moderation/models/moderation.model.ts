@@ -5,6 +5,12 @@ export type CreateModerationReportInput = {
     reportedUid: string;
     reason: string;
     description: string;
+    source?: 'profile' | 'conversation' | 'message';
+    conversationId?: string;
+    messageId?: string;
+    messageText?: string;
+    messageSentAt?: string;
+    messageSenderUid?: string;
 };
 
 export type ModerationReportStatus =
@@ -19,6 +25,12 @@ export type ModerationReport = {
     reportedUid: string;
     reason: string;
     description: string;
+    source?: 'profile' | 'conversation' | 'message';
+    conversationId?: string;
+    messageId?: string;
+    messageText?: string;
+    messageSentAt?: string;
+    messageSenderUid?: string;
     createdAt: FieldValue;
     status: ModerationReportStatus;
 };

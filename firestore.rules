@@ -55,6 +55,12 @@ service cloud.firestore {
           'reportedUid',
           'reason',
           'description',
+          'source',
+          'conversationId',
+          'messageId',
+          'messageText',
+          'messageSentAt',
+          'messageSenderUid',
           'createdAt',
           'status'
         ])
@@ -73,6 +79,33 @@ service cloud.firestore {
         && request.resource.data.reportedUid is string
         && request.resource.data.reportedUid != request.auth.uid
         && request.resource.data.description is string
+        && (
+          !request.resource.data.keys().hasAny(['source'])
+          || request.resource.data.source in ['profile', 'conversation', 'message']
+        )
+        && (
+          !request.resource.data.keys().hasAny(['conversationId'])
+          || request.resource.data.conversationId is string
+        )
+        && (
+          !request.resource.data.keys().hasAny(['messageId'])
+          || request.resource.data.messageId is string
+        )
+        && (
+          !request.resource.data.keys().hasAny(['messageText'])
+          || request.resource.data.messageText is string
+        )
+        && (
+          !request.resource.data.keys().hasAny(['messageSentAt'])
+          || request.resource.data.messageSentAt is string
+        )
+        && (
+          !request.resource.data.keys().hasAny(['messageSenderUid'])
+          || (
+            request.resource.data.messageSenderUid is string
+            && request.resource.data.messageSenderUid == request.resource.data.reportedUid
+          )
+        )
         && validReportReason(request.resource.data.reason)
         && request.resource.data.status == 'open'
         && request.resource.data.createdAt is timestamp;

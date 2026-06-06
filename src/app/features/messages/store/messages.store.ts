@@ -9,11 +9,16 @@ import {
 import { Message } from '../../../shared/models/message.model';
 import { UserClass } from '../../../shared/models/user.model';
 import { AnalyticsService } from '../../analytics/data-access/analytics.service';
-import { MessagesRepository } from '../data-access/messages.repository';
+import {
+    MESSAGE_PAGE_SIZE,
+    MessagesRepository,
+} from '../data-access/messages.repository';
 
 type MessagesState = {
     messages: Message[];
     loading: boolean;
+    loadingOlderMessages: boolean;
+    hasOlderMessages: boolean;
     error: string | null;
     isMatchTyping: boolean;
 };
@@ -21,9 +26,62 @@ type MessagesState = {
 const initialState: MessagesState = {
     messages: [],
     loading: false,
+    loadingOlderMessages: false,
+    hasOlderMessages: false,
     error: null,
     isMatchTyping: false,
 };
+
+function getMessageKey(message: Message) {
+    return (
+        message.id ??
+        `${message.senderUid}:${message.sentToUid}:${message.number}:${message.sentAt?.getTime?.() ?? 0}`
+    );
+}
+
+function getOptimisticSignature(message: Message) {
+    return [
+        message.senderUid,
+        message.sentToUid,
+        message.number,
+        message.messageType ?? 'text',
+        message.message,
+        message.gif?.id ?? '',
+    ].join(':');
+}
+
+function mergeMessages(currentMessages: Message[], nextMessages: Message[]) {
+    const persistedSignatures = new Set(
+        nextMessages
+            .filter((message) => !!message.id)
+            .map((message) => getOptimisticSignature(message))
+    );
+    const messagesByKey = new Map<string, Message>();
+
+    for (const message of currentMessages) {
+        if (!message.id && persistedSignatures.has(getOptimisticSignature(message))) {
+            continue;
+        }
+
+        messagesByKey.set(getMessageKey(message), message);
+    }
+
+    for (const message of nextMessages) {
+        messagesByKey.set(getMessageKey(message), message);
+    }
+
+    return [...messagesByKey.values()].sort((messageA, messageB) => {
+        const timeDifference =
+            (messageA.sentAt?.getTime?.() ?? 0) -
+            (messageB.sentAt?.getTime?.() ?? 0);
+
+        if (timeDifference !== 0) {
+            return timeDifference;
+        }
+
+        return (messageA.number ?? 0) - (messageB.number ?? 0);
+    });
+}
 
 export const MessagesStore = signalStore(
     {
@@ -41,6 +99,7 @@ export const MessagesStore = signalStore(
         let unsubscribeTyping: (() => void) | null = null;
         let activeConversationId: string | null = null;
         let typingExpiryTimer: ReturnType<typeof setTimeout> | null = null;
+        let olderMessagesExhausted = false;
 
         const clearTypingExpiryTimer = () => {
             if (!typingExpiryTimer) {
@@ -71,6 +130,7 @@ export const MessagesStore = signalStore(
             unsubscribeMessages = null;
             unsubscribeTyping = null;
             activeConversationId = null;
+            olderMessagesExhausted = false;
             setMatchTyping(false);
         };
 
@@ -81,6 +141,8 @@ export const MessagesStore = signalStore(
                     patchState(store, {
                         messages: [],
                         loading: false,
+                        loadingOlderMessages: false,
+                        hasOlderMessages: false,
                     });
                     return;
                 }
@@ -101,6 +163,8 @@ export const MessagesStore = signalStore(
 
                 patchState(store, {
                     loading: true,
+                    loadingOlderMessages: false,
+                    hasOlderMessages: false,
                     error: null,
                 });
 
@@ -109,9 +173,20 @@ export const MessagesStore = signalStore(
                         myUid,
                         matchUid,
                         (messages) => {
+                            const hasExistingMessages =
+                                activeConversationId === conversationId &&
+                                store.messages().length > 0;
+                            const mergedMessages = hasExistingMessages
+                                ? mergeMessages(store.messages(), messages)
+                                : messages;
+
                             patchState(store, {
-                                messages,
+                                messages: mergedMessages,
                                 loading: false,
+                                hasOlderMessages:
+                                    !olderMessagesExhausted &&
+                                    (store.hasOlderMessages() ||
+                                        messages.length >= MESSAGE_PAGE_SIZE),
                                 error: null,
                             });
 
@@ -158,6 +233,55 @@ export const MessagesStore = signalStore(
                         messages: [],
                         loading: false,
                         error: 'Failed to load messages.',
+                    });
+                }
+            },
+
+            async loadOlderMessages(
+                userProfile: UserClass,
+                matchProfile: UserClass
+            ) {
+                if (
+                    !userProfile.uid ||
+                    !matchProfile.uid ||
+                    store.loadingOlderMessages() ||
+                    !store.hasOlderMessages()
+                ) {
+                    return;
+                }
+
+                const oldestMessage = store.messages()[0];
+
+                if (!oldestMessage) {
+                    return;
+                }
+
+                patchState(store, {
+                    loadingOlderMessages: true,
+                    error: null,
+                });
+
+                try {
+                    const olderMessages = await repository.loadOlderMessages(
+                        userProfile.uid,
+                        matchProfile.uid,
+                        oldestMessage
+                    );
+
+                    if (olderMessages.length < MESSAGE_PAGE_SIZE) {
+                        olderMessagesExhausted = true;
+                    }
+
+                    patchState(store, {
+                        messages: mergeMessages(store.messages(), olderMessages),
+                        loadingOlderMessages: false,
+                        hasOlderMessages: olderMessages.length >= MESSAGE_PAGE_SIZE,
+                    });
+                } catch (error) {
+                    console.error(error);
+                    patchState(store, {
+                        loadingOlderMessages: false,
+                        error: 'Failed to load older messages.',
                     });
                 }
             },

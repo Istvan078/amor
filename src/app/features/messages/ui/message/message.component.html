@@ -418,6 +418,24 @@
               <p>{{ t('messages.loading') }}</p>
             </div>
           } @else {
+            @if (messagesStore.hasOlderMessages()) {
+              <button
+                type="button"
+                class="load-older-messages-button"
+                [disabled]="messagesStore.loadingOlderMessages()"
+                (click)="loadOlderMessages()"
+              >
+                <ion-icon name="chevron-up-outline" aria-hidden="true"></ion-icon>
+                <span>
+                  {{
+                    messagesStore.loadingOlderMessages()
+                      ? t('messages.loadingOlder')
+                      : t('messages.loadOlder')
+                  }}
+                </span>
+              </button>
+            }
+
             @for (mess of messagesStore.messages(); track getMessageTrackId(mess, $index)) {
               <div class="message-row" [class.own-message]="isOwnMessage(mess)">
                 <div class="message-stack">
@@ -484,6 +502,24 @@
                       </div>
                     }
                   </div>
+
+                  @if (canReportMessage(mess)) {
+                    <button
+                      type="button"
+                      class="message-report-button"
+                      [disabled]="isMessageReportPending(mess)"
+                      (click)="reportMessage(mess)"
+                    >
+                      <ion-icon name="flag-outline" aria-hidden="true"></ion-icon>
+                      <span>
+                        {{
+                          isMessageReportPending(mess)
+                            ? t('messages.reportingMessage')
+                            : t('messages.reportMessage')
+                        }}
+                      </span>
+                    </button>
+                  }
 
                 </div>
               </div>

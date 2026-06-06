@@ -32,6 +32,7 @@ import {
   chatbubbleEllipsesOutline,
   chevronBackOutline,
   chevronForwardOutline,
+  chevronUpOutline,
   closeOutline,
   ellipsisHorizontal,
   flagOutline,
@@ -116,10 +117,16 @@ export class MessageComponent implements AfterViewChecked, OnChanges, OnDestroy 
   private document = inject(DOCUMENT);
   private userProfile?: UserClass;
   private pendingScrollToBottom = false;
+  private pendingScrollRestore?: {
+    scrollHeight: number;
+    scrollTop: number;
+  };
   private lastRenderedMessageSignature = '';
+  private lastRenderedLatestMessageSignature = '';
   private typingStopTimer: ReturnType<typeof setTimeout> | null = null;
   private lastTypingWriteAt = 0;
   private pendingReactionKeys = new Set<string>();
+  private reportingMessageIds = new Set<string>();
   isConversationMenuOpen = false;
   isMatchProfileOpen = false;
   isMatchPhotoViewerOpen = false;
@@ -182,6 +189,7 @@ export class MessageComponent implements AfterViewChecked, OnChanges, OnDestroy 
       chatbubbleEllipsesOutline,
       chevronBackOutline,
       chevronForwardOutline,
+      chevronUpOutline,
       closeOutline,
       ellipsisHorizontal,
       flagOutline,
@@ -209,17 +217,32 @@ export class MessageComponent implements AfterViewChecked, OnChanges, OnDestroy 
   ngAfterViewChecked() {
     this.syncMobileMessageViewState();
 
-    const messageSignature = this.messagesStore
-      .messages()
+    const messages = this.messagesStore.messages();
+    const messageSignature = messages
       .map(
         (message) =>
           `${message.id ?? message.number}:${message.messageType}:${message.message}:${message.gif?.id ?? ''}`
       )
       .join('|');
+    const latestMessage = messages.at(-1);
+    const latestMessageSignature = latestMessage
+      ? `${latestMessage.id ?? latestMessage.number}:${latestMessage.messageType}:${latestMessage.message}:${latestMessage.gif?.id ?? ''}`
+      : '';
 
     if (messageSignature !== this.lastRenderedMessageSignature) {
+      const latestMessageChanged =
+        latestMessageSignature !== this.lastRenderedLatestMessageSignature;
+      const shouldStickToBottom =
+        this.pendingScrollToBottom || this.isThreadNearBottom();
+
       this.lastRenderedMessageSignature = messageSignature;
-      this.pendingScrollToBottom = true;
+      this.lastRenderedLatestMessageSignature = latestMessageSignature;
+
+      if (this.pendingScrollRestore) {
+        this.restoreThreadScrollPosition();
+      } else if (latestMessageChanged && shouldStickToBottom) {
+        this.pendingScrollToBottom = true;
+      }
     }
 
     if (this.pendingScrollToBottom) {
@@ -259,6 +282,36 @@ export class MessageComponent implements AfterViewChecked, OnChanges, OnDestroy 
 
     await this.messagesStore.loadMessages(this.userProfile, this.matchProfile);
     this.pendingScrollToBottom = true;
+  }
+
+  async loadOlderMessages() {
+    if (
+      !this.userProfile ||
+      !this.matchProfile ||
+      !this.messagesStore.hasOlderMessages() ||
+      this.messagesStore.loadingOlderMessages()
+    ) {
+      return;
+    }
+
+    const element = this.messageThread?.nativeElement;
+
+    this.pendingScrollRestore = element
+      ? {
+        scrollHeight: element.scrollHeight,
+        scrollTop: element.scrollTop,
+      }
+      : undefined;
+    const previousMessageCount = this.messagesStore.messages().length;
+
+    await this.messagesStore.loadOlderMessages(
+      this.userProfile,
+      this.matchProfile
+    );
+
+    if (this.messagesStore.messages().length === previousMessageCount) {
+      this.pendingScrollRestore = undefined;
+    }
   }
 
   getProfileImage(profile?: UserClass) {
@@ -707,6 +760,51 @@ export class MessageComponent implements AfterViewChecked, OnChanges, OnDestroy 
     this.closeConversationMenu();
   }
 
+  canReportMessage(message: Message) {
+    return !!(
+      this.userProfile?.uid &&
+      this.matchProfile?.uid &&
+      message.id &&
+      message.senderUid === this.matchProfile.uid &&
+      message.sentToUid === this.userProfile.uid
+    );
+  }
+
+  isMessageReportPending(message: Message) {
+    return !!message.id && this.reportingMessageIds.has(message.id);
+  }
+
+  async reportMessage(message: Message) {
+    if (!this.userProfile || !this.matchProfile || !this.canReportMessage(message)) {
+      return;
+    }
+
+    const reason = await this.selectReportReason(
+      'messages.reportMessageReasonTitle',
+      'messages.reportMessageReasonText'
+    );
+
+    if (!reason || !message.id) {
+      return;
+    }
+
+    this.reportingMessageIds.add(message.id);
+    this.activeReactionPickerMessageId = undefined;
+
+    try {
+      await this.moderationStore.reportMessage(
+        this.userProfile,
+        this.matchProfile,
+        message,
+        reason,
+        this.transloco.translate(`messages.reportReasons.${reason}`)
+      );
+      this.moderationNoticeKey = 'messages.reportedMessageNotice';
+    } finally {
+      this.reportingMessageIds.delete(message.id);
+    }
+  }
+
   async onMessageSend(form: NgForm) {
     const messageText = form.value.message?.trim();
 
@@ -793,6 +891,38 @@ export class MessageComponent implements AfterViewChecked, OnChanges, OnDestroy 
 
       element.scrollTop = element.scrollHeight;
     });
+  }
+
+  private restoreThreadScrollPosition() {
+    const previousPosition = this.pendingScrollRestore;
+    this.pendingScrollRestore = undefined;
+
+    if (!previousPosition) {
+      return;
+    }
+
+    queueMicrotask(() => {
+      const element = this.messageThread?.nativeElement;
+
+      if (!element) {
+        return;
+      }
+
+      const heightDelta = element.scrollHeight - previousPosition.scrollHeight;
+      element.scrollTop = previousPosition.scrollTop + heightDelta;
+    });
+  }
+
+  private isThreadNearBottom() {
+    const element = this.messageThread?.nativeElement;
+
+    if (!element) {
+      return true;
+    }
+
+    return (
+      element.scrollHeight - element.scrollTop - element.clientHeight < 80
+    );
   }
 
   private focusComposer() {
@@ -903,7 +1033,10 @@ export class MessageComponent implements AfterViewChecked, OnChanges, OnDestroy 
     return confirmed;
   }
 
-  private async selectReportReason() {
+  private async selectReportReason(
+    titleKey = 'messages.reportReasonTitle',
+    textKey = 'messages.reportReasonText'
+  ) {
     let selectedReason: string | undefined;
     const reasons = [
       'fakeProfile',
@@ -913,8 +1046,8 @@ export class MessageComponent implements AfterViewChecked, OnChanges, OnDestroy 
       'other',
     ];
     const alert = await this.alertCtrl.create({
-      header: this.transloco.translate('messages.reportReasonTitle'),
-      message: this.transloco.translate('messages.reportReasonText'),
+      header: this.transloco.translate(titleKey),
+      message: this.transloco.translate(textKey),
       cssClass: 'premium-moderation-alert report-reason-alert',
       inputs: reasons.map((reason, index) => ({
         type: 'radio',

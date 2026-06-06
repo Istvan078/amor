@@ -13,6 +13,7 @@ import {
     runTransaction,
     serverTimestamp,
     setDoc,
+    startAfter,
     where,
     writeBatch,
 } from '@angular/fire/firestore';
@@ -33,6 +34,8 @@ export type ConversationPreviewData = {
 export type ConversationTypingData = {
     isTyping: boolean;
 };
+
+export const MESSAGE_PAGE_SIZE = 30;
 
 @Injectable({
     providedIn: 'root',
@@ -104,7 +107,7 @@ export class MessagesRepository {
             const messagesQuery = query(
                 messagesCollection,
                 orderBy('sentAt', 'desc'),
-                limit(30)
+                limit(MESSAGE_PAGE_SIZE)
             );
 
             return onSnapshot(
@@ -371,6 +374,33 @@ export class MessagesRepository {
         });
     }
 
+    async loadOlderMessages(myUid: string, matchUid: string, beforeMessage: Message) {
+        const conversationId = this.getConversationId(myUid, matchUid);
+
+        return this.runInFirebaseContext(async () => {
+            const messagesCollection = collection(
+                this.firestore,
+                `conversations/${conversationId}/messages`
+            );
+            const messagesQuery = query(
+                messagesCollection,
+                orderBy('sentAt', 'desc'),
+                startAfter(beforeMessage.sentAt),
+                limit(MESSAGE_PAGE_SIZE)
+            );
+            const snapshot = await getDocs(messagesQuery);
+
+            return snapshot.docs
+                .map((messageSnapshot) =>
+                    this.mapConversationMessage(
+                        messageSnapshot.id,
+                        messageSnapshot.data()
+                    )
+                )
+                .reverse();
+        });
+    }
+
     private async getConversationMessages(myUid: string, matchUid: string) {
         const conversationId = this.getConversationId(myUid, matchUid);
 
@@ -382,7 +412,7 @@ export class MessagesRepository {
             const messagesQuery = query(
                 messagesCollection,
                 orderBy('sentAt', 'desc'),
-                limit(30)
+                limit(MESSAGE_PAGE_SIZE)
             );
 
             return getDocs(messagesQuery);

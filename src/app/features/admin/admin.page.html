@@ -182,6 +182,20 @@
             </div>
           </dl>
 
+          @if (report.source === 'message') {
+            <section class="admin-message-report-preview">
+              <p class="admin-eyebrow">Reported message</p>
+              <blockquote>{{ report.messageText || 'No message text captured.' }}</blockquote>
+              <div>
+                <span>Message: {{ report.messageId || 'unknown' }}</span>
+                <span>Conversation: {{ report.conversationId || getConversationId(report.reporterUid, report.reportedUid) }}</span>
+                @if (report.messageSentAt) {
+                  <span>Sent: {{ report.messageSentAt }}</span>
+                }
+              </div>
+            </section>
+          }
+
           @if (selectedReportedUser(); as reportedUser) {
             <section class="admin-profile-preview">
               <img [src]="reportedUser.photoURL || 'assets/icon/user-icon.png'" alt="" />

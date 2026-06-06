@@ -748,6 +748,49 @@
   justify-content: flex-start;
 }
 
+.load-older-messages-button {
+  align-self: center;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  min-height: 38px;
+  margin: 0 auto 4px;
+  padding: 0 14px;
+  color: #ffffff;
+  background:
+    linear-gradient(135deg, rgba(255, 93, 143, 0.16), rgba(53, 198, 189, 0.1)),
+    rgba(255, 255, 255, 0.07);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  border-radius: 999px;
+  box-shadow: 0 14px 34px rgba(4, 8, 18, 0.18);
+  cursor: pointer;
+  font-size: 0.78rem;
+  font-weight: 900;
+  transition:
+    border-color 160ms ease,
+    background 160ms ease,
+    transform 160ms ease;
+}
+
+.load-older-messages-button:hover {
+  border-color: rgba(255, 93, 143, 0.46);
+  background:
+    linear-gradient(135deg, rgba(255, 93, 143, 0.24), rgba(53, 198, 189, 0.14)),
+    rgba(255, 255, 255, 0.09);
+  transform: translateY(-1px);
+}
+
+.load-older-messages-button:disabled {
+  cursor: default;
+  opacity: 0.64;
+  transform: none;
+}
+
+.load-older-messages-button ion-icon {
+  color: #ff9cbd;
+  font-size: 17px;
+}
+
 .message-stack {
   position: relative;
   display: grid;
@@ -826,6 +869,7 @@
 
 .message-reaction-trigger,
 .message-reaction-picker button,
+.message-report-button,
 .composer-tool-button,
 .emoji-panel button,
 .gif-panel button {
@@ -975,11 +1019,45 @@
 
 .message-reaction-trigger:disabled,
 .message-reaction-picker button:disabled,
+.message-report-button:disabled,
 .composer-tool-button:disabled,
 .emoji-panel button:disabled,
 .gif-panel button:disabled {
   cursor: default;
   opacity: 0.56;
+}
+
+.message-report-button {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  width: fit-content;
+  min-height: 30px;
+  padding: 0 10px;
+  color: rgba(248, 245, 239, 0.82);
+  background: rgba(255, 255, 255, 0.055);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 999px;
+  box-shadow: 0 10px 24px rgba(4, 8, 18, 0.12);
+  font-size: 0.72rem;
+  font-weight: 900;
+  transition:
+    border-color 160ms ease,
+    background 160ms ease,
+    color 160ms ease,
+    transform 160ms ease;
+}
+
+.message-report-button:hover {
+  color: #ffffff;
+  border-color: rgba(255, 93, 143, 0.42);
+  background: rgba(255, 93, 143, 0.13);
+  transform: translateY(-1px);
+}
+
+.message-report-button ion-icon {
+  color: #ff9cbd;
+  font-size: 15px;
 }
 
 @keyframes reaction-picker-in {
