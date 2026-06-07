@@ -11,6 +11,25 @@ service firebase.storage {
       allow write, delete: if signedIn() && request.auth.uid == uid;
     }
 
+    match /verificationSelfies/{uid}/{fileName=**} {
+      allow read: if signedIn()
+        && (
+          request.auth.uid == uid
+          || request.auth.token.admin == true
+          || request.auth.token.moderator == true
+        );
+      allow write: if signedIn()
+        && request.auth.uid == uid
+        && request.resource.size < 10 * 1024 * 1024
+        && request.resource.contentType.matches('image/.*');
+      allow delete: if signedIn()
+        && (
+          request.auth.uid == uid
+          || request.auth.token.admin == true
+          || request.auth.token.moderator == true
+        );
+    }
+
     match /{allPaths=**} {
       allow read: if signedIn();
       allow write: if false;

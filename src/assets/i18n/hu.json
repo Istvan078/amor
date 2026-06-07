@@ -122,6 +122,20 @@
     "profileLoading": "Profil betöltése...",
     "noMoreMatches": "Elfogytak a lehetséges matchek, nézz vissza később.",
     "interests": "Érdeklődési körök",
+    "verifiedProfile": "Ellenőrzött profil",
+    "verifiedProfileText": "Ez a profil átment az Amor fotós ellenőrzésén.",
+    "feed": {
+      "recommended": "Ajánlott",
+      "nearby": "Közeli",
+      "recentlyActive": "Mostanában aktív",
+      "newProfiles": "Új profilok",
+      "filters": {
+        "closeRange": "25 km-en belül",
+        "active": "Aktív ezen a héten",
+        "verified": "Ellenőrzött",
+        "sharedInterests": "2+ közös érdeklődés"
+      }
+    },
     "sidebar": {
       "profile": "Profilom",
       "pairs": "Párok",
@@ -505,6 +519,29 @@
         "bio": "Bemutatkozás",
         "interests": "Érdeklődések",
         "location": "Lokáció"
+      }
+    },
+    "verification": {
+      "eyebrow": "Bizalmi jelvény",
+      "cta": "Ellenőrzés selfie-vel",
+      "submitting": "Beküldés...",
+      "status": {
+        "none": {
+          "title": "Szerezz ellenőrzött profil jelvényt",
+          "text": "Küldj be egy friss selfie-t admin ellenőrzésre. A selfie csak ellenőrzésre szolgál, nem kerül ki a nyilvános képeid közé."
+        },
+        "pending": {
+          "title": "Az ellenőrzés folyamatban",
+          "text": "A selfie kérelmed admin ellenőrzésre vár."
+        },
+        "approved": {
+          "title": "A profilod ellenőrzött",
+          "text": "A nyilvános profilodon megjelenhet az Ellenőrzött profil jelvény."
+        },
+        "rejected": {
+          "title": "Az ellenőrzés nem sikerült",
+          "text": "Küldj be egy tisztább selfie-t, amely egyezik a profilképeiddel."
+        }
       }
     }
   },

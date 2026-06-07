@@ -127,6 +127,50 @@
             }
           </section>
 
+          <section
+            class="profile-verification-card"
+            [class.is-approved]="profileVerificationStatus() === 'approved'"
+            [class.is-pending]="profileVerificationStatus() === 'pending'"
+            [class.is-rejected]="profileVerificationStatus() === 'rejected'"
+          >
+            <div class="profile-verification-icon">
+              <ion-icon
+                [name]="
+                  profileVerificationStatus() === 'approved'
+                    ? 'shield-checkmark-outline'
+                    : 'camera-outline'
+                "
+              ></ion-icon>
+            </div>
+            <div class="profile-verification-copy">
+              <small>{{ t('profile.verification.eyebrow') }}</small>
+              <strong>{{ t(profileVerificationTitleKey()) }}</strong>
+              <p>{{ t(profileVerificationTextKey()) }}</p>
+            </div>
+            <input
+              #verificationSelfieInput
+              class="profile-file-input"
+              type="file"
+              accept="image/*"
+              capture="user"
+              [disabled]="!canRequestProfileVerification()"
+              (change)="onVerificationSelfieSelected($event)"
+            />
+            <ion-button
+              type="button"
+              class="profile-verification-button"
+              [disabled]="!canRequestProfileVerification()"
+              (click)="verificationSelfieInput.click()"
+            >
+              <ion-icon name="camera-outline" slot="start"></ion-icon>
+              {{
+                verificationSubmitting
+                  ? t('profile.verification.submitting')
+                  : t('profile.verification.cta')
+              }}
+            </ion-button>
+          </section>
+
           <section class="profile-info-panel">
             <div class="profile-section-heading">
               <span>{{ t('discover.profile.details') }}</span>

@@ -122,6 +122,20 @@
     "profileLoading": "Loading profile...",
     "noMoreMatches": "No more possible matches for now. Check back later.",
     "interests": "Interests",
+    "verifiedProfile": "Verified profile",
+    "verifiedProfileText": "This profile passed Amor photo verification.",
+    "feed": {
+      "recommended": "Recommended",
+      "nearby": "Nearby",
+      "recentlyActive": "Recently active",
+      "newProfiles": "New profiles",
+      "filters": {
+        "closeRange": "Within 25 km",
+        "active": "Active this week",
+        "verified": "Verified",
+        "sharedInterests": "2+ shared interests"
+      }
+    },
     "sidebar": {
       "profile": "My profile",
       "pairs": "Matches",
@@ -505,6 +519,29 @@
         "bio": "Bio",
         "interests": "Interests",
         "location": "Location"
+      }
+    },
+    "verification": {
+      "eyebrow": "Trust badge",
+      "cta": "Verify with selfie",
+      "submitting": "Submitting...",
+      "status": {
+        "none": {
+          "title": "Get a Verified profile badge",
+          "text": "Submit a fresh selfie for admin review. The selfie is used for verification and is not added to your public photos."
+        },
+        "pending": {
+          "title": "Verification in review",
+          "text": "Your selfie request is waiting for admin review."
+        },
+        "approved": {
+          "title": "Profile verified",
+          "text": "Your public profile can show the Verified profile badge."
+        },
+        "rejected": {
+          "title": "Verification not approved",
+          "text": "Submit a clearer selfie that matches your profile photos."
+        }
       }
     }
   },

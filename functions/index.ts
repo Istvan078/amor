@@ -59,6 +59,23 @@ type NotificationPreferenceKey =
 
 type NotificationDeliveryKey = 'inApp' | 'push';
 
+type DiscoveryFeedMode =
+  | 'recommended'
+  | 'nearby'
+  | 'recentlyActive'
+  | 'newProfiles';
+
+type DiscoveryPremiumFilters = {
+  maxDistanceKm?: number;
+  recentlyActiveOnly?: boolean;
+  verifiedOnly?: boolean;
+  minSharedInterests?: number;
+};
+
+type ProfileVerificationStatus = 'none' | 'pending' | 'approved' | 'rejected';
+
+type ProfileVerificationDecision = 'approved' | 'rejected';
+
 const app = express();
 
 app.use(bodyParser.json());
@@ -76,6 +93,12 @@ const PROFILE_BOOST_PRODUCT_IDS = new Set([
   'amor_profile_boost',
   'profile_boost',
 ]);
+const PROFILE_VERIFICATION_SELFIE_PREFIX = 'verificationSelfies';
+const PROFILE_RISK_REPORT_THRESHOLD = 3;
+const PROFILE_FAST_LIKE_WINDOW_MS = 1000 * 60 * 10;
+const PROFILE_FAST_LIKE_THRESHOLD = 25;
+const REPEATED_BIO_MIN_FINGERPRINT_LENGTH = 24;
+const REPEATED_BIO_DUPLICATE_THRESHOLD = 2;
 
 const getIdTokenFromRequest = (req: express.Request): string | null => {
   const authHeader = req.headers.authorization;
@@ -525,11 +548,94 @@ const getProfilePhotoUrl = (profile: Record<string, unknown>) => {
   return '';
 };
 
+const normalizeProfileVerificationStatus = (
+  value: unknown
+): ProfileVerificationStatus => {
+  if (value === 'pending' || value === 'approved' || value === 'rejected') {
+    return value;
+  }
+
+  return 'none';
+};
+
+const normalizeProfileVerificationDecision = (
+  value: unknown
+): ProfileVerificationDecision | null => {
+  if (value === 'approved' || value === 'rejected') {
+    return value;
+  }
+
+  return null;
+};
+
+const isProfileVerified = (profile: Record<string, unknown>) =>
+  profile.profileVerified === true &&
+  normalizeProfileVerificationStatus(profile.profileVerificationStatus) ===
+    'approved';
+
+const normalizeStringListValue = (values: unknown): string[] =>
+  Array.isArray(values)
+    ? values
+        .map((value) => (typeof value === 'string' ? value.trim() : ''))
+        .filter((value) => !!value)
+    : [];
+
+const getProfilePicturesCount = (profile: Record<string, unknown>) =>
+  Array.isArray(profile.pictures) ? profile.pictures.length : 0;
+
+const getBioFingerprint = (bio: unknown) => {
+  if (typeof bio !== 'string') {
+    return '';
+  }
+
+  return bio
+    .normalize('NFKD')
+    .replace(/[\u0300-\u036f]/g, '')
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, ' ')
+    .trim()
+    .replace(/\s+/g, ' ')
+    .slice(0, 180);
+};
+
+const getProfileQualityScore = (
+  profile: Record<string, unknown>,
+  profileCompleteness = getProfileCompleteness(profile)
+) => {
+  const picturesCount = getProfilePicturesCount(profile);
+  const bioLength =
+    typeof profile.aboutMe === 'string' ? profile.aboutMe.trim().length : 0;
+  const interestsCount = normalizeStringListValue(profile.interests).length;
+  const baseCompleteness = Math.min(Math.max(profileCompleteness, 0), 100);
+  const photoScore = Math.min(picturesCount, 6) * 5;
+  const bioScore = Math.min(bioLength / 8, 15);
+  const interestsScore = Math.min(interestsCount, 8) * 2.5;
+  const verificationScore = isProfileVerified(profile) ? 12 : 0;
+  const riskPenalty = Math.min(Number(profile.moderationRiskScore ?? 0), 100) * 0.32;
+
+  return Math.round(
+    Math.min(
+      Math.max(
+        baseCompleteness * 0.52 +
+          photoScore +
+          bioScore +
+          interestsScore +
+          verificationScore -
+          riskPenalty,
+        0
+      ),
+      100
+    )
+  );
+};
+
 const buildMatchIndexEntry = (
   uid: string,
   profile: Record<string, unknown>
 ) => {
   const profileCompleteness = getProfileCompleteness(profile);
+  const profileQualityScore = getProfileQualityScore(profile, profileCompleteness);
+  const bioFingerprint = getBioFingerprint(profile.aboutMe);
   const profileCompleted =
     profileCompleteness >= PROFILE_COMPLETENESS_DISCOVERY_THRESHOLD;
   const hasPhoto = hasProfilePhoto(profile);
@@ -551,6 +657,16 @@ const buildMatchIndexEntry = (
     hasPhoto,
     lastActiveAt: admin.firestore.FieldValue.serverTimestamp(),
     photoUrl: getProfilePhotoUrl(profile),
+    interests: normalizeStringListValue(profile.interests),
+    emailVerified: profile.emailVerified === true,
+    profileVerified: isProfileVerified(profile),
+    profileVerificationStatus: normalizeProfileVerificationStatus(
+      profile.profileVerificationStatus
+    ),
+    profileQualityScore,
+    moderationRiskScore: Number(profile.moderationRiskScore ?? 0),
+    ...(bioFingerprint ? { bioFingerprint } : {}),
+    createdAt: profile.createdAt,
   };
 
   return Object.entries(entry).reduce<Record<string, unknown>>(
@@ -1361,6 +1477,10 @@ const createMatchActionHandler =
           await notifyMutualMatchCreated(myUid, otherUid);
         }
 
+        void recordMatchActionRiskSignal(myUid, action).catch((riskError) => {
+          console.warn('Match action risk signal failed:', riskError);
+        });
+
         res.json({
           message: 'OK',
           ...result,
@@ -1597,11 +1717,7 @@ const getDistanceKm = (
   return earthRadiusKm * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
 };
 
-const isWithinDistanceKm = (
-  origin: unknown,
-  candidate: unknown,
-  maxDistanceKm: number
-) => {
+const getDistanceBetweenCoordsKm = (origin: unknown, candidate: unknown) => {
   const originCoords =
     origin && typeof origin === 'object'
       ? (origin as Record<string, unknown>)
@@ -1619,17 +1735,465 @@ const isWithinDistanceKm = (
     !Number.isFinite(originLat) ||
     !Number.isFinite(originLon) ||
     !Number.isFinite(candidateLat) ||
-    !Number.isFinite(candidateLon) ||
-    !Number.isFinite(maxDistanceKm)
+    !Number.isFinite(candidateLon)
   ) {
-    return true;
+    return null;
   }
 
-  return getDistanceKm(originLat, originLon, candidateLat, candidateLon) <= maxDistanceKm;
+  return getDistanceKm(originLat, originLon, candidateLat, candidateLon);
 };
+
+const distanceKmPasses = (distanceKm: number | null, maxDistanceKm: number) =>
+  distanceKm === null || !Number.isFinite(maxDistanceKm) || distanceKm <= maxDistanceKm;
 
 const isBoostedIndexEntry = (entry: Record<string, unknown>) =>
   toTimestampMillis(entry.boostedUntil) > Date.now();
+
+const normalizeDiscoveryFeedMode = (value: unknown): DiscoveryFeedMode => {
+  if (
+    value === 'nearby' ||
+    value === 'recentlyActive' ||
+    value === 'newProfiles'
+  ) {
+    return value;
+  }
+
+  return 'recommended';
+};
+
+const normalizeDiscoveryPremiumFilters = (
+  value: unknown,
+  hasPremiumAccess: boolean
+): DiscoveryPremiumFilters => {
+  if (!hasPremiumAccess || !value || typeof value !== 'object') {
+    return {};
+  }
+
+  const filters = value as Record<string, unknown>;
+  const maxDistanceKm = Number(filters.maxDistanceKm);
+  const minSharedInterests = Number(filters.minSharedInterests);
+
+  return {
+    ...(Number.isFinite(maxDistanceKm) && maxDistanceKm > 0
+      ? { maxDistanceKm: Math.min(Math.max(maxDistanceKm, 1), 500) }
+      : {}),
+    ...(filters.recentlyActiveOnly === true
+      ? { recentlyActiveOnly: true }
+      : {}),
+    ...(filters.verifiedOnly === true ? { verifiedOnly: true } : {}),
+    ...(Number.isFinite(minSharedInterests) && minSharedInterests > 0
+      ? { minSharedInterests: Math.min(Math.max(Math.floor(minSharedInterests), 1), 10) }
+      : {}),
+  };
+};
+
+const getPremiumDiscoveryAccess = async (
+  db: admin.firestore.Firestore,
+  uid: string
+) => {
+  const billingSnapshot = await db.doc(`users/${uid}/billing/current`).get();
+  const billing = normalizeBillingCurrent(billingSnapshot.data());
+
+  return (
+    billing.isPremium ||
+    billing.entitlement === BILLING_ENTITLEMENT_ID ||
+    billing.activeEntitlements.includes(BILLING_ENTITLEMENT_ID)
+  );
+};
+
+const getSharedInterestCount = (
+  profile: Record<string, unknown>,
+  candidate: Record<string, unknown>
+) => {
+  const profileInterests = new Set(
+    normalizeStringListValue(profile.interests).map((interest) =>
+      interest.toLowerCase()
+    )
+  );
+
+  if (!profileInterests.size) {
+    return 0;
+  }
+
+  return normalizeStringListValue(candidate.interests).filter((interest) =>
+    profileInterests.has(interest.toLowerCase())
+  ).length;
+};
+
+const getDiscoveryRankScore = (
+  feedMode: DiscoveryFeedMode,
+  profile: Record<string, unknown>,
+  candidate: Record<string, unknown>,
+  distanceKm: number | null,
+  createdAtMillis: number,
+  sharedInterestCount: number
+) => {
+  const now = Date.now();
+  const completeness = Math.min(
+    Math.max(Number(candidate.profileCompleteness ?? 0), 0),
+    100
+  );
+  const profileQualityScore = Math.min(
+    Math.max(Number(candidate.profileQualityScore ?? completeness), 0),
+    100
+  );
+  const moderationRiskScore = Math.min(
+    Math.max(Number(candidate.moderationRiskScore ?? 0), 0),
+    100
+  );
+  const lastActiveAtMillis = toTimestampMillis(candidate.lastActiveAt);
+  const activeAgeHours = lastActiveAtMillis
+    ? Math.max((now - lastActiveAtMillis) / 36e5, 0)
+    : 24 * 60;
+  const createdAgeHours = createdAtMillis
+    ? Math.max((now - createdAtMillis) / 36e5, 0)
+    : 24 * 180;
+  const maxDistanceKm = Math.max(Number(profile.lookingForDistance ?? 50), 1);
+  const distanceScore =
+    distanceKm === null
+      ? 45
+      : Math.max(0, 100 - (distanceKm / maxDistanceKm) * 100);
+  const activityScore = Math.max(0, 100 - Math.min(activeAgeHours, 24 * 30) / 7.2);
+  const newProfileScore = Math.max(
+    0,
+    100 - Math.min(createdAgeHours, 24 * 45) / 10.8
+  );
+  const boostScore = isBoostedIndexEntry(candidate) ? 120 : 0;
+  const sharedInterestScore = Math.min(sharedInterestCount, 6) * 18;
+  const verificationScore = candidate.profileVerified === true ? 22 : 0;
+  const riskPenalty = moderationRiskScore * 0.8;
+
+  const baseScore =
+    boostScore +
+    verificationScore +
+    distanceScore * 0.28 +
+    activityScore * 0.24 +
+    profileQualityScore * 0.26 +
+    completeness * 0.12 +
+    sharedInterestScore +
+    newProfileScore * 0.08 -
+    riskPenalty;
+
+  if (feedMode === 'nearby') {
+    return baseScore + distanceScore * 0.9;
+  }
+
+  if (feedMode === 'recentlyActive') {
+    return baseScore + activityScore * 1.05;
+  }
+
+  if (feedMode === 'newProfiles') {
+    return baseScore + newProfileScore * 1.1;
+  }
+
+  return baseScore;
+};
+
+const getProfileDisplayName = (profile: Record<string, unknown>, uid: string) =>
+  [
+    typeof profile.firstName === 'string' ? profile.firstName.trim() : '',
+    typeof profile.lastName === 'string' ? profile.lastName.trim() : '',
+  ]
+    .filter(Boolean)
+    .join(' ') || uid.slice(0, 8);
+
+const getProfileRiskScore = (reasons: string[]) => {
+  const weights: Record<string, number> = {
+    too_many_reports: 62,
+    fast_like_velocity: 48,
+    repeated_bio: 36,
+    empty_profile: 28,
+  };
+
+  return Math.min(
+    reasons.reduce((score, reason) => score + (weights[reason] ?? 18), 0),
+    100
+  );
+};
+
+const buildRiskProfileSnapshot = (
+  uid: string,
+  profile: Record<string, unknown>
+) => ({
+  displayName: getProfileDisplayName(profile, uid),
+  photoUrl: getProfilePhotoUrl(profile),
+  aboutMe: typeof profile.aboutMe === 'string' ? profile.aboutMe.slice(0, 500) : '',
+  profileCompleteness: getProfileCompleteness(profile),
+  profileQualityScore: getProfileQualityScore(profile),
+});
+
+const writeSystemModerationAudit = async (
+  db: admin.firestore.Firestore,
+  input: {
+    action: string;
+    targetUid: string;
+    details?: string;
+  }
+) => {
+  await db.collection('moderationAudit').add({
+    action: input.action,
+    actorUid: 'system',
+    actorEmail: 'system@amor.internal',
+    targetUid: input.targetUid,
+    reportId: '',
+    details: input.details ?? '',
+    createdAt: admin.firestore.FieldValue.serverTimestamp(),
+  });
+};
+
+const upsertProfileRiskFlag = async (
+  db: admin.firestore.Firestore,
+  uid: string,
+  profile: Record<string, unknown>,
+  reasons: string[],
+  trigger: string,
+  detail = ''
+) => {
+  const uniqueReasons = [...new Set(reasons)].sort();
+  const riskScore = getProfileRiskScore(uniqueReasons);
+  const flagRef = db.collection('profileRiskFlags').doc(uid);
+  const existingFlag = await flagRef.get();
+  const existingStatus =
+    typeof existingFlag.data()?.status === 'string'
+      ? existingFlag.data()?.status
+      : '';
+  const shouldReopen =
+    !existingFlag.exists ||
+    existingStatus === 'dismissed' ||
+    existingStatus === 'reviewed';
+
+  await Promise.all([
+    flagRef.set(
+      {
+        uid,
+        status: shouldReopen ? 'open' : existingStatus || 'open',
+        reasons: uniqueReasons,
+        riskScore,
+        profile: buildRiskProfileSnapshot(uid, profile),
+        lastTrigger: trigger,
+        triggers: admin.firestore.FieldValue.arrayUnion(trigger),
+        detail,
+        updatedAt: admin.firestore.FieldValue.serverTimestamp(),
+        ...(existingFlag.exists
+          ? {}
+          : { createdAt: admin.firestore.FieldValue.serverTimestamp() }),
+      },
+      { merge: true }
+    ),
+    db.collection('users').doc(uid).set(
+      {
+        moderationRiskScore: riskScore,
+        moderationRiskReasons: uniqueReasons,
+        lastRiskFlaggedAt: admin.firestore.FieldValue.serverTimestamp(),
+      },
+      { merge: true }
+    ),
+    db.collection('matchIndex').doc(uid).set(
+      {
+        moderationRiskScore: riskScore,
+        moderationRiskReasons: uniqueReasons,
+        lastRiskFlaggedAt: admin.firestore.FieldValue.serverTimestamp(),
+      },
+      { merge: true }
+    ),
+  ]);
+
+  await writeSystemModerationAudit(db, {
+    action: 'profile_risk_flagged',
+    targetUid: uid,
+    details: `${trigger}: ${uniqueReasons.join(', ')}${detail ? ` (${detail})` : ''}`,
+  });
+
+  return riskScore;
+};
+
+const clearProfileRiskScore = async (
+  db: admin.firestore.Firestore,
+  uid: string
+) => {
+  await Promise.all([
+    db.collection('users').doc(uid).set(
+      {
+        moderationRiskScore: 0,
+        moderationRiskReasons: [],
+      },
+      { merge: true }
+    ),
+    db.collection('matchIndex').doc(uid).set(
+      {
+        moderationRiskScore: 0,
+        moderationRiskReasons: [],
+      },
+      { merge: true }
+    ),
+  ]);
+};
+
+const getReportedUserReportCount = async (
+  db: admin.firestore.Firestore,
+  uid: string
+) => {
+  const snapshot = await db
+    .collection('reports')
+    .where('reportedUid', '==', uid)
+    .limit(PROFILE_RISK_REPORT_THRESHOLD)
+    .get();
+
+  return snapshot.size;
+};
+
+const getDuplicateBioUids = async (
+  db: admin.firestore.Firestore,
+  uid: string,
+  bioFingerprint: string
+) => {
+  if (bioFingerprint.length < REPEATED_BIO_MIN_FINGERPRINT_LENGTH) {
+    return [];
+  }
+
+  const snapshot = await db
+    .collection('matchIndex')
+    .where('bioFingerprint', '==', bioFingerprint)
+    .limit(REPEATED_BIO_DUPLICATE_THRESHOLD + 2)
+    .get();
+
+  return snapshot.docs
+    .map((documentSnapshot) => documentSnapshot.id)
+    .filter((candidateUid) => candidateUid !== uid);
+};
+
+const evaluateAndFlagProfileRisk = async (
+  db: admin.firestore.Firestore,
+  uid: string,
+  profile: Record<string, unknown>,
+  trigger: string
+) => {
+  const reasons: string[] = [];
+  const details: string[] = [];
+  const profileCompleteness = getProfileCompleteness(profile);
+  const hasMeaningfulBio =
+    typeof profile.aboutMe === 'string' && profile.aboutMe.trim().length >= 24;
+  const hasInterests = normalizeStringListValue(profile.interests).length > 0;
+  const hasPhoto = hasProfilePhoto(profile);
+  const isPublicEnoughForRisk =
+    profile.isVisible === true ||
+    profile.profileCompleted === true ||
+    profileCompleteness >= PROFILE_COMPLETENESS_DISCOVERY_THRESHOLD;
+  const bioFingerprint = getBioFingerprint(profile.aboutMe);
+  const [reportedCount, duplicateBioUids] = await Promise.all([
+    getReportedUserReportCount(db, uid),
+    getDuplicateBioUids(db, uid, bioFingerprint),
+  ]);
+
+  if (reportedCount >= PROFILE_RISK_REPORT_THRESHOLD) {
+    reasons.push('too_many_reports');
+    details.push(`${reportedCount}+ reports`);
+  }
+
+  if (
+    isPublicEnoughForRisk &&
+    duplicateBioUids.length >= REPEATED_BIO_DUPLICATE_THRESHOLD
+  ) {
+    reasons.push('repeated_bio');
+    details.push(`shared bio with ${duplicateBioUids.slice(0, 3).join(', ')}`);
+  }
+
+  if (
+    isPublicEnoughForRisk &&
+    (profileCompleteness < 45 ||
+      !hasPhoto ||
+      (!hasMeaningfulBio && !hasInterests))
+  ) {
+    reasons.push('empty_profile');
+    details.push(`quality ${getProfileQualityScore(profile, profileCompleteness)}`);
+  }
+
+  if (!reasons.length) {
+    await clearProfileRiskScore(db, uid);
+    return 0;
+  }
+
+  return upsertProfileRiskFlag(
+    db,
+    uid,
+    profile,
+    reasons,
+    trigger,
+    details.join('; ')
+  );
+};
+
+const recordMatchActionRiskSignal = async (
+  uid: string,
+  action: ServerMatchAction
+) => {
+  if (action !== 'like' && action !== 'superLike') {
+    return;
+  }
+
+  const db = admin.firestore();
+  const signalRef = db.collection('trustSignals').doc(uid);
+  const now = Date.now();
+  const likeActionCount = await db.runTransaction(async (transaction) => {
+    const snapshot = await transaction.get(signalRef);
+    const signal = snapshot.data() ?? {};
+    const windowStartedAt = toTimestampMillis(signal.likeWindowStartedAt);
+    const isSameWindow =
+      windowStartedAt > 0 && now - windowStartedAt <= PROFILE_FAST_LIKE_WINDOW_MS;
+    const nextLikeActionCount = isSameWindow
+      ? Number(signal.likeActionCount ?? 0) + 1
+      : 1;
+
+    transaction.set(
+      signalRef,
+      {
+        uid,
+        likeWindowStartedAt: isSameWindow
+          ? signal.likeWindowStartedAt
+          : admin.firestore.FieldValue.serverTimestamp(),
+        likeActionCount: nextLikeActionCount,
+        lastLikeActionAt: admin.firestore.FieldValue.serverTimestamp(),
+        updatedAt: admin.firestore.FieldValue.serverTimestamp(),
+      },
+      { merge: true }
+    );
+
+    return nextLikeActionCount;
+  });
+
+  if (likeActionCount < PROFILE_FAST_LIKE_THRESHOLD) {
+    return;
+  }
+
+  const profileSnapshot = await db.collection('users').doc(uid).get();
+
+  if (!profileSnapshot.exists) {
+    return;
+  }
+
+  await upsertProfileRiskFlag(
+    db,
+    uid,
+    profileSnapshot.data() ?? {},
+    ['fast_like_velocity'],
+    'match_action_velocity',
+    `${likeActionCount} likes in ${PROFILE_FAST_LIKE_WINDOW_MS / 60000} minutes`
+  );
+};
+
+const getRiskRelevantProfileSignature = (profile: Record<string, unknown>) =>
+  JSON.stringify({
+    aboutMe: profile.aboutMe ?? '',
+    firstName: profile.firstName ?? '',
+    lastName: profile.lastName ?? '',
+    gender: profile.gender ?? '',
+    birthDate: profile.birthDate ?? '',
+    profilePicture: profile.profilePicture ?? '',
+    pictures: profile.pictures ?? [],
+    interests: profile.interests ?? [],
+    isVisible: profile.isVisible ?? true,
+    isBanned: profile.isBanned ?? false,
+  });
 
 app.post('/revenueCatWebhook', async (req: express.Request, res: express.Response) => {
   if (!isRevenueCatWebhookAuthorized(req)) {
@@ -1662,6 +2226,7 @@ app.post('/discoverCandidates', verifyToken, async (req: AuthenticatedRequest, r
   const myUid = getRequestedActionUid(req, uid);
   const resultLimit = Math.min(Math.max(Number(req.body.limit ?? 20), 1), 20);
   const cursor = typeof startAfter === 'string' && startAfter ? startAfter : '';
+  const feedMode = normalizeDiscoveryFeedMode(req.body.feedMode);
 
   if (!myUid) {
     res.sendStatus(403);
@@ -1678,6 +2243,11 @@ app.post('/discoverCandidates', verifyToken, async (req: AuthenticatedRequest, r
     }
 
     const profile = profileSnapshot.data() ?? {};
+    const hasPremiumAccess = await getPremiumDiscoveryAccess(db, myUid);
+    const premiumFilters = normalizeDiscoveryPremiumFilters(
+      req.body.premiumFilters,
+      hasPremiumAccess
+    );
     const requestCoords =
       req.body.currentLocCoords && typeof req.body.currentLocCoords === 'object'
         ? (req.body.currentLocCoords as Record<string, unknown>)
@@ -1711,7 +2281,11 @@ app.post('/discoverCandidates', verifyToken, async (req: AuthenticatedRequest, r
         : {};
     const lowerAge = Number(preferredAge.lower ?? 18);
     const upperAge = Number(preferredAge.upper ?? 100);
-    const maxDistanceKm = Number(profile.lookingForDistance ?? 50);
+    const profileDistanceKm = Number(profile.lookingForDistance ?? 50);
+    const maxDistanceKm = Number.isFinite(premiumFilters.maxDistanceKm)
+      ? Number(premiumFilters.maxDistanceKm)
+      : profileDistanceKm;
+    const activeThresholdMillis = Date.now() - 1000 * 60 * 60 * 24 * 7;
     const scanLimit = Math.min(resultLimit * 5, 100);
     let queryRef: admin.firestore.Query = db
       .collection('matchIndex')
@@ -1738,19 +2312,28 @@ app.post('/discoverCandidates', verifyToken, async (req: AuthenticatedRequest, r
 
     const snapshot = await queryRef.get();
     const scannedCandidates: Array<{
-      uid: string;
-      claims: Record<string, unknown>;
-    }> = snapshot.docs.map((candidateSnapshot) => {
-      const claims = candidateSnapshot.data() as Record<string, unknown>;
+        uid: string;
+        claims: Record<string, unknown>;
+        createdAtMillis: number;
+      }> = snapshot.docs.map((candidateSnapshot) => {
+        const claims = candidateSnapshot.data() as Record<string, unknown>;
+        const createdAtMillis =
+          toTimestampMillis(claims.createdAt) ||
+          candidateSnapshot.createTime.toMillis();
 
-      return {
-        uid: candidateSnapshot.id,
-        claims: {
-          ...claims,
+        return {
           uid: candidateSnapshot.id,
-        },
-      };
-    });
+          createdAtMillis,
+          claims: {
+            ...claims,
+            uid: candidateSnapshot.id,
+            createdAt:
+              typeof claims.createdAt === 'string'
+                ? claims.createdAt
+                : candidateSnapshot.createTime.toDate().toISOString(),
+          },
+        };
+      });
     const candidates = scannedCandidates
       .filter((candidate) => !excludedUids.has(candidate.uid))
       .filter((candidate) => {
@@ -1764,20 +2347,73 @@ app.post('/discoverCandidates', verifyToken, async (req: AuthenticatedRequest, r
           )
         );
       })
-      .filter((candidate) =>
-        isWithinDistanceKm(
+      .map((candidate) => {
+        const distanceKm = getDistanceBetweenCoordsKm(
           currentLocCoords,
-          candidate.claims['currentLocCoords'],
-          maxDistanceKm
-        )
+          candidate.claims['currentLocCoords']
+        );
+        const sharedInterestCount = getSharedInterestCount(profile, candidate.claims);
+
+        return {
+          ...candidate,
+          distanceKm,
+          sharedInterestCount,
+          rankScore: getDiscoveryRankScore(
+            feedMode,
+            profile,
+            candidate.claims,
+            distanceKm,
+            candidate.createdAtMillis,
+            sharedInterestCount
+          ),
+        };
+      })
+      .filter((candidate) => distanceKmPasses(candidate.distanceKm, maxDistanceKm))
+      .filter(
+        (candidate) =>
+          !premiumFilters.recentlyActiveOnly ||
+          toTimestampMillis(candidate.claims['lastActiveAt']) >= activeThresholdMillis
       )
-      .sort(
-        (candidateA, candidateB) =>
-          Number(isBoostedIndexEntry(candidateB.claims)) -
-            Number(isBoostedIndexEntry(candidateA.claims)) ||
+      .filter(
+        (candidate) =>
+          !premiumFilters.verifiedOnly ||
+          candidate.claims['profileVerified'] === true
+      )
+      .filter(
+        (candidate) =>
+          !premiumFilters.minSharedInterests ||
+          candidate.sharedInterestCount >= premiumFilters.minSharedInterests
+      )
+      .sort((candidateA, candidateB) => {
+        const scoreDelta = candidateB.rankScore - candidateA.rankScore;
+
+        if (scoreDelta) {
+          return scoreDelta;
+        }
+
+        if (feedMode === 'nearby') {
+          return (candidateA.distanceKm ?? Number.MAX_SAFE_INTEGER) -
+            (candidateB.distanceKm ?? Number.MAX_SAFE_INTEGER);
+        }
+
+        if (feedMode === 'newProfiles') {
+          return candidateB.createdAtMillis - candidateA.createdAtMillis;
+        }
+
+        return (
           toTimestampMillis(candidateB.claims['lastActiveAt']) -
-            toTimestampMillis(candidateA.claims['lastActiveAt'])
-      )
+          toTimestampMillis(candidateA.claims['lastActiveAt'])
+        );
+      })
+      .map((candidate) => ({
+        uid: candidate.uid,
+        claims: {
+          ...candidate.claims,
+          distanceKm: candidate.distanceKm,
+          sharedInterestCount: candidate.sharedInterestCount,
+          rankScore: Math.round(candidate.rankScore),
+        },
+      }))
       .slice(0, resultLimit);
     const nextCursor =
       snapshot.docs.length === scanLimit
@@ -1805,17 +2441,36 @@ app.post('/syncProfileIndex', verifyToken, async (req: AuthenticatedRequest, res
 
   try {
     const db = admin.firestore();
-    const profileSnapshot = await db.collection('users').doc(myUid).get();
+    const [profileSnapshot, authUser] = await Promise.all([
+      db.collection('users').doc(myUid).get(),
+      admin.auth().getUser(myUid).catch(() => null),
+    ]);
 
     if (!profileSnapshot.exists) {
       res.sendStatus(404);
       return;
     }
 
-    const profile = profileSnapshot.data() ?? {};
+    const profile = {
+      ...(profileSnapshot.data() ?? {}),
+      createdAt:
+        profileSnapshot.data()?.createdAt ??
+        profileSnapshot.createTime?.toDate().toISOString() ??
+        new Date().toISOString(),
+      emailVerified: authUser?.emailVerified === true,
+    };
     const indexEntry = buildMatchIndexEntry(myUid, profile);
 
-    await db.collection('matchIndex').doc(myUid).set(indexEntry, { merge: true });
+    await Promise.all([
+      db.collection('matchIndex').doc(myUid).set(indexEntry, { merge: true }),
+      db.collection('users').doc(myUid).set(
+        {
+          profileQualityScore: indexEntry.profileQualityScore,
+        },
+        { merge: true }
+      ),
+    ]);
+    await evaluateAndFlagProfileRisk(db, myUid, profile, 'profile_index_sync');
 
     res.json({
       message: 'OK',
@@ -1885,6 +2540,198 @@ app.post('/setUserProfile', verifyToken, (req: AuthenticatedRequest, res: expres
       console.error('Hiba tortent a profil modositasakor:', error);
       res.sendStatus(500);
     });
+});
+
+app.post('/requestProfileVerification', verifyToken, async (req: AuthenticatedRequest, res: express.Response) => {
+  const { uid } = req.body;
+  const myUid = getRequestedActionUid(req, uid);
+  const selfiePhotoPath =
+    typeof req.body.selfiePhotoPath === 'string'
+      ? req.body.selfiePhotoPath.trim()
+      : '';
+  const selfiePhotoUrl =
+    typeof req.body.selfiePhotoUrl === 'string'
+      ? req.body.selfiePhotoUrl.trim()
+      : '';
+
+  if (!myUid || !selfiePhotoPath || !selfiePhotoUrl) {
+    res.sendStatus(400);
+    return;
+  }
+
+  if (!selfiePhotoPath.startsWith(`${PROFILE_VERIFICATION_SELFIE_PREFIX}/${myUid}/`)) {
+    res.sendStatus(403);
+    return;
+  }
+
+  try {
+    const db = admin.firestore();
+    const profileRef = db.collection('users').doc(myUid);
+    const profileSnapshot = await profileRef.get();
+
+    if (!profileSnapshot.exists) {
+      res.sendStatus(404);
+      return;
+    }
+
+    const profile = profileSnapshot.data() ?? {};
+
+    if (isProfileVerified(profile)) {
+      res.json({
+        message: 'OK',
+        status: 'approved',
+      });
+      return;
+    }
+
+    const [selfieExists] = await admin.storage().bucket().file(selfiePhotoPath).exists();
+
+    if (!selfieExists) {
+      res.status(400).json({ message: 'selfie_not_found' });
+      return;
+    }
+
+    const verificationRef = db.collection('profileVerifications').doc(myUid);
+    const payload = {
+      uid: myUid,
+      status: 'pending',
+      displayName: getProfileDisplayName(profile, myUid),
+      profilePhotoUrl: getProfilePhotoUrl(profile),
+      selfiePhotoPath,
+      selfiePhotoUrl,
+      requestedAt: admin.firestore.FieldValue.serverTimestamp(),
+      updatedAt: admin.firestore.FieldValue.serverTimestamp(),
+      requesterUid: myUid,
+      previousStatus: normalizeProfileVerificationStatus(
+        profile.profileVerificationStatus
+      ),
+    };
+
+    await Promise.all([
+      verificationRef.set(payload, { merge: true }),
+      profileRef.set(
+        {
+          profileVerificationStatus: 'pending',
+          profileVerificationRequestedAt:
+            admin.firestore.FieldValue.serverTimestamp(),
+        },
+        { merge: true }
+      ),
+      db.collection('matchIndex').doc(myUid).set(
+        {
+          profileVerificationStatus: 'pending',
+          profileVerified: false,
+        },
+        { merge: true }
+      ),
+    ]);
+
+    res.json({
+      message: 'OK',
+      status: 'pending',
+    });
+  } catch (error) {
+    console.error('Profile verification request failed:', error);
+    res.sendStatus(500);
+  }
+});
+
+app.post('/reviewProfileVerification', verifyToken, async (req: AuthenticatedRequest, res: express.Response) => {
+  if (!isPrivilegedUser(req)) {
+    res.sendStatus(403);
+    return;
+  }
+
+  const uid = typeof req.body.uid === 'string' ? req.body.uid.trim() : '';
+  const decision = normalizeProfileVerificationDecision(req.body.decision);
+  const note = typeof req.body.note === 'string' ? req.body.note.trim().slice(0, 1000) : '';
+
+  if (!uid || !decision) {
+    res.sendStatus(400);
+    return;
+  }
+
+  try {
+    const db = admin.firestore();
+    const verificationRef = db.collection('profileVerifications').doc(uid);
+    const profileRef = db.collection('users').doc(uid);
+    const indexRef = db.collection('matchIndex').doc(uid);
+    const approved = decision === 'approved';
+
+    await db.runTransaction(async (transaction) => {
+      const [verificationSnapshot, profileSnapshot] = await Promise.all([
+        transaction.get(verificationRef),
+        transaction.get(profileRef),
+      ]);
+
+      if (!verificationSnapshot.exists || !profileSnapshot.exists) {
+        throw new Error('verification_not_found');
+      }
+
+      transaction.set(
+        verificationRef,
+        {
+          status: decision,
+          reviewedAt: admin.firestore.FieldValue.serverTimestamp(),
+          reviewedBy: req.user?.uid ?? '',
+          reviewerEmail: req.user?.email ?? '',
+          reviewNote: note,
+          updatedAt: admin.firestore.FieldValue.serverTimestamp(),
+        },
+        { merge: true }
+      );
+
+      transaction.set(
+        profileRef,
+        {
+          profileVerified: approved,
+          profileVerificationStatus: decision,
+          profileVerificationReviewedAt:
+            admin.firestore.FieldValue.serverTimestamp(),
+          profileVerificationReviewedBy: req.user?.uid ?? '',
+          ...(approved
+            ? {
+                profileVerifiedAt:
+                  admin.firestore.FieldValue.serverTimestamp(),
+                profileVerifiedBy: req.user?.uid ?? '',
+              }
+            : {}),
+        },
+        { merge: true }
+      );
+
+      transaction.set(
+        indexRef,
+        {
+          profileVerified: approved,
+          profileVerificationStatus: decision,
+          lastModeratedAt: admin.firestore.FieldValue.serverTimestamp(),
+        },
+        { merge: true }
+      );
+    });
+
+    await writeSystemModerationAudit(db, {
+      action: approved ? 'profile_verification_approved' : 'profile_verification_rejected',
+      targetUid: uid,
+      details: note,
+    });
+
+    res.json({
+      message: 'OK',
+      status: decision,
+      profileVerified: approved,
+    });
+  } catch (error) {
+    console.error('Profile verification review failed:', error);
+
+    if ((error as Error).message === 'verification_not_found') {
+      res.sendStatus(404);
+      return;
+    }
+
+    res.sendStatus(500);
+  }
 });
 
 app.post('/deleteAccount', verifyToken, handleDeleteAccountRequest);
@@ -2262,6 +3109,93 @@ export const onConversationMessageCreated = onDocumentCreated(
         conversationId,
       }
     );
+  }
+);
+
+export const onModerationReportCreated = onDocumentCreated(
+  'reports/{reportId}',
+  async (event) => {
+    const data = event.data?.data() as Record<string, unknown> | undefined;
+    const reportedUid =
+      typeof data?.reportedUid === 'string' ? data.reportedUid : '';
+
+    if (!reportedUid) {
+      return;
+    }
+
+    const db = admin.firestore();
+    const profileSnapshot = await db.collection('users').doc(reportedUid).get();
+
+    if (!profileSnapshot.exists) {
+      return;
+    }
+
+    await evaluateAndFlagProfileRisk(
+      db,
+      reportedUid,
+      profileSnapshot.data() ?? {},
+      'report_created'
+    );
+  }
+);
+
+export const onUserProfileCreated = onDocumentCreated(
+  'users/{uid}',
+  async (event) => {
+    const uid = event.params.uid;
+    const data = event.data?.data() as Record<string, unknown> | undefined;
+
+    if (!uid || !data) {
+      return;
+    }
+
+    const db = admin.firestore();
+    const indexEntry = buildMatchIndexEntry(uid, data);
+
+    await Promise.all([
+      db.collection('matchIndex').doc(uid).set(indexEntry, { merge: true }),
+      db.collection('users').doc(uid).set(
+        {
+          profileQualityScore: indexEntry.profileQualityScore,
+        },
+        { merge: true }
+      ),
+    ]);
+    await evaluateAndFlagProfileRisk(db, uid, data, 'profile_created');
+  }
+);
+
+export const onUserProfileUpdatedForTrust = onDocumentUpdated(
+  'users/{uid}',
+  async (event) => {
+    const uid = event.params.uid;
+    const beforeData = event.data?.before.data() as Record<string, unknown> | undefined;
+    const afterData = event.data?.after.data() as Record<string, unknown> | undefined;
+
+    if (!uid || !beforeData || !afterData) {
+      return;
+    }
+
+    if (
+      getRiskRelevantProfileSignature(beforeData) ===
+      getRiskRelevantProfileSignature(afterData)
+    ) {
+      return;
+    }
+
+    const db = admin.firestore();
+    const indexEntry = buildMatchIndexEntry(uid, afterData);
+
+    await Promise.all([
+      db.collection('matchIndex').doc(uid).set(indexEntry, { merge: true }),
+      db.collection('users').doc(uid).set(
+        {
+          profileQualityScore: indexEntry.profileQualityScore,
+        },
+        { merge: true }
+      ),
+    ]);
+    await evaluateAndFlagProfileRisk(db, uid, afterData, 'profile_updated');
   }
 );
 

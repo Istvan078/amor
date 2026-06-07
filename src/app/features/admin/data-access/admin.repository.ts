@@ -68,9 +68,53 @@ export type AdminUser = {
   warningCount: number;
   lastWarningAt: unknown;
   createdProfile: boolean;
+  profileVerified: boolean;
+  profileVerificationStatus: AdminProfileVerificationStatus;
+  profileQualityScore: number;
+  moderationRiskScore: number;
+  moderationRiskReasons: string[];
   isPremium: boolean;
   blockedUsersCount: number;
   reportsCount: number;
+};
+
+export type AdminProfileVerificationStatus =
+  | 'none'
+  | 'pending'
+  | 'approved'
+  | 'rejected';
+
+export type AdminProfileVerification = {
+  id: string;
+  uid: string;
+  status: AdminProfileVerificationStatus;
+  displayName: string;
+  profilePhotoUrl: string;
+  selfiePhotoUrl: string;
+  selfiePhotoPath: string;
+  requestedAt: unknown;
+  reviewedAt: unknown;
+  reviewerEmail: string;
+  reviewNote: string;
+};
+
+export type AdminProfileRiskFlag = {
+  id: string;
+  uid: string;
+  status: ModerationReportStatus;
+  reasons: string[];
+  riskScore: number;
+  detail: string;
+  lastTrigger: string;
+  profile: {
+    displayName: string;
+    photoUrl: string;
+    aboutMe: string;
+    profileCompleteness: number;
+    profileQualityScore: number;
+  };
+  createdAt: unknown;
+  updatedAt: unknown;
 };
 
 export type AdminConversationMessage = {
@@ -157,6 +201,70 @@ export class AdminRepository {
     });
   }
 
+  async loadProfileVerifications(): Promise<AdminProfileVerification[]> {
+    return this.runInFirebaseContext(async () => {
+      const verificationsRef = collection(this.firestore, 'profileVerifications');
+      const verificationsQuery = query(
+        verificationsRef,
+        orderBy('updatedAt', 'desc')
+      );
+      const snapshot = await getDocs(verificationsQuery);
+
+      return snapshot.docs.map((verificationSnapshot) => {
+        const data = verificationSnapshot.data() as Record<string, unknown>;
+
+        return {
+          id: verificationSnapshot.id,
+          uid: String(data['uid'] ?? verificationSnapshot.id),
+          status: this.toVerificationStatus(data['status']),
+          displayName: String(data['displayName'] ?? verificationSnapshot.id),
+          profilePhotoUrl: String(data['profilePhotoUrl'] ?? ''),
+          selfiePhotoUrl: String(data['selfiePhotoUrl'] ?? ''),
+          selfiePhotoPath: String(data['selfiePhotoPath'] ?? ''),
+          requestedAt: data['requestedAt'] ?? null,
+          reviewedAt: data['reviewedAt'] ?? null,
+          reviewerEmail: String(data['reviewerEmail'] ?? ''),
+          reviewNote: String(data['reviewNote'] ?? ''),
+        };
+      });
+    });
+  }
+
+  async loadProfileRiskFlags(): Promise<AdminProfileRiskFlag[]> {
+    return this.runInFirebaseContext(async () => {
+      const flagsRef = collection(this.firestore, 'profileRiskFlags');
+      const flagsQuery = query(flagsRef, orderBy('updatedAt', 'desc'));
+      const snapshot = await getDocs(flagsQuery);
+
+      return snapshot.docs.map((flagSnapshot) => {
+        const data = flagSnapshot.data() as Record<string, unknown>;
+        const profile =
+          data['profile'] && typeof data['profile'] === 'object'
+            ? (data['profile'] as Record<string, unknown>)
+            : {};
+
+        return {
+          id: flagSnapshot.id,
+          uid: String(data['uid'] ?? flagSnapshot.id),
+          status: this.toReportStatus(data['status']),
+          reasons: this.toStringArray(data['reasons']),
+          riskScore: Number(data['riskScore'] ?? 0),
+          detail: String(data['detail'] ?? ''),
+          lastTrigger: String(data['lastTrigger'] ?? ''),
+          profile: {
+            displayName: String(profile['displayName'] ?? flagSnapshot.id),
+            photoUrl: String(profile['photoUrl'] ?? ''),
+            aboutMe: String(profile['aboutMe'] ?? ''),
+            profileCompleteness: Number(profile['profileCompleteness'] ?? 0),
+            profileQualityScore: Number(profile['profileQualityScore'] ?? 0),
+          },
+          createdAt: data['createdAt'] ?? null,
+          updatedAt: data['updatedAt'] ?? null,
+        };
+      });
+    });
+  }
+
   async loadUsers(reports: AdminReport[]): Promise<AdminUser[]> {
     const [authUsers, profileSnapshot] = await Promise.all([
       this.loadAuthUsers(),
@@ -209,6 +317,56 @@ export class AdminRepository {
         productId: data.productId ?? null,
         platform: data.platform ?? 'web',
       };
+    });
+  }
+
+  async reviewProfileVerification(
+    verification: AdminProfileVerification,
+    decision: 'approved' | 'rejected',
+    note = ''
+  ) {
+    const idToken = await this.auth.currentUser?.getIdToken();
+
+    if (!idToken) {
+      throw new Error('admin.errors.authRequired');
+    }
+
+    return firstValueFrom(
+      this.http.post<{ status: AdminProfileVerificationStatus }>(
+        `${environment.API_URL}reviewProfileVerification`,
+        {
+          uid: verification.uid,
+          decision,
+          note,
+        },
+        {
+          headers: new HttpHeaders().set('Authorization', idToken),
+        }
+      )
+    );
+  }
+
+  async updateProfileRiskFlagStatus(
+    flag: AdminProfileRiskFlag,
+    status: ModerationReportStatus,
+    note = ''
+  ) {
+    await this.runInFirebaseContext(() =>
+      updateDoc(doc(this.firestore, `profileRiskFlags/${flag.id}`), {
+        status,
+        reviewedAt: serverTimestamp(),
+        reviewedBy: this.getCurrentAdminUid(),
+        reviewerEmail: this.getCurrentAdminEmail(),
+        reviewNote: note,
+        updatedAt: serverTimestamp(),
+      })
+    );
+
+    await this.writeAuditLog({
+      action: `profile_risk_${status}`,
+      targetUid: flag.uid,
+      reportId: '',
+      details: note || flag.reasons.join(', '),
     });
   }
 
@@ -743,6 +901,13 @@ export class AdminRepository {
       warningCount: Number(profile?.['warningCount'] ?? 0),
       lastWarningAt: profile?.['lastWarningAt'] ?? null,
       createdProfile: !!profile && (!!firstName || !!lastName),
+      profileVerified: profile?.['profileVerified'] === true,
+      profileVerificationStatus: this.toVerificationStatus(
+        profile?.['profileVerificationStatus']
+      ),
+      profileQualityScore: Number(profile?.['profileQualityScore'] ?? 0),
+      moderationRiskScore: Number(profile?.['moderationRiskScore'] ?? 0),
+      moderationRiskReasons: this.toStringArray(profile?.['moderationRiskReasons']),
       isPremium: billing?.isPremium === true,
       blockedUsersCount: this.toStringArray(profile?.['blockedUsers']).length,
       reportsCount: reports.filter(
@@ -846,6 +1011,14 @@ export class AdminRepository {
     }
 
     return 'open';
+  }
+
+  private toVerificationStatus(value: unknown): AdminProfileVerificationStatus {
+    if (value === 'pending' || value === 'approved' || value === 'rejected') {
+      return value;
+    }
+
+    return 'none';
   }
 
   private getConversationId(uidA: string, uidB: string) {

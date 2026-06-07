@@ -112,10 +112,18 @@
         <div class="pos-abs bottom-130 w-100 poss-match-name-cont">
           <ion-card-content class="d-flex jus-space-b poss-match-name w-100">
             @if(!isMatchPlaceHolder && matchProfile?.firstName) {
-            <ion-text>{{
-              matchProfile?.firstName +
-                (matchProfile?.age ? " " + matchProfile?.age : "")
-            }}</ion-text>
+            <div class="poss-match-name-stack">
+              <ion-text>{{
+                matchProfile?.firstName +
+                  (matchProfile?.age ? " " + matchProfile?.age : "")
+              }}</ion-text>
+              @if(matchProfile?.profileVerified) {
+              <span class="verified-profile-badge">
+                <ion-icon name="shield-checkmark-outline"></ion-icon>
+                {{ t('discover.verifiedProfile') }}
+              </span>
+              }
+            </div>
             } @else if(!isMatchPlaceHolder) {
             <ion-text>{{ t('discover.profileLoading') }}</ion-text>
             } @else {

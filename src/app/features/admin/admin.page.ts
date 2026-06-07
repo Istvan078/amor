@@ -6,6 +6,7 @@ import { addIcons } from 'ionicons';
 import {
   banOutline,
   barChartOutline,
+  cameraOutline,
   cardOutline,
   chatbubblesOutline,
   checkmarkDoneOutline,
@@ -27,6 +28,8 @@ import {
   AdminBillingSnapshot,
   AdminConversation,
   AdminConversationSummary,
+  AdminProfileRiskFlag,
+  AdminProfileVerification,
   AdminReport,
   AdminRepository,
   AdminUser,
@@ -35,6 +38,8 @@ import { ModerationReportStatus } from '../moderation/models/moderation.model';
 
 type AdminPanel =
   | 'reports'
+  | 'verifications'
+  | 'risk'
   | 'users'
   | 'conversations'
   | 'billing'
@@ -52,8 +57,12 @@ type ReportStatusFilter = ModerationReportStatus | 'all';
 export class AdminPage implements OnInit {
   readonly activePanel = signal<AdminPanel>('reports');
   readonly reports = signal<AdminReport[]>([]);
+  readonly verifications = signal<AdminProfileVerification[]>([]);
+  readonly riskFlags = signal<AdminProfileRiskFlag[]>([]);
   readonly users = signal<AdminUser[]>([]);
   readonly selectedReport = signal<AdminReport | null>(null);
+  readonly selectedVerification = signal<AdminProfileVerification | null>(null);
+  readonly selectedRiskFlag = signal<AdminProfileRiskFlag | null>(null);
   readonly selectedUser = signal<AdminUser | null>(null);
   readonly selectedBilling = signal<AdminBillingSnapshot | null>(null);
   readonly selectedConversation = signal<AdminConversation | null>(null);
@@ -66,6 +75,15 @@ export class AdminPage implements OnInit {
 
   readonly openReports = computed(
     () => this.reports().filter((report) => report.status === 'open').length
+  );
+  readonly openVerificationRequests = computed(
+    () =>
+      this.verifications().filter(
+        (verification) => verification.status === 'pending'
+      ).length
+  );
+  readonly openRiskFlags = computed(
+    () => this.riskFlags().filter((flag) => flag.status === 'open').length
   );
   readonly premiumUsers = computed(
     () => this.users().filter((user) => user.isPremium).length
@@ -162,6 +180,7 @@ export class AdminPage implements OnInit {
     addIcons({
       banOutline,
       barChartOutline,
+      cameraOutline,
       cardOutline,
       chatbubblesOutline,
       checkmarkDoneOutline,
@@ -189,8 +208,14 @@ export class AdminPage implements OnInit {
 
     try {
       const previousSelectedReportId = this.selectedReport()?.id;
+      const previousSelectedVerificationId = this.selectedVerification()?.id;
+      const previousSelectedRiskFlagId = this.selectedRiskFlag()?.id;
       const previousSelectedConversationId = this.selectedConversation()?.id;
-      const reports = await this.adminRepository.loadReports();
+      const [reports, verifications, riskFlags] = await Promise.all([
+        this.adminRepository.loadReports(),
+        this.adminRepository.loadProfileVerifications(),
+        this.adminRepository.loadProfileRiskFlags(),
+      ]);
       const [users, conversations, auditLog] = await Promise.all([
         this.adminRepository.loadUsers(reports),
         this.adminRepository.loadReportedConversationSummaries(reports),
@@ -202,12 +227,28 @@ export class AdminPage implements OnInit {
       ]);
 
       this.reports.set(reports);
+      this.verifications.set(verifications);
+      this.riskFlags.set(riskFlags);
       this.users.set(users);
       this.conversations.set(conversations);
       this.auditLog.set(auditLog);
       this.selectedReport.set(
         reports.find((report) => report.id === previousSelectedReportId) ??
         reports[0] ??
+        null
+      );
+      this.selectedVerification.set(
+        verifications.find(
+          (verification) => verification.id === previousSelectedVerificationId
+        ) ??
+        verifications.find((verification) => verification.status === 'pending') ??
+        verifications[0] ??
+        null
+      );
+      this.selectedRiskFlag.set(
+        riskFlags.find((flag) => flag.id === previousSelectedRiskFlagId) ??
+        riskFlags.find((flag) => flag.status === 'open') ??
+        riskFlags[0] ??
         null
       );
       this.selectedUser.set(users[0] ?? null);
@@ -257,6 +298,106 @@ export class AdminPage implements OnInit {
   async selectReport(report: AdminReport) {
     this.selectedReport.set(report);
     this.selectedConversation.set(null);
+  }
+
+  selectVerification(verification: AdminProfileVerification) {
+    this.selectedVerification.set(verification);
+  }
+
+  selectRiskFlag(flag: AdminProfileRiskFlag) {
+    this.selectedRiskFlag.set(flag);
+  }
+
+  async approveVerification(verification: AdminProfileVerification) {
+    const confirmed = await this.confirmAdminAction(
+      'Approve profile verification?',
+      'This will show the Verified profile badge in discovery.',
+      'Approve'
+    );
+
+    if (!confirmed) {
+      return;
+    }
+
+    await this.adminRepository.reviewProfileVerification(
+      verification,
+      'approved'
+    );
+    await this.loadDashboard();
+  }
+
+  async rejectVerification(verification: AdminProfileVerification) {
+    const note = await this.promptAdminNote(
+      'Reject verification',
+      'Add a short note for the audit trail.',
+      'Photo verification could not be confirmed.',
+      'Reject'
+    );
+
+    if (note === null) {
+      return;
+    }
+
+    await this.adminRepository.reviewProfileVerification(
+      verification,
+      'rejected',
+      note
+    );
+    await this.loadDashboard();
+  }
+
+  async markRiskReviewed(flag: AdminProfileRiskFlag) {
+    await this.adminRepository.updateProfileRiskFlagStatus(
+      flag,
+      'reviewed',
+      'Risk flag reviewed by moderation.'
+    );
+    await this.loadDashboard();
+  }
+
+  async dismissRiskFlag(flag: AdminProfileRiskFlag) {
+    await this.adminRepository.updateProfileRiskFlagStatus(
+      flag,
+      'dismissed',
+      'Risk flag dismissed after review.'
+    );
+    await this.loadDashboard();
+  }
+
+  async hideRiskProfile(flag: AdminProfileRiskFlag) {
+    const confirmed = await this.confirmAdminAction(
+      'Hide suspicious profile?',
+      'This removes the profile from discovery while keeping the account available for review.',
+      'Hide profile'
+    );
+
+    if (!confirmed) {
+      return;
+    }
+
+    await this.adminRepository.setProfileHidden(flag.uid, true);
+    await this.adminRepository.updateProfileRiskFlagStatus(
+      flag,
+      'action_taken',
+      'Profile hidden from risk queue.'
+    );
+    await this.loadDashboard();
+  }
+
+  async warnRiskProfile(flag: AdminProfileRiskFlag) {
+    const message = await this.promptWarningMessage();
+
+    if (!message) {
+      return;
+    }
+
+    await this.adminRepository.sendWarning(flag.uid, message);
+    await this.adminRepository.updateProfileRiskFlagStatus(
+      flag,
+      'action_taken',
+      'Warning sent from risk queue.'
+    );
+    await this.loadDashboard();
   }
 
   async markReviewed(report: AdminReport) {
@@ -424,6 +565,18 @@ export class AdminPage implements OnInit {
     return report.id;
   }
 
+  trackVerification(_index: number, verification: AdminProfileVerification) {
+    return verification.id;
+  }
+
+  trackRiskFlag(_index: number, flag: AdminProfileRiskFlag) {
+    return flag.id;
+  }
+
+  trackRiskReason(_index: number, reason: string) {
+    return reason;
+  }
+
   trackUser(_index: number, user: AdminUser) {
     return user.uid;
   }
@@ -561,6 +714,48 @@ export class AdminPage implements OnInit {
     await alert.onDidDismiss();
 
     return warningMessage;
+  }
+
+  private async promptAdminNote(
+    header: string,
+    message: string,
+    placeholder: string,
+    confirmText: string
+  ) {
+    let note: string | null = null;
+    const alert = await this.alertCtrl.create({
+      header,
+      message,
+      cssClass: 'premium-moderation-alert admin-confirm-alert',
+      inputs: [
+        {
+          name: 'note',
+          type: 'textarea',
+          placeholder,
+        },
+      ],
+      buttons: [
+        {
+          text: 'Cancel',
+          role: 'cancel',
+          cssClass: 'premium-alert-cancel-button',
+        },
+        {
+          text: confirmText,
+          role: 'confirm',
+          cssClass: 'premium-alert-confirm-button',
+          handler: (data) => {
+            note = String(data?.note ?? '').trim();
+            return true;
+          },
+        },
+      ],
+    });
+
+    await alert.present();
+    await alert.onDidDismiss();
+
+    return note;
   }
 
   private findUser(uid: string) {

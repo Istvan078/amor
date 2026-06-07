@@ -79,7 +79,7 @@
 
 .admin-stats {
   display: grid;
-  grid-template-columns: repeat(4, minmax(0, 1fr));
+  grid-template-columns: repeat(auto-fit, minmax(190px, 1fr));
   gap: 14px;
   margin: 18px 0;
 }
@@ -320,6 +320,12 @@
   padding: 11px 15px;
 }
 
+.admin-actions button:disabled,
+.admin-card-actions button:disabled {
+  cursor: not-allowed;
+  opacity: 0.46;
+}
+
 .admin-actions button.is-danger {
   background: linear-gradient(135deg, #8c3146, #ff5b78);
 }
@@ -490,6 +496,73 @@
   border-radius: 999px;
   font-size: 0.72rem;
   font-weight: 850;
+}
+
+.admin-verification-preview {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 14px;
+  margin-top: 16px;
+}
+
+.admin-verification-preview article {
+  display: grid;
+  gap: 10px;
+  min-width: 0;
+  padding: 14px;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 20px;
+  background: rgba(255, 255, 255, 0.055);
+}
+
+.admin-verification-preview span {
+  color: #ffd76b;
+  font-size: 0.78rem;
+  font-weight: 900;
+  text-transform: uppercase;
+}
+
+.admin-verification-preview img {
+  width: 100%;
+  aspect-ratio: 4 / 5;
+  border-radius: 16px;
+  object-fit: cover;
+  background: rgba(255, 255, 255, 0.12);
+}
+
+.admin-risk-reason-list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin: 16px 0;
+  padding: 16px;
+  border: 1px solid rgba(255, 215, 107, 0.16);
+  border-radius: 20px;
+  background: rgba(255, 215, 107, 0.06);
+}
+
+.admin-risk-reason-list .admin-eyebrow,
+.admin-risk-reason-list p {
+  flex: 0 0 100%;
+  margin: 0;
+}
+
+.admin-risk-reason-list span {
+  display: inline-flex;
+  align-items: center;
+  min-height: 28px;
+  padding: 0 9px;
+  border: 1px solid rgba(255, 215, 107, 0.2);
+  border-radius: 999px;
+  background: rgba(255, 215, 107, 0.08);
+  color: #ffd76b;
+  font-size: 0.76rem;
+  font-weight: 900;
+}
+
+.admin-risk-reason-list p {
+  color: rgba(255, 255, 255, 0.68);
+  overflow-wrap: anywhere;
 }
 
 .admin-history {
@@ -776,7 +849,8 @@
 
   .admin-profile-preview,
   .admin-conversation-preview,
-  .admin-audit-list article {
+  .admin-audit-list article,
+  .admin-verification-preview {
     grid-template-columns: 1fr;
   }
 

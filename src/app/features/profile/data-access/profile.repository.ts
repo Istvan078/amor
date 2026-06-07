@@ -50,6 +50,17 @@ function sanitizeProfileForFirestore(profile: Partial<UserClass>): FirestoreData
 
     delete sanitizedProfile['isBanned'];
     delete sanitizedProfile['matchParts'];
+    delete sanitizedProfile['profileVerified'];
+    delete sanitizedProfile['profileVerificationStatus'];
+    delete sanitizedProfile['profileVerifiedAt'];
+    delete sanitizedProfile['profileVerifiedBy'];
+    delete sanitizedProfile['profileVerificationRequestedAt'];
+    delete sanitizedProfile['profileVerificationReviewedAt'];
+    delete sanitizedProfile['profileVerificationReviewedBy'];
+    delete sanitizedProfile['profileQualityScore'];
+    delete sanitizedProfile['moderationRiskScore'];
+    delete sanitizedProfile['moderationRiskReasons'];
+    delete sanitizedProfile['lastRiskFlaggedAt'];
 
     return sanitizedProfile;
 }

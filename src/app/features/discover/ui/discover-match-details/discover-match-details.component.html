@@ -29,6 +29,16 @@
         </div>
       </div>
     </section>
+
+    @if(matchProfile.profileVerified) {
+    <section class="verified-profile-detail">
+      <ion-icon name="shield-checkmark-outline"></ion-icon>
+      <div>
+        <strong>{{ t('discover.verifiedProfile') }}</strong>
+        <span>{{ t('discover.verifiedProfileText') }}</span>
+      </div>
+    </section>
+    }
     }
 
     @for(listNum of possibleDetailLists;track $index){

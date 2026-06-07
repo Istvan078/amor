@@ -74,6 +74,7 @@ app-discover {
 
   #main-view-container {
     box-sizing: border-box;
+    position: relative;
     display: grid;
     place-items: center;
     width: 100%;
@@ -105,6 +106,96 @@ app-discover {
     display: flex;
     justify-content: center;
     align-items: center;
+  }
+
+  .discover-feed-toolbar {
+    position: absolute;
+    top: 20px;
+    left: clamp(20px, 4vw, 48px);
+    right: clamp(86px, 8vw, 132px);
+    z-index: 6;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 0.8rem;
+    pointer-events: none;
+  }
+
+  .discover-feed-tabs,
+  .discover-feed-filters {
+    display: flex;
+    align-items: center;
+    gap: 0.45rem;
+    min-width: 0;
+    pointer-events: auto;
+  }
+
+  .discover-feed-tabs {
+    padding: 0.28rem;
+    border: 1px solid rgba(255, 255, 255, 0.12);
+    border-radius: 999px;
+    background: rgba(16, 20, 35, 0.74);
+    box-shadow: 0 14px 34px rgba(4, 8, 18, 0.22);
+    backdrop-filter: blur(14px);
+  }
+
+  .discover-feed-tabs button,
+  .discover-feed-filters button {
+    min-height: 36px;
+    border: 0;
+    border-radius: 999px;
+    color: var(--amor-muted);
+    font-size: 0.78rem;
+    font-weight: 800;
+    letter-spacing: 0;
+    white-space: nowrap;
+    cursor: pointer;
+    transition:
+      background 180ms ease,
+      color 180ms ease,
+      border-color 180ms ease,
+      transform 180ms ease;
+  }
+
+  .discover-feed-tabs button {
+    padding: 0 0.85rem;
+    background: transparent;
+  }
+
+  .discover-feed-tabs button.is-active {
+    background: #f8f5ef;
+    color: #15192a;
+  }
+
+  .discover-feed-filters {
+    overflow-x: auto;
+    scrollbar-width: none;
+  }
+
+  .discover-feed-filters::-webkit-scrollbar {
+    display: none;
+  }
+
+  .discover-feed-filters button {
+    border: 1px solid rgba(255, 255, 255, 0.12);
+    padding: 0 0.8rem;
+    background: rgba(255, 255, 255, 0.075);
+  }
+
+  .discover-feed-filters button.is-active {
+    border-color: rgba(53, 198, 189, 0.64);
+    background: rgba(53, 198, 189, 0.18);
+    color: #d9fffb;
+  }
+
+  .discover-feed-filters button.is-locked:not(.is-active) {
+    border-color: rgba(242, 199, 110, 0.24);
+    color: rgba(242, 199, 110, 0.82);
+  }
+
+  .discover-feed-tabs button:hover,
+  .discover-feed-filters button:hover {
+    transform: translateY(-1px);
   }
 
   #main-view-container.is-message-view > ion-grid,
@@ -374,6 +465,35 @@ app-discover {
   .poss-match-name ion-text {
     min-width: 0;
     overflow-wrap: anywhere;
+  }
+
+  .poss-match-name-stack {
+    display: grid;
+    gap: 9px;
+    min-width: 0;
+  }
+
+  .verified-profile-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    width: fit-content;
+    max-width: 100%;
+    min-height: 30px;
+    padding: 6px 10px;
+    border: 1px solid rgba(53, 198, 189, 0.32);
+    border-radius: 999px;
+    background: rgba(53, 198, 189, 0.12);
+    color: #9ff7cb;
+    font-size: 0.78rem;
+    font-weight: 950;
+    line-height: 1;
+    text-shadow: none;
+  }
+
+  .verified-profile-badge ion-icon {
+    flex: 0 0 auto;
+    font-size: 16px;
   }
 
   .poss-match-name p {
@@ -1391,6 +1511,41 @@ app-discover {
     line-height: 1.45;
   }
 
+  .verified-profile-detail {
+    display: grid;
+    grid-template-columns: auto minmax(0, 1fr);
+    gap: 12px;
+    align-items: center;
+    margin-top: 12px;
+    padding: 13px 14px;
+    border: 1px solid rgba(53, 198, 189, 0.28);
+    border-radius: 8px;
+    background: rgba(53, 198, 189, 0.1);
+  }
+
+  .verified-profile-detail ion-icon {
+    color: #9ff7cb;
+    font-size: 24px;
+  }
+
+  .verified-profile-detail strong,
+  .verified-profile-detail span {
+    display: block;
+    overflow-wrap: anywhere;
+  }
+
+  .verified-profile-detail strong {
+    color: var(--amor-text);
+    font-weight: 950;
+  }
+
+  .verified-profile-detail span {
+    margin-top: 3px;
+    color: var(--amor-muted);
+    font-size: 0.82rem;
+    line-height: 1.35;
+  }
+
   .match-quality-reasons {
     display: flex;
     flex-wrap: wrap;
@@ -1793,6 +1948,114 @@ app-discover {
     --background: linear-gradient(135deg, var(--amor-rose), var(--amor-coral));
     --border-radius: 999px;
     --box-shadow: 0 16px 34px rgba(255, 93, 143, 0.22);
+    --color: #ffffff;
+    font-weight: 900;
+    letter-spacing: 0;
+    text-transform: none;
+  }
+
+  .profile-verification-card {
+    display: grid;
+    grid-template-columns: auto minmax(0, 1fr) auto;
+    gap: 14px;
+    align-items: center;
+    margin-top: 16px;
+    padding: 16px;
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    border-radius: 8px;
+    background:
+      linear-gradient(135deg, rgba(53, 198, 189, 0.12), rgba(255, 255, 255, 0.045)),
+      rgba(255, 255, 255, 0.055);
+  }
+
+  .profile-verification-card.is-approved {
+    border-color: rgba(53, 198, 189, 0.34);
+    background:
+      linear-gradient(135deg, rgba(53, 198, 189, 0.16), rgba(76, 141, 255, 0.09)),
+      rgba(255, 255, 255, 0.055);
+  }
+
+  .profile-verification-card.is-pending {
+    border-color: rgba(242, 199, 110, 0.34);
+    background:
+      linear-gradient(135deg, rgba(242, 199, 110, 0.13), rgba(255, 255, 255, 0.045)),
+      rgba(255, 255, 255, 0.055);
+  }
+
+  .profile-verification-card.is-rejected {
+    border-color: rgba(255, 93, 143, 0.34);
+    background:
+      linear-gradient(135deg, rgba(255, 93, 143, 0.14), rgba(255, 255, 255, 0.045)),
+      rgba(255, 255, 255, 0.055);
+  }
+
+  .profile-verification-icon {
+    display: grid;
+    place-items: center;
+    width: 52px;
+    height: 52px;
+    border: 1px solid rgba(53, 198, 189, 0.3);
+    border-radius: 999px;
+    background: rgba(53, 198, 189, 0.1);
+    color: #8ff2dc;
+  }
+
+  .profile-verification-card.is-pending .profile-verification-icon {
+    border-color: rgba(242, 199, 110, 0.3);
+    background: rgba(242, 199, 110, 0.1);
+    color: var(--amor-gold);
+  }
+
+  .profile-verification-card.is-rejected .profile-verification-icon {
+    border-color: rgba(255, 93, 143, 0.3);
+    background: rgba(255, 93, 143, 0.1);
+    color: #ffd1dc;
+  }
+
+  .profile-verification-icon ion-icon {
+    font-size: 24px;
+  }
+
+  .profile-verification-copy {
+    min-width: 0;
+  }
+
+  .profile-verification-copy small {
+    color: var(--amor-gold);
+    font-size: 0.72rem;
+    font-weight: 900;
+    text-transform: uppercase;
+  }
+
+  .profile-verification-copy strong,
+  .profile-verification-copy p {
+    display: block;
+    overflow-wrap: anywhere;
+  }
+
+  .profile-verification-copy strong {
+    margin-top: 4px;
+    color: var(--amor-text);
+    font-size: 1.05rem;
+    font-weight: 950;
+  }
+
+  .profile-verification-copy p {
+    margin: 5px 0 0;
+    color: var(--amor-muted);
+    line-height: 1.45;
+  }
+
+  .profile-verification-button {
+    min-height: 42px;
+    margin: 0;
+    --background: rgba(255, 255, 255, 0.1);
+    --background-hover: rgba(255, 255, 255, 0.16);
+    --border-color: rgba(255, 255, 255, 0.14);
+    --border-radius: 999px;
+    --border-style: solid;
+    --border-width: 1px;
+    --box-shadow: none;
     --color: #ffffff;
     font-weight: 900;
     letter-spacing: 0;
@@ -2496,6 +2759,33 @@ app-discover {
 
     #main-view-container ion-col {
       display: block;
+    }
+
+    .discover-feed-toolbar {
+      position: relative;
+      top: auto;
+      left: auto;
+      right: auto;
+      display: grid;
+      gap: 0.55rem;
+      width: 100%;
+      margin: 0 auto 0.7rem;
+      padding: 0 0.1rem;
+    }
+
+    .discover-feed-tabs,
+    .discover-feed-filters {
+      overflow-x: auto;
+      justify-content: flex-start;
+      width: 100%;
+      max-width: 100%;
+    }
+
+    .discover-feed-tabs button,
+    .discover-feed-filters button {
+      flex: 0 0 auto;
+      min-height: 34px;
+      font-size: 0.74rem;
     }
 
     #main-view-container.is-message-view > ion-grid,

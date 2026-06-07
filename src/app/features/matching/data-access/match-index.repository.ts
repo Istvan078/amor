@@ -31,6 +31,35 @@ export type MatchIndexEntry = {
   lastActiveAt?: unknown;
   boostedUntil?: unknown;
   photoUrl?: string;
+  interests?: string[];
+  emailVerified?: boolean;
+  profileVerified?: boolean;
+  profileVerificationStatus?: 'none' | 'pending' | 'approved' | 'rejected';
+  profileQualityScore?: number;
+  moderationRiskScore?: number;
+  moderationRiskReasons?: string[];
+  createdAt?: unknown;
+  distanceKm?: number | null;
+  sharedInterestCount?: number;
+  rankScore?: number;
+};
+
+export type DiscoveryFeedMode =
+  | 'recommended'
+  | 'nearby'
+  | 'recentlyActive'
+  | 'newProfiles';
+
+export type DiscoveryPremiumFilters = {
+  maxDistanceKm?: number | null;
+  recentlyActiveOnly?: boolean;
+  verifiedOnly?: boolean;
+  minSharedInterests?: number;
+};
+
+export type DiscoveryCandidateRequestOptions = {
+  feedMode?: DiscoveryFeedMode;
+  premiumFilters?: DiscoveryPremiumFilters;
 };
 
 export type DiscoverCandidatesResponse = {
@@ -115,7 +144,12 @@ export class MatchIndexRepository {
     return (snapshot.data() as MatchIndexEntry).boostedUntil ?? null;
   }
 
-  async loadCandidatePage(profile: UserClass, resultLimit = 20, startAfter?: string) {
+  async loadCandidatePage(
+    profile: UserClass,
+    resultLimit = 20,
+    startAfter?: string,
+    options: DiscoveryCandidateRequestOptions = {}
+  ) {
     const idToken = await this.getIdToken();
 
     if (!profile.uid || !idToken) {
@@ -132,6 +166,8 @@ export class MatchIndexRepository {
           uid: profile.uid,
           limit: Math.min(Math.max(resultLimit, 1), 20),
           currentLocCoords: profile.currentLocCoords,
+          feedMode: options.feedMode ?? 'recommended',
+          premiumFilters: options.premiumFilters ?? {},
           ...(startAfter ? { startAfter } : {}),
         },
         {
@@ -141,11 +177,17 @@ export class MatchIndexRepository {
     );
   }
 
-  async loadCandidates(profile: UserClass, resultLimit = 20, startAfter?: string) {
+  async loadCandidates(
+    profile: UserClass,
+    resultLimit = 20,
+    startAfter?: string,
+    options: DiscoveryCandidateRequestOptions = {}
+  ) {
     const response = await this.loadCandidatePage(
       profile,
       resultLimit,
-      startAfter
+      startAfter,
+      options
     );
 
     return response.candidates;

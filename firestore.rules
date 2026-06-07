@@ -42,6 +42,19 @@ service cloud.firestore {
           !request.resource.data.keys().hasAny(['isBanned'])
           || request.resource.data.isBanned == false
         )
+        && !request.resource.data.keys().hasAny([
+          'profileVerified',
+          'profileVerificationStatus',
+          'profileVerifiedAt',
+          'profileVerifiedBy',
+          'profileVerificationRequestedAt',
+          'profileVerificationReviewedAt',
+          'profileVerificationReviewedBy',
+          'profileQualityScore',
+          'moderationRiskScore',
+          'moderationRiskReasons',
+          'lastRiskFlaggedAt'
+        ])
         && protectedMatchPartCreateIsEmpty('matches')
         && protectedMatchPartCreateIsEmpty('liked')
         && protectedMatchPartCreateIsEmpty('superLiked')
@@ -68,7 +81,18 @@ service cloud.firestore {
 
     function protectedUserUpdateFieldsAreSafe() {
       return !request.resource.data.diff(resource.data).affectedKeys().hasAny([
-          'isBanned'
+          'isBanned',
+          'profileVerified',
+          'profileVerificationStatus',
+          'profileVerifiedAt',
+          'profileVerifiedBy',
+          'profileVerificationRequestedAt',
+          'profileVerificationReviewedAt',
+          'profileVerificationReviewedBy',
+          'profileQualityScore',
+          'moderationRiskScore',
+          'moderationRiskReasons',
+          'lastRiskFlaggedAt'
         ])
         && (
           !request.resource.data.diff(resource.data).affectedKeys().hasAny([
@@ -86,6 +110,14 @@ service cloud.firestore {
 
     function protectedMatchIndexCreateFieldsAreSafe() {
       return !request.resource.data.keys().hasAny(['boostedUntil'])
+        && !request.resource.data.keys().hasAny([
+          'profileVerified',
+          'profileVerificationStatus',
+          'profileQualityScore',
+          'moderationRiskScore',
+          'moderationRiskReasons',
+          'lastRiskFlaggedAt'
+        ])
         && (
           !request.resource.data.keys().hasAny(['isBanned'])
           || request.resource.data.isBanned == false
@@ -96,6 +128,14 @@ service cloud.firestore {
       let affectedKeys = request.resource.data.diff(resource.data).affectedKeys();
 
       return !affectedKeys.hasAny(['boostedUntil'])
+        && !affectedKeys.hasAny([
+          'profileVerified',
+          'profileVerificationStatus',
+          'profileQualityScore',
+          'moderationRiskScore',
+          'moderationRiskReasons',
+          'lastRiskFlaggedAt'
+        ])
         && (
           !affectedKeys.hasAny(['isBanned'])
           || (
@@ -338,6 +378,21 @@ service cloud.firestore {
     match /moderationAudit/{auditId} {
       allow read, create: if isAdminOrModerator();
       allow update, delete: if false;
+    }
+
+    match /profileVerifications/{uid} {
+      allow read: if isOwner(uid) || isAdminOrModerator();
+      allow write: if isAdminOrModerator();
+    }
+
+    match /profileRiskFlags/{uid} {
+      allow read, update: if isAdminOrModerator();
+      allow create, delete: if false;
+    }
+
+    match /trustSignals/{uid} {
+      allow read: if isAdminOrModerator();
+      allow write: if false;
     }
 
     match /conversations/{conversationId} {

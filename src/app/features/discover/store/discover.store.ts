@@ -14,6 +14,8 @@ import { DiscoverRepository } from '../data-access/discover.repository';
 import { AuthUser, UserClaims } from '../../auth/store/auth.slice';
 import {
     DiscoverCandidatesResponse,
+    DiscoveryFeedMode,
+    DiscoveryPremiumFilters,
     MatchIndexRepository,
 } from '../../matching/data-access/match-index.repository';
 import { isProfileCompleteForDiscovery } from '../../profile/utils/profile-completeness';
@@ -26,6 +28,12 @@ type DiscoverState = {
     progress: number;
     buffer: number;
     candidateCursor: string | null;
+    candidateHasMore: boolean;
+    loadingMoreCandidates: boolean;
+    feedMode: DiscoveryFeedMode;
+    premiumFilters: DiscoveryPremiumFilters;
+    currentCity: string;
+    currentLocCoords: { lat: number; lon: number } | null;
     loading: boolean;
     error: string | null;
 };
@@ -38,6 +46,12 @@ const initialState: DiscoverState = {
     progress: 0,
     buffer: 0,
     candidateCursor: null,
+    candidateHasMore: false,
+    loadingMoreCandidates: false,
+    feedMode: 'recommended',
+    premiumFilters: {},
+    currentCity: '',
+    currentLocCoords: null,
     loading: false,
     error: null,
 };
@@ -74,7 +88,11 @@ export const DiscoverStore = signalStore(
                 return matchIndexRepository.loadCandidatePage(
                     userProfile,
                     20,
-                    startAfter ?? undefined
+                    startAfter ?? undefined,
+                    {
+                        feedMode: store.feedMode(),
+                        premiumFilters: store.premiumFilters(),
+                    }
                 );
             } catch (error) {
                 console.warn('Match index lookup failed.', error);
@@ -155,12 +173,15 @@ export const DiscoverStore = signalStore(
             loggedUser: any,
             userProfile: UserClass,
             currentCity: string,
-            userPosition: any
+            userPosition: any,
+            resetPossibleMatches = true
         ) {
             const possibleMatchIds: string[] = [];
             const checkedUsers: string[] = [];
 
-            userProfile.matchParts!.possMatches = [];
+            if (resetPossibleMatches) {
+                userProfile.matchParts!.possMatches = [];
+            }
 
             const lookingForGender =
                 loggedUser?.claims?.lookingForGender ?? userProfile.lookingForGender;
@@ -247,7 +268,10 @@ export const DiscoverStore = signalStore(
 
                 if (distanceBetweenUsers <= lookingForDistance) {
                     possibleMatchIds.push(user.uid);
-                    userProfile.matchParts!.possMatches.push(user.uid);
+
+                    if (!userProfile.matchParts!.possMatches.includes(user.uid)) {
+                        userProfile.matchParts!.possMatches.push(user.uid);
+                    }
                 }
 
                 checkedUsers.push(user.uid);
@@ -259,9 +283,9 @@ export const DiscoverStore = signalStore(
                 });
             }
 
-            userProfile.currentPlace = currentCity;
+            if (resetPossibleMatches && userProfile.uid) {
+                userProfile.currentPlace = currentCity;
 
-            if (userProfile.uid) {
                 await repository.updateUserProfile(
                     userProfile.uid,
                     userProfile.setDataForFireStore()
@@ -293,6 +317,70 @@ export const DiscoverStore = signalStore(
             }, 200);
         }
 
+        function mergeUniqueIds(existingIds: string[], nextIds: string[]) {
+            const mergedIds = [...existingIds];
+            const seenIds = new Set(existingIds);
+
+            nextIds.forEach((uid) => {
+                if (!seenIds.has(uid)) {
+                    mergedIds.push(uid);
+                    seenIds.add(uid);
+                }
+            });
+
+            return mergedIds;
+        }
+
+        function createPositionFromCoords(coords: { lat: number; lon: number }) {
+            return {
+                coords: {
+                    latitude: coords.lat,
+                    longitude: coords.lon,
+                },
+            };
+        }
+
+        async function loadCandidateIdsFromPages(
+            userProfile: UserClass,
+            loggedUser: AuthUser,
+            currentCity: string,
+            userPosition: any,
+            startAfter: string | null,
+            resetPossibleMatches: boolean
+        ) {
+            let cursor = startAfter;
+            let nextCursor: string | null = cursor;
+            const loadedIds: string[] = [];
+
+            for (let attempt = 0; attempt < 4; attempt++) {
+                const candidatePage = await getCandidatePage(userProfile, cursor);
+
+                nextCursor = candidatePage.nextCursor;
+
+                const pageIds = await buildPossibleMatches(
+                    candidatePage.candidates,
+                    loggedUser,
+                    userProfile,
+                    currentCity,
+                    userPosition,
+                    resetPossibleMatches && attempt === 0
+                );
+
+                loadedIds.push(...pageIds);
+
+                if (loadedIds.length || !nextCursor) {
+                    break;
+                }
+
+                cursor = nextCursor;
+            }
+
+            return {
+                ids: loadedIds,
+                nextCursor,
+            };
+        }
+
         return {
             async loadDiscoverData() {
                 patchState(store, {
@@ -301,6 +389,10 @@ export const DiscoverStore = signalStore(
                     progress: 0,
                     buffer: 0,
                     candidateCursor: null,
+                    candidateHasMore: false,
+                    loadingMoreCandidates: false,
+                    currentCity: '',
+                    currentLocCoords: null,
                 });
 
                 startProgressBuffer();
@@ -400,6 +492,11 @@ export const DiscoverStore = signalStore(
 
                     userProfile.currentLocCoords = userCoords;
 
+                    patchState(store, {
+                        currentCity,
+                        currentLocCoords: userCoords,
+                    });
+
                     const claims: UserClaims = {
                         gender: userProfile.gender!,
                         lookingForGender: userProfile.lookingForGender as any,
@@ -427,27 +524,31 @@ export const DiscoverStore = signalStore(
                         progress: 55,
                     });
 
-                    const candidatePage = await getCandidatePage(userProfile);
-                    const users = candidatePage.candidates;
-
-                    patchState(store, {
-                        candidateCursor: candidatePage.nextCursor,
-                    });
                     const hasPossibleMatches = !!possibleMatchIds.length;
                     const shouldRebuildPossibleMatches =
                         !hasPossibleMatches ||
                         (!!currentCity && currentCity !== previousPlace);
 
                     if (shouldRebuildPossibleMatches) {
-                        possibleMatchIds = await buildPossibleMatches(
-                            users,
-                            loggedUser,
+                        const candidateResult = await loadCandidateIdsFromPages(
                             userProfile,
+                            loggedUser,
                             currentCity,
-                            userPosition
+                            userPosition,
+                            null,
+                            true
                         );
+
+                        possibleMatchIds = candidateResult.ids;
+
+                        patchState(store, {
+                            candidateCursor: candidateResult.nextCursor,
+                            candidateHasMore: !!candidateResult.nextCursor,
+                        });
                     } else {
                         patchState(store, {
+                            candidateCursor: null,
+                            candidateHasMore: true,
                             progress: 70,
                         });
                     }
@@ -471,6 +572,78 @@ export const DiscoverStore = signalStore(
                         error: 'Failed to load discover data.',
                         progress: 100,
                     });
+                }
+            },
+
+            setFeedMode(feedMode: DiscoveryFeedMode) {
+                patchState(store, {
+                    feedMode,
+                });
+            },
+
+            setPremiumFilters(premiumFilters: DiscoveryPremiumFilters) {
+                patchState(store, {
+                    premiumFilters,
+                });
+            },
+
+            async loadMoreCandidates() {
+                if (store.loadingMoreCandidates() || !store.candidateHasMore()) {
+                    return false;
+                }
+
+                const userProfile = store.userProfile();
+                const loggedUser = store.loggedUser() as AuthUser | null;
+                const currentLocCoords = store.currentLocCoords();
+
+                if (!userProfile?.uid || !loggedUser?.uid || !currentLocCoords) {
+                    patchState(store, {
+                        candidateHasMore: false,
+                    });
+                    return false;
+                }
+
+                patchState(store, {
+                    loadingMoreCandidates: true,
+                    error: null,
+                });
+
+                try {
+                    const candidateResult = await loadCandidateIdsFromPages(
+                        userProfile,
+                        loggedUser,
+                        store.currentCity(),
+                        createPositionFromCoords(currentLocCoords),
+                        store.candidateCursor(),
+                        false
+                    );
+                    const existingIds = store.possibleMatchIds();
+                    const nextIds = candidateResult.ids.filter(
+                        (uid) => !existingIds.includes(uid)
+                    );
+                    const possibleMatchIds = mergeUniqueIds(existingIds, nextIds);
+
+                    profileStore.setProfile(userProfile);
+
+                    patchState(store, {
+                        userProfile,
+                        possibleMatchIds,
+                        candidateCursor: candidateResult.nextCursor,
+                        candidateHasMore: !!candidateResult.nextCursor,
+                        loadingMoreCandidates: false,
+                        progress: 100,
+                    });
+
+                    return nextIds.length > 0;
+                } catch (error) {
+                    console.error(error);
+
+                    patchState(store, {
+                        loadingMoreCandidates: false,
+                        error: 'Failed to load more discover profiles.',
+                    });
+
+                    return false;
                 }
             },
 

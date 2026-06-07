@@ -24,6 +24,7 @@ import {
   heartOutline,
   lockClosedOutline,
   returnUpBackOutline,
+  shieldCheckmarkOutline,
   star,
 } from 'ionicons/icons';
 
@@ -88,6 +89,7 @@ export class DiscoverMatchCardComponent implements OnChanges {
       heartOutline,
       lockClosedOutline,
       returnUpBackOutline,
+      shieldCheckmarkOutline,
       star,
     });
   }

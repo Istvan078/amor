@@ -29,6 +29,10 @@
       <span>Banned / hidden</span>
       <strong>{{ bannedUsers() }} / {{ hiddenProfiles() }}</strong>
     </article>
+    <article>
+      <span>Trust queues</span>
+      <strong>{{ openVerificationRequests() }} / {{ openRiskFlags() }}</strong>
+    </article>
   </section>
 
   <nav class="admin-tabs" aria-label="Admin sections">
@@ -41,6 +45,28 @@
       Reports
       @if (openReports()) {
         <span class="admin-tab-badge">{{ openReports() }}</span>
+      }
+    </button>
+    <button
+      type="button"
+      [class.is-active]="activePanel() === 'verifications'"
+      (click)="setPanel('verifications')"
+    >
+      <ion-icon name="camera-outline"></ion-icon>
+      Verifications
+      @if (openVerificationRequests()) {
+        <span class="admin-tab-badge">{{ openVerificationRequests() }}</span>
+      }
+    </button>
+    <button
+      type="button"
+      [class.is-active]="activePanel() === 'risk'"
+      (click)="setPanel('risk')"
+    >
+      <ion-icon name="warning-outline"></ion-icon>
+      Risk flags
+      @if (openRiskFlags()) {
+        <span class="admin-tab-badge">{{ openRiskFlags() }}</span>
       }
     </button>
     <button
@@ -318,6 +344,208 @@
     </section>
   }
 
+  @if (activePanel() === 'verifications') {
+    <section class="admin-panel admin-panel--split">
+      <div class="admin-list">
+        <div class="admin-list-heading">
+          <span>Verification queue</span>
+          <strong>{{ verifications().length }} requests</strong>
+        </div>
+
+        @for (verification of verifications(); track trackVerification($index, verification)) {
+          <button
+            type="button"
+            class="admin-report-card"
+            [class.is-active]="selectedVerification()?.id === verification.id"
+            (click)="selectVerification(verification)"
+          >
+            <span class="admin-status" [class]="'is-' + verification.status">
+              {{ verification.status }}
+            </span>
+            <strong>{{ verification.displayName }}</strong>
+            <small>{{ formatDate(verification.requestedAt) }}</small>
+          </button>
+        } @empty {
+          <p class="admin-empty">There are no verification requests.</p>
+        }
+      </div>
+
+      <div class="admin-detail-card">
+        @if (selectedVerification(); as verification) {
+          <span class="admin-status" [class]="'is-' + verification.status">
+            {{ verification.status }}
+          </span>
+          <h2>{{ verification.displayName }}</h2>
+          <dl class="admin-detail-grid">
+            <div>
+              <dt>User</dt>
+              <dd>{{ verification.uid }}</dd>
+            </div>
+            <div>
+              <dt>Requested</dt>
+              <dd>{{ formatDate(verification.requestedAt) }}</dd>
+            </div>
+            <div>
+              <dt>Reviewed</dt>
+              <dd>{{ formatDate(verification.reviewedAt) }}</dd>
+            </div>
+            <div>
+              <dt>Reviewer</dt>
+              <dd>{{ verification.reviewerEmail || 'Not reviewed yet' }}</dd>
+            </div>
+          </dl>
+
+          <section class="admin-verification-preview">
+            <article>
+              <span>Profile photo</span>
+              <img [src]="verification.profilePhotoUrl || 'assets/icon/user-icon.png'" alt="" />
+            </article>
+            <article>
+              <span>Selfie check</span>
+              <img [src]="verification.selfiePhotoUrl || 'assets/icon/user-icon.png'" alt="" />
+            </article>
+          </section>
+
+          @if (verification.reviewNote) {
+            <section class="admin-message-report-preview">
+              <p class="admin-eyebrow">Review note</p>
+              <blockquote>{{ verification.reviewNote }}</blockquote>
+            </section>
+          }
+
+          <div class="admin-actions">
+            <button
+              type="button"
+              [disabled]="verification.status === 'approved'"
+              (click)="approveVerification(verification)"
+            >
+              <ion-icon name="shield-checkmark-outline"></ion-icon>
+              Approve verified
+            </button>
+            <button
+              type="button"
+              class="is-danger"
+              [disabled]="verification.status === 'rejected'"
+              (click)="rejectVerification(verification)"
+            >
+              <ion-icon name="close-circle-outline"></ion-icon>
+              Reject
+            </button>
+          </div>
+        } @else {
+          <p class="admin-empty">Select a verification request.</p>
+        }
+      </div>
+    </section>
+  }
+
+  @if (activePanel() === 'risk') {
+    <section class="admin-panel admin-panel--split">
+      <div class="admin-list">
+        <div class="admin-list-heading">
+          <span>Suspicious profile queue</span>
+          <strong>{{ riskFlags().length }} flags</strong>
+        </div>
+
+        @for (flag of riskFlags(); track trackRiskFlag($index, flag)) {
+          <button
+            type="button"
+            class="admin-report-card"
+            [class.is-active]="selectedRiskFlag()?.id === flag.id"
+            (click)="selectRiskFlag(flag)"
+          >
+            <span class="admin-status" [class]="'is-' + flag.status">
+              {{ flag.status }}
+            </span>
+            <strong>{{ flag.profile.displayName }}</strong>
+            <em>Risk {{ flag.riskScore }}</em>
+            <small>{{ flag.reasons.join(', ') || 'No reasons captured' }}</small>
+          </button>
+        } @empty {
+          <p class="admin-empty">There are no suspicious profile flags.</p>
+        }
+      </div>
+
+      <div class="admin-detail-card">
+        @if (selectedRiskFlag(); as flag) {
+          <span class="admin-status" [class]="'is-' + flag.status">
+            {{ flag.status }}
+          </span>
+          <h2>{{ flag.profile.displayName }}</h2>
+
+          <section class="admin-profile-preview">
+            <img [src]="flag.profile.photoUrl || 'assets/icon/user-icon.png'" alt="" />
+            <div>
+              <p class="admin-eyebrow">Risk snapshot</p>
+              <h3>
+                {{ flag.profile.displayName }}
+                <span>Risk {{ flag.riskScore }}</span>
+              </h3>
+              <p>{{ flag.profile.aboutMe || 'No bio captured.' }}</p>
+              <div class="admin-profile-meta">
+                <span>Quality {{ flag.profile.profileQualityScore }}</span>
+                <span>Completeness {{ flag.profile.profileCompleteness }}</span>
+                <span>{{ flag.lastTrigger || 'automatic' }}</span>
+              </div>
+            </div>
+          </section>
+
+          <section class="admin-risk-reason-list">
+            <p class="admin-eyebrow">Reasons</p>
+            @for (reason of flag.reasons; track trackRiskReason($index, reason)) {
+              <span>{{ reason }}</span>
+            } @empty {
+              <span>No reasons captured</span>
+            }
+            @if (flag.detail) {
+              <p>{{ flag.detail }}</p>
+            }
+          </section>
+
+          <dl class="admin-detail-grid">
+            <div>
+              <dt>User</dt>
+              <dd>{{ flag.uid }}</dd>
+            </div>
+            <div>
+              <dt>Created</dt>
+              <dd>{{ formatDate(flag.createdAt) }}</dd>
+            </div>
+            <div>
+              <dt>Updated</dt>
+              <dd>{{ formatDate(flag.updatedAt) }}</dd>
+            </div>
+            <div>
+              <dt>Status</dt>
+              <dd>{{ flag.status }}</dd>
+            </div>
+          </dl>
+
+          <div class="admin-actions">
+            <button type="button" (click)="markRiskReviewed(flag)">
+              <ion-icon name="checkmark-done-outline"></ion-icon>
+              Mark reviewed
+            </button>
+            <button type="button" (click)="dismissRiskFlag(flag)">
+              <ion-icon name="close-circle-outline"></ion-icon>
+              Dismiss
+            </button>
+            <button type="button" class="is-soft" (click)="warnRiskProfile(flag)">
+              <ion-icon name="warning-outline"></ion-icon>
+              Send warning
+            </button>
+            <button type="button" class="is-danger" (click)="hideRiskProfile(flag)">
+              <ion-icon name="eye-off-outline"></ion-icon>
+              Hide profile
+            </button>
+          </div>
+        } @else {
+          <p class="admin-empty">Select a risk flag.</p>
+        }
+      </div>
+    </section>
+  }
+
   @if (activePanel() === 'users') {
     <section class="admin-panel">
       <label class="admin-search">
@@ -341,6 +569,11 @@
                 {{ user.createdProfile ? 'Profile ready' : 'No profile' }} ·
                 {{ user.isPremium ? 'Premium' : 'Free' }} ·
                 {{ user.reportsCount }} reports
+              </small>
+              <small>
+                {{ user.profileVerified ? 'Verified' : user.profileVerificationStatus }} ·
+                Quality {{ user.profileQualityScore }} ·
+                Risk {{ user.moderationRiskScore }}
               </small>
             </div>
             <div class="admin-card-actions">

@@ -48,6 +48,7 @@ import { Options } from '../../../../shared/models/options.model';
 import { UserClass } from '../../../../shared/models/user.model';
 import { addIcons } from 'ionicons';
 import {
+  cameraOutline,
   diamondOutline,
   checkmarkCircleOutline,
   heartOutline,
@@ -130,6 +131,7 @@ export class DiscoverProfilePanelComponent implements AfterViewChecked, OnChange
   @Input() isProfileBoostActive = false;
   @Input() profileBoostMinutesLeft = 0;
   @Input() canOpenAdmin = false;
+  @Input() verificationSubmitting = false;
 
   @Output() startUpdateRequested = new EventEmitter<void>();
   @Output() profilePictureOpened = new EventEmitter<number>();
@@ -142,9 +144,11 @@ export class DiscoverProfilePanelComponent implements AfterViewChecked, OnChange
   @Output() profilePhotoDeleted = new EventEmitter<number>();
   @Output() profileUpdated = new EventEmitter<void>();
   @Output() choicesSelected = new EventEmitter<ProfileChoiceSelectedEvent>();
+  @Output() profileVerificationRequested = new EventEmitter<File>();
 
   constructor() {
     addIcons({
+      cameraOutline,
       checkmarkCircleOutline,
       diamondOutline,
       heartOutline,
@@ -238,6 +242,44 @@ export class DiscoverProfilePanelComponent implements AfterViewChecked, OnChange
         completed: hasLocation,
       },
     ];
+  }
+
+  profileVerificationStatus() {
+    if (this.userProfile?.profileVerified) {
+      return 'approved';
+    }
+
+    return this.userProfile?.profileVerificationStatus ?? 'none';
+  }
+
+  profileVerificationTitleKey() {
+    return `profile.verification.status.${this.profileVerificationStatus()}.title`;
+  }
+
+  profileVerificationTextKey() {
+    return `profile.verification.status.${this.profileVerificationStatus()}.text`;
+  }
+
+  canRequestProfileVerification() {
+    return (
+      this.hasMinimumPhotos() &&
+      !this.userProfile?.profileVerified &&
+      this.profileVerificationStatus() !== 'pending' &&
+      !this.verificationSubmitting
+    );
+  }
+
+  onVerificationSelfieSelected(event: Event) {
+    const input = event.target as HTMLInputElement | null;
+    const file = input?.files?.[0];
+
+    if (file && this.canRequestProfileVerification()) {
+      this.profileVerificationRequested.emit(file);
+    }
+
+    if (input) {
+      input.value = '';
+    }
   }
 
   dateTriggerId(key: string) {

@@ -42,6 +42,7 @@ import {
   type PromoBottomSheetDismissEvent,
 } from '../ui/promo-bottom-sheet/promo-bottom-sheet.component';
 import { ProfilePicturesRepository } from '../../profile/data-access/profile-pictures.repository';
+import { ProfileVerificationRepository } from '../../profile/data-access/profile-verification.repository';
 import { ProfileStore } from '../../profile/store/profile.store';
 import { Options } from '../../../shared/models/options.model';
 import { Promotions } from '../../../shared/models/promotions.model';
@@ -50,7 +51,11 @@ import { Message } from '../../../shared/models/message.model';
 import { MatchConversationPreviewsStore } from '../../messages/store/match-conversation-previews.store';
 import { MatchActionsStore } from '../../matching/store/match-actions.store';
 import { type MatchActionResponse } from '../../matching/data-access/match-actions.repository';
-import { MatchIndexRepository } from '../../matching/data-access/match-index.repository';
+import {
+  DiscoveryFeedMode,
+  DiscoveryPremiumFilters,
+  MatchIndexRepository,
+} from '../../matching/data-access/match-index.repository';
 import { LikedByRepository } from '../../matching/data-access/liked-by.repository';
 import { OnlinePresenceService } from '../../presence/data-access/online-presence.service';
 import { PromoStore } from '../../promotions/store/promo.store';
@@ -116,6 +121,47 @@ export class DiscoverPage implements OnInit, OnDestroy {
   promoBottomSheetActiveIndex = 0;
   rewindStack: UserClass[] = [];
   likedByProfiles: UserClass[] = [];
+  discoveryFeedMode: DiscoveryFeedMode = 'recommended';
+  premiumDiscoveryFilters: DiscoveryPremiumFilters = {};
+  isLoadingMoreCandidates = false;
+  verificationSubmitting = false;
+
+  readonly discoveryFeedModes: Array<{
+    mode: DiscoveryFeedMode;
+    labelKey: string;
+  }> = [
+    { mode: 'recommended', labelKey: 'discover.feed.recommended' },
+    { mode: 'nearby', labelKey: 'discover.feed.nearby' },
+    { mode: 'recentlyActive', labelKey: 'discover.feed.recentlyActive' },
+    { mode: 'newProfiles', labelKey: 'discover.feed.newProfiles' },
+  ];
+
+  readonly premiumDiscoveryFilterButtons: Array<{
+    key: keyof DiscoveryPremiumFilters;
+    labelKey: string;
+    value: number | boolean;
+  }> = [
+    {
+      key: 'maxDistanceKm',
+      labelKey: 'discover.feed.filters.closeRange',
+      value: 25,
+    },
+    {
+      key: 'recentlyActiveOnly',
+      labelKey: 'discover.feed.filters.active',
+      value: true,
+    },
+    {
+      key: 'verifiedOnly',
+      labelKey: 'discover.feed.filters.verified',
+      value: true,
+    },
+    {
+      key: 'minSharedInterests',
+      labelKey: 'discover.feed.filters.sharedInterests',
+      value: 2,
+    },
+  ];
 
   private readonly maxProfilePictures = 6;
 
@@ -140,6 +186,7 @@ export class DiscoverPage implements OnInit, OnDestroy {
   private promoBottomSheetShownForUid: string | null = null;
   private boostCountdownInterval: ReturnType<typeof setInterval> | null = null;
   private adminAccessCheckedUid: string | null = null;
+  private loadedMatchProfileUids = new Set<string>();
 
   private authStore = inject(AuthStore);
   private firebaseAuth = inject(Auth);
@@ -162,6 +209,7 @@ export class DiscoverPage implements OnInit, OnDestroy {
   private locationService = inject(LocationService);
   private discoverRepository = inject(DiscoverRepository);
   private profilePicturesRepository = inject(ProfilePicturesRepository);
+  private profileVerificationRepository = inject(ProfileVerificationRepository);
   private document = inject(DOCUMENT);
 
   constructor() {
@@ -364,6 +412,7 @@ export class DiscoverPage implements OnInit, OnDestroy {
     this.matches = [];
     this.possibleMatchIds = [];
     this.matchProfiles = [];
+    this.loadedMatchProfileUids.clear();
     this.likedByProfiles = [];
     this.possMatchDetLists = [];
     this.isMatchDetailsOpen = false;
@@ -519,6 +568,9 @@ export class DiscoverPage implements OnInit, OnDestroy {
     this.progress = this.discoverStore.progress();
     this.buffer = this.discoverStore.buffer();
     this.matches = this.discoverStore.matches();
+    this.discoveryFeedMode = this.discoverStore.feedMode();
+    this.premiumDiscoveryFilters = this.discoverStore.premiumFilters();
+    this.isLoadingMoreCandidates = this.discoverStore.loadingMoreCandidates();
     this.matchConversationPreviewsStore.start(this.userProf, this.matches);
     this.schedulePromoBottomSheetCheck();
     this.syncMatchActionState();
@@ -964,6 +1016,10 @@ export class DiscoverPage implements OnInit, OnDestroy {
       : [];
 
     if (this.progress === 100 && !possibleMatchIds.length) {
+      if (await this.loadMoreMatchProfiles()) {
+        return;
+      }
+
       this.isMatchPlaceHolder = true;
       this.matchProf = undefined;
       this.matchProfiles = [];
@@ -980,6 +1036,11 @@ export class DiscoverPage implements OnInit, OnDestroy {
 
     if (matchProfiles.length) {
       this.matchProfiles = matchProfiles;
+      this.loadedMatchProfileUids = new Set(
+        matchProfiles
+          .map((profile) => profile.uid)
+          .filter((uid): uid is string => typeof uid === 'string' && !!uid)
+      );
       this.matchProf = this.matchProfiles[0];
       this.matchProf!['index'] = 0;
       this.isMatchPlaceHolder = false;
@@ -989,6 +1050,124 @@ export class DiscoverPage implements OnInit, OnDestroy {
 
     this.isMatchPlaceHolder = true;
     this.possMatchDetLists = [];
+  }
+
+  async setDiscoveryFeedMode(feedMode: DiscoveryFeedMode) {
+    if (this.discoveryFeedMode === feedMode) {
+      return;
+    }
+
+    this.discoveryFeedMode = feedMode;
+    this.discoverStore.setFeedMode(feedMode);
+    await this.reloadDiscoveryFeed();
+  }
+
+  async togglePremiumDiscoveryFilter(
+    filter: (typeof this.premiumDiscoveryFilterButtons)[number]
+  ) {
+    if (!this.billingStore.isPremium()) {
+      this.openActionPromoBottomSheet(this.getPromoById('amorinoGold'));
+      return;
+    }
+
+    const currentValue = this.premiumDiscoveryFilters[filter.key];
+    const isEnabled = currentValue === filter.value;
+    const nextFilters: DiscoveryPremiumFilters = {
+      ...this.premiumDiscoveryFilters,
+      [filter.key]: isEnabled ? undefined : filter.value,
+    };
+
+    Object.keys(nextFilters).forEach((key) => {
+      const filterKey = key as keyof DiscoveryPremiumFilters;
+
+      if (nextFilters[filterKey] === undefined) {
+        delete nextFilters[filterKey];
+      }
+    });
+
+    this.premiumDiscoveryFilters = nextFilters;
+    this.discoverStore.setPremiumFilters(nextFilters);
+    await this.reloadDiscoveryFeed();
+  }
+
+  isPremiumDiscoveryFilterActive(
+    filter: (typeof this.premiumDiscoveryFilterButtons)[number]
+  ) {
+    return this.premiumDiscoveryFilters[filter.key] === filter.value;
+  }
+
+  private async reloadDiscoveryFeed() {
+    const uid = this.authStore.user()?.uid;
+
+    if (!uid) {
+      return;
+    }
+
+    this.loadedDiscoverUid = null;
+    this.loadingDiscoverUid = null;
+    this.loadedMatchProfileUids.clear();
+    this.resetActiveDiscoverView();
+    await this.ensureDiscoverData(uid);
+  }
+
+  private async loadMoreMatchProfiles() {
+    if (this.isLoadingMoreCandidates) {
+      return false;
+    }
+
+    if (!this.discoverStore.candidateHasMore()) {
+      return false;
+    }
+
+    this.isLoadingMoreCandidates = true;
+
+    try {
+      let hasNewCandidates = false;
+      let newMatchIds: string[] = [];
+
+      for (let attempt = 0; attempt < 3; attempt++) {
+        hasNewCandidates = await this.discoverStore.loadMoreCandidates();
+        this.syncDiscoverState();
+
+        newMatchIds = this.discoverStore
+          .possibleMatchIds()
+          .filter((uid) => !this.loadedMatchProfileUids.has(uid));
+
+        if (hasNewCandidates && newMatchIds.length) {
+          break;
+        }
+
+        if (!this.discoverStore.candidateHasMore()) {
+          break;
+        }
+      }
+
+      if (!hasNewCandidates || !newMatchIds.length) {
+        return false;
+      }
+
+      const newProfiles =
+        await this.discoverRepository.getMatchProfiles(newMatchIds);
+
+      newProfiles.forEach((profile) => {
+        if (profile.uid) {
+          this.loadedMatchProfileUids.add(profile.uid);
+        }
+      });
+
+      this.matchProfiles = [...this.matchProfiles, ...newProfiles];
+
+      if (!this.matchProf && newProfiles.length) {
+        this.matchProf = newProfiles[0];
+        this.matchProf['index'] = this.matchProfiles.indexOf(newProfiles[0]);
+        this.isMatchPlaceHolder = false;
+        this.setUProfLabels();
+      }
+
+      return newProfiles.length > 0;
+    } finally {
+      this.isLoadingMoreCandidates = false;
+    }
   }
 
   openLikedByProfile(profile: UserClass) {
@@ -1006,7 +1185,7 @@ export class DiscoverPage implements OnInit, OnDestroy {
     this.setUProfLabels();
   }
 
-  changeMatchProf() {
+  async changeMatchProf() {
     if (!this.matchProf) return;
 
     const currentIndex = Number(this.matchProf['index'] ?? 0);
@@ -1018,7 +1197,22 @@ export class DiscoverPage implements OnInit, OnDestroy {
       this.matchProf = this.matchProfiles[nextIndex];
       this.matchProf!['index'] = nextIndex;
       this.setUProfLabels();
+
+      if (this.matchProfiles.length - nextIndex <= 3) {
+        void this.loadMoreMatchProfiles();
+      }
+
       return;
+    }
+
+    if (await this.loadMoreMatchProfiles()) {
+      if (nextIndex < this.matchProfiles.length) {
+        this.matchProf = this.matchProfiles[nextIndex];
+        this.matchProf!['index'] = nextIndex;
+        this.isMatchPlaceHolder = false;
+        this.setUProfLabels();
+        return;
+      }
     }
 
     this.matchProf = undefined;
@@ -1095,7 +1289,7 @@ export class DiscoverPage implements OnInit, OnDestroy {
     );
     this.removeLikedByProfile(likedProfile?.uid);
 
-    this.changeMatchProf();
+    await this.changeMatchProf();
 
     if (newMatch) {
       await this.openItsAMatchModal(newMatch);
@@ -1114,7 +1308,7 @@ export class DiscoverPage implements OnInit, OnDestroy {
 
     await this.likeOrDontUser(this.matchProf, false, true);
     this.removeLikedByProfile(this.matchProf?.uid);
-    this.changeMatchProf();
+    await this.changeMatchProf();
     this.syncMatchActionState();
   }
 
@@ -1205,7 +1399,7 @@ export class DiscoverPage implements OnInit, OnDestroy {
       superLikeResult
     );
 
-    this.changeMatchProf();
+    await this.changeMatchProf();
     this.syncMatchActionState();
 
     if (newMatch) {
@@ -1568,6 +1762,37 @@ export class DiscoverPage implements OnInit, OnDestroy {
     );
 
     this.config.clearSelectedFiles();
+  }
+
+  async requestProfileVerification(selfieFile: File) {
+    const uid = this.userProf?.uid ?? this.user?.uid;
+
+    if (!uid || !selfieFile || this.verificationSubmitting) {
+      return;
+    }
+
+    this.verificationSubmitting = true;
+
+    try {
+      const response =
+        await this.profileVerificationRepository.requestProfileVerification(
+          uid,
+          selfieFile
+        );
+      const nextProfile = {
+        ...(this.userProf ?? {}),
+        profileVerificationStatus: response.status,
+        profileVerified: response.status === 'approved',
+        profileVerificationRequestedAt: new Date().toISOString(),
+      } as UserClass;
+
+      this.userProf = nextProfile;
+      this.profileStore.setProfile(nextProfile);
+    } catch (error) {
+      console.warn('Profile verification request failed.', error);
+    } finally {
+      this.verificationSubmitting = false;
+    }
   }
 
   async reorderProfilePhotos(event: { fromIndex: number; toIndex: number }) {

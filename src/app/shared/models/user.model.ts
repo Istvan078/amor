@@ -102,6 +102,13 @@ export class UserClass {
   public notificationDelivery?: NotificationDeliveryPreferences;
   public notificationQuietHours?: NotificationQuietHours;
   public isBanned?: boolean;
+  public profileVerified?: boolean;
+  public profileVerificationStatus?: 'none' | 'pending' | 'approved' | 'rejected';
+  public profileVerifiedAt?: unknown;
+  public profileVerificationRequestedAt?: unknown;
+  public profileQualityScore?: number;
+  public moderationRiskScore?: number;
+  public moderationRiskReasons?: string[];
   public profileCompleted?: boolean;
   public profileCompleteness?: number;
   public blockedUsers?: string[];

@@ -73,6 +73,33 @@
               </button>
             </section>
             } @if(!isShowMessages && (!userProf || isProfileReadyForDiscovery(userProf))) {
+            <section class="discover-feed-toolbar" aria-label="Discovery feed controls">
+              <div class="discover-feed-tabs">
+                @for(feed of discoveryFeedModes; track feed.mode) {
+                <button
+                  type="button"
+                  [class.is-active]="discoveryFeedMode === feed.mode"
+                  (click)="setDiscoveryFeedMode(feed.mode)"
+                >
+                  {{ feed.labelKey | transloco }}
+                </button>
+                }
+              </div>
+
+              <div class="discover-feed-filters">
+                @for(filter of premiumDiscoveryFilterButtons; track filter.key) {
+                <button
+                  type="button"
+                  [class.is-active]="isPremiumDiscoveryFilterActive(filter)"
+                  [class.is-locked]="!billingStore.isPremium()"
+                  (click)="togglePremiumDiscoveryFilter(filter)"
+                >
+                  {{ filter.labelKey | transloco }}
+                </button>
+                }
+              </div>
+            </section>
+
             <app-discover-match-card
               [progress]="progress"
               [buffer]="buffer"
@@ -117,6 +144,7 @@
         [isProfileBoostActive]="isProfileBoostActive()"
         [profileBoostMinutesLeft]="profileBoostMinutesLeft()"
         [canOpenAdmin]="canOpenAdminPanelResult"
+        [verificationSubmitting]="verificationSubmitting"
         (startUpdateRequested)="startUpdateUserProf()"
         (profilePictureOpened)="showProfPics($event)"
         (picturesSaved)="savePictures()"
@@ -125,6 +153,7 @@
         (profilePhotoDeleted)="deleteProfilePhoto($event)"
         (profileUpdated)="updateUserProf()"
         (choicesSelected)="handleChoiceSelected($event)"
+        (profileVerificationRequested)="requestProfileVerification($event)"
       ></app-discover-profile-panel>
       }
     </div>
