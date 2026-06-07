@@ -18,6 +18,87 @@ service cloud.firestore {
         );
     }
 
+    function userIsNotBanned(uid) {
+      return !exists(/databases/$(database)/documents/users/$(uid))
+        || get(/databases/$(database)/documents/users/$(uid)).data.isBanned != true;
+    }
+
+    function matchPartsHas(data, key) {
+      return data.keys().hasAny(['matchParts'])
+        && data.matchParts is map
+        && data.matchParts.keys().hasAny([key]);
+    }
+
+    function protectedMatchPartCreateIsEmpty(key) {
+      return !matchPartsHas(request.resource.data, key)
+        || (
+          request.resource.data.matchParts[key] is list
+          && request.resource.data.matchParts[key].size() == 0
+        );
+    }
+
+    function protectedUserCreateFieldsAreSafe() {
+      return (
+          !request.resource.data.keys().hasAny(['isBanned'])
+          || request.resource.data.isBanned == false
+        )
+        && protectedMatchPartCreateIsEmpty('matches')
+        && protectedMatchPartCreateIsEmpty('liked')
+        && protectedMatchPartCreateIsEmpty('superLiked')
+        && protectedMatchPartCreateIsEmpty('notLiked');
+    }
+
+    function protectedMatchPartUnchangedOrEmpty(key) {
+      return (
+          matchPartsHas(resource.data, key)
+          && matchPartsHas(request.resource.data, key)
+          && request.resource.data.matchParts[key] == resource.data.matchParts[key]
+        )
+        || (
+          !matchPartsHas(resource.data, key)
+          && (
+            !matchPartsHas(request.resource.data, key)
+            || (
+              request.resource.data.matchParts[key] is list
+              && request.resource.data.matchParts[key].size() == 0
+            )
+          )
+        );
+    }
+
+    function protectedUserUpdateFieldsAreSafe() {
+      return !request.resource.data.diff(resource.data).affectedKeys().hasAny([
+          'isBanned'
+        ])
+        && (
+          !request.resource.data.diff(resource.data).affectedKeys().hasAny([
+            'matchParts'
+          ])
+          || (
+            request.resource.data.matchParts is map
+            && protectedMatchPartUnchangedOrEmpty('matches')
+            && protectedMatchPartUnchangedOrEmpty('liked')
+            && protectedMatchPartUnchangedOrEmpty('superLiked')
+            && protectedMatchPartUnchangedOrEmpty('notLiked')
+          )
+        );
+    }
+
+    function protectedMatchIndexCreateFieldsAreSafe() {
+      return !request.resource.data.keys().hasAny(['boostedUntil'])
+        && (
+          !request.resource.data.keys().hasAny(['isBanned'])
+          || request.resource.data.isBanned == false
+        );
+    }
+
+    function protectedMatchIndexUpdateFieldsAreSafe() {
+      return !request.resource.data.diff(resource.data).affectedKeys().hasAny([
+        'boostedUntil',
+        'isBanned'
+      ]);
+    }
+
     function isConversationParticipant() {
       return signedIn() && request.auth.uid in resource.data.participants;
     }
@@ -113,7 +194,11 @@ service cloud.firestore {
 
     match /users/{uid} {
       allow read: if signedIn();
-      allow create, update, delete: if isOwner(uid) || isAdminOrModerator();
+      allow create: if isAdminOrModerator()
+        || (isOwner(uid) && protectedUserCreateFieldsAreSafe());
+      allow update: if isAdminOrModerator()
+        || (isOwner(uid) && protectedUserUpdateFieldsAreSafe());
+      allow delete: if isOwner(uid) || isAdminOrModerator();
 
       match /billing/{billingDocument} {
         allow read: if isOwner(uid) || isAdminOrModerator();
@@ -207,8 +292,21 @@ service cloud.firestore {
     }
 
     match /matchIndex/{uid} {
-      allow read: if signedIn();
-      allow create, update, delete: if isOwner(uid) || isAdminOrModerator();
+      allow read: if isOwner(uid) || isAdminOrModerator();
+      allow create: if isAdminOrModerator()
+        || (
+          isOwner(uid)
+          && userIsNotBanned(uid)
+          && protectedMatchIndexCreateFieldsAreSafe()
+        );
+      allow update: if isAdminOrModerator()
+        || (
+          isOwner(uid)
+          && userIsNotBanned(uid)
+          && protectedMatchIndexUpdateFieldsAreSafe()
+        );
+      allow delete: if isAdminOrModerator()
+        || (isOwner(uid) && userIsNotBanned(uid));
     }
 
     match /reports/{reportId} {

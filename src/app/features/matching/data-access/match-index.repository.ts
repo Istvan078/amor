@@ -1,20 +1,18 @@
+import { HttpClient, HttpHeaders } from '@angular/common/http';
 import { Injectable, Injector, inject, runInInjectionContext } from '@angular/core';
 import {
   Firestore,
-  collection,
   deleteDoc,
   doc,
   getDoc,
-  getDocs,
-  limit,
-  query,
   serverTimestamp,
   setDoc,
-  where,
-  QueryConstraint,
 } from '@angular/fire/firestore';
+import { firstValueFrom } from 'rxjs';
 
+import { environment } from '../../../../environments/environment';
 import { UserClass } from '../../../shared/models/user.model';
+import { AuthStore } from '../../auth/store/auth.store';
 import {
   getProfileCompleteness,
   hasProfilePhoto,
@@ -40,6 +38,14 @@ export type MatchIndexEntry = {
   lastActiveAt?: unknown;
   boostedUntil?: unknown;
   photoUrl?: string;
+};
+
+export type DiscoverCandidatesResponse = {
+  candidates: Array<{
+    uid: string;
+    claims: MatchIndexEntry & { uid: string };
+  }>;
+  nextCursor: string | null;
 };
 
 function profilePhotoUrl(profile: Partial<UserClass>) {
@@ -121,6 +127,8 @@ function toMatchIndexEntry(profile: Partial<UserClass> & { uid: string }) {
 export class MatchIndexRepository {
   private injector = inject(Injector);
   private firestore = inject(Firestore);
+  private http = inject(HttpClient);
+  private authStore = inject(AuthStore);
 
   async upsertProfileIndex(profile: Partial<UserClass> & { uid: string }) {
     await this.runInFirebaseContext(() => {
@@ -139,22 +147,26 @@ export class MatchIndexRepository {
   }
 
   async activateProfileBoost(uid: string, durationMinutes = 30) {
-    const boostedUntil = new Date(Date.now() + durationMinutes * 60 * 1000);
+    const idToken = await this.getIdToken();
 
-    await this.runInFirebaseContext(() => {
-      const indexRef = doc(this.firestore, `matchIndex/${uid}`);
+    if (!idToken) {
+      throw new Error('profile_boost.errors.authRequired');
+    }
 
-      return setDoc(
-        indexRef,
+    const response = await firstValueFrom(
+      this.http.post<{ boostedUntil: string }>(
+        `${environment.API_URL}activateProfileBoost`,
         {
-          boostedUntil: boostedUntil.toISOString(),
-          lastActiveAt: serverTimestamp(),
+          uid,
+          durationMinutes,
         },
-        { merge: true }
-      );
-    });
+        {
+          headers: new HttpHeaders().set('Authorization', idToken),
+        }
+      )
+    );
 
-    return boostedUntil;
+    return new Date(response.boostedUntil);
   }
 
   async getProfileBoostedUntil(uid: string) {
@@ -171,81 +183,57 @@ export class MatchIndexRepository {
     return (snapshot.data() as MatchIndexEntry).boostedUntil ?? null;
   }
 
-  async loadCandidates(profile: UserClass, resultLimit = 80) {
-    const lookingForGender = profile.lookingForGender;
-    const profileGender = profile.gender;
-    const preferredAge = profile.lookingForAge;
-    const lowerAge = Number(preferredAge?.lower ?? 18);
-    const upperAge = Number(preferredAge?.upper ?? 100);
+  async loadCandidatePage(profile: UserClass, resultLimit = 20, startAfter?: string) {
+    const idToken = await this.getIdToken();
 
-    const snapshots = await this.runInFirebaseContext(() => {
-      const indexCollection = collection(this.firestore, 'matchIndex');
-      const clauses: QueryConstraint[] = [
-        where('isVisible', '==', true),
-        where('isBanned', '==', false),
-        where('profileCompleted', '==', true),
-        where('hasPhoto', '==', true),
-      ];
+    if (!profile.uid || !idToken) {
+      return {
+        candidates: [],
+        nextCursor: null,
+      };
+    }
 
-      if (lookingForGender) {
-        clauses.push(where('gender', '==', lookingForGender));
-      }
-
-      if (profileGender) {
-        clauses.push(where('lookingForGender', '==', profileGender));
-      }
-
-      if (Number.isFinite(lowerAge)) {
-        clauses.push(where('age', '>=', lowerAge));
-      }
-
-      if (Number.isFinite(upperAge)) {
-        clauses.push(where('age', '<=', upperAge));
-      }
-
-      clauses.push(limit(resultLimit * 2));
-
-      return getDocs(query(indexCollection, ...clauses));
-    });
-
-    const excludedUids = new Set([
-      profile.uid,
-      ...(profile.blockedUsers ?? []),
-      ...(profile.reportedUsers ?? []),
-      ...(profile.matchParts?.liked ?? []),
-      ...(profile.matchParts?.notLiked ?? []),
-      ...(profile.matchParts?.matches ?? []),
-    ].filter((uid): uid is string => typeof uid === 'string' && !!uid));
-    const maxDistanceKm = Number(profile.lookingForDistance ?? 50);
-
-    return snapshots.docs
-      .map((snapshot) => ({
-        uid: snapshot.id,
-        claims: {
-          ...(snapshot.data() as MatchIndexEntry),
-          uid: snapshot.id,
+    return firstValueFrom(
+      this.http.post<DiscoverCandidatesResponse>(
+        `${environment.API_URL}discoverCandidates`,
+        {
+          uid: profile.uid,
+          limit: Math.min(Math.max(resultLimit, 1), 20),
+          currentLocCoords: profile.currentLocCoords,
+          ...(startAfter ? { startAfter } : {}),
         },
-      }))
-      .filter((candidate) => !excludedUids.has(candidate.uid))
-      .filter((candidate) =>
-        isWithinDistance(
-          profile.currentLocCoords,
-          candidate.claims.currentLocCoords,
-          maxDistanceKm
-        )
+        {
+          headers: new HttpHeaders().set('Authorization', idToken),
+        }
       )
-      .sort(
-        (candidateA, candidateB) =>
-          Number(isBoosted(candidateB.claims)) -
-            Number(isBoosted(candidateA.claims)) ||
-          toTimestampMillis(candidateB.claims.lastActiveAt) -
-          toTimestampMillis(candidateA.claims.lastActiveAt)
-      )
-      .slice(0, resultLimit);
+    );
+  }
+
+  async loadCandidates(profile: UserClass, resultLimit = 20, startAfter?: string) {
+    const response = await this.loadCandidatePage(
+      profile,
+      resultLimit,
+      startAfter
+    );
+
+    return response.candidates;
   }
 
   private runInFirebaseContext<T>(callback: () => T): T {
     return runInInjectionContext(this.injector, callback);
+  }
+
+  private async getIdToken() {
+    const user = this.authStore.user();
+    const rawUser = user?.raw as
+      | { getIdToken?: (forceRefresh?: boolean) => Promise<string> }
+      | undefined;
+
+    if (rawUser?.getIdToken) {
+      return rawUser.getIdToken();
+    }
+
+    return user?.idToken;
   }
 }
 
@@ -260,91 +248,4 @@ function createApproximateGeoHash(
   }
 
   return `${lat.toFixed(2)}:${lon.toFixed(2)}`;
-}
-
-function isWithinDistance(
-  origin: Partial<UserClass>['currentLocCoords'],
-  candidate: Partial<UserClass>['currentLocCoords'],
-  maxDistanceKm: number
-) {
-  const originLat = Number(origin?.lat);
-  const originLon = Number(origin?.lon);
-  const candidateLat = Number(candidate?.lat);
-  const candidateLon = Number(candidate?.lon);
-
-  if (
-    !Number.isFinite(originLat) ||
-    !Number.isFinite(originLon) ||
-    !Number.isFinite(candidateLat) ||
-    !Number.isFinite(candidateLon) ||
-    !Number.isFinite(maxDistanceKm)
-  ) {
-    return true;
-  }
-
-  return getDistanceKm(originLat, originLon, candidateLat, candidateLon) <= maxDistanceKm;
-}
-
-function getDistanceKm(
-  originLat: number,
-  originLon: number,
-  candidateLat: number,
-  candidateLon: number
-) {
-  const earthRadiusKm = 6371;
-  const latDelta = toRadians(candidateLat - originLat);
-  const lonDelta = toRadians(candidateLon - originLon);
-  const a =
-    Math.sin(latDelta / 2) * Math.sin(latDelta / 2) +
-    Math.cos(toRadians(originLat)) *
-      Math.cos(toRadians(candidateLat)) *
-      Math.sin(lonDelta / 2) *
-      Math.sin(lonDelta / 2);
-
-  return earthRadiusKm * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
-}
-
-function toRadians(value: number) {
-  return (value * Math.PI) / 180;
-}
-
-function toTimestampMillis(value: unknown) {
-  if (!value) {
-    return 0;
-  }
-
-  if (value instanceof Date) {
-    return value.getTime();
-  }
-
-  if (typeof value === 'number') {
-    return value;
-  }
-
-  if (typeof value === 'string') {
-    const date = new Date(value);
-
-    return Number.isNaN(date.getTime()) ? 0 : date.getTime();
-  }
-
-  if (typeof value === 'object') {
-    const maybeTimestamp = value as {
-      toMillis?: () => number;
-      toDate?: () => Date;
-    };
-
-    if (typeof maybeTimestamp.toMillis === 'function') {
-      return maybeTimestamp.toMillis();
-    }
-
-    if (typeof maybeTimestamp.toDate === 'function') {
-      return maybeTimestamp.toDate().getTime();
-    }
-  }
-
-  return 0;
-}
-
-function isBoosted(entry: MatchIndexEntry) {
-  return toTimestampMillis(entry.boostedUntil) > Date.now();
 }

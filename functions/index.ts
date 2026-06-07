@@ -18,6 +18,33 @@ type ServerMatchParts = {
   superLiked: string[];
 };
 
+type ServerMatchAction = 'like' | 'pass' | 'superLike' | 'rewind' | 'remove';
+
+type ServerMatchActionResult = {
+  matched: boolean;
+  created: boolean;
+  matchParts: ServerMatchParts;
+};
+
+type ServerBillingConsumables = {
+  superLikes?: number;
+  profileBoosts?: number;
+  [key: string]: number | undefined;
+};
+
+type ServerBillingCurrent = {
+  isPremium: boolean;
+  entitlement: string | null;
+  productId: string | null;
+  platform: 'ios' | 'android' | 'web';
+  expiresAt: string | null;
+  activeEntitlements: string[];
+  activeSubscriptions: string[];
+  consumables: ServerBillingConsumables;
+  source: 'revenuecat' | 'cache' | 'local';
+  processedRevenueCatEventIds?: string[];
+};
+
 type ServerNotificationType =
   | 'new_match'
   | 'new_message'
@@ -35,6 +62,20 @@ type NotificationDeliveryKey = 'inApp' | 'push';
 const app = express();
 
 app.use(bodyParser.json());
+
+const BILLING_ENTITLEMENT_ID = 'premium';
+const SUPER_LIKE_PACK_SIZE = 5;
+const FREE_DAILY_SUPER_LIKES = 1;
+const PREMIUM_DAILY_SUPER_LIKES = 5;
+const FREE_DAILY_REWINDS = 1;
+const SUPER_LIKE_PRODUCT_IDS = new Set([
+  'amor_super_like_pack',
+  'super_like_pack',
+]);
+const PROFILE_BOOST_PRODUCT_IDS = new Set([
+  'amor_profile_boost',
+  'profile_boost',
+]);
 
 const getIdTokenFromRequest = (req: express.Request): string | null => {
   const authHeader = req.headers.authorization;
@@ -123,11 +164,6 @@ const sanitizeUserClaims = (claims: any): Record<string, unknown> => {
   return safeClaims;
 };
 
-const toPublicAuthUser = (user: admin.auth.UserRecord) => ({
-  uid: user.uid,
-  claims: sanitizeUserClaims(user.customClaims ?? {}),
-});
-
 const withoutUid = (values: unknown, uid: string): string[] =>
   Array.isArray(values)
     ? values.filter(
@@ -165,6 +201,195 @@ const normalizeMatchParts = (value: unknown): ServerMatchParts => {
   };
 };
 
+const normalizeBillingConsumables = (value: unknown): ServerBillingConsumables => {
+  const consumables =
+    value && typeof value === 'object'
+      ? (value as Record<string, unknown>)
+      : {};
+
+  return Object.entries(consumables).reduce<ServerBillingConsumables>(
+    (result, [key, item]) => {
+      const count = Number(item);
+
+      if (Number.isFinite(count)) {
+        result[key] = Math.max(count, 0);
+      }
+
+      return result;
+    },
+    {}
+  );
+};
+
+const normalizeBillingCurrent = (value: unknown): ServerBillingCurrent => {
+  const current =
+    value && typeof value === 'object'
+      ? (value as Record<string, unknown>)
+      : {};
+  const platform = current.platform;
+  const source = current.source;
+
+  return {
+    isPremium: current.isPremium === true,
+    entitlement:
+      typeof current.entitlement === 'string' ? current.entitlement : null,
+    productId:
+      typeof current.productId === 'string' ? current.productId : null,
+    platform:
+      platform === 'ios' || platform === 'android' || platform === 'web'
+        ? platform
+        : 'web',
+    expiresAt:
+      typeof current.expiresAt === 'string' ? current.expiresAt : null,
+    activeEntitlements: normalizeUidList(current.activeEntitlements),
+    activeSubscriptions: normalizeUidList(current.activeSubscriptions),
+    consumables: normalizeBillingConsumables(current.consumables),
+    source:
+      source === 'revenuecat' || source === 'cache' || source === 'local'
+        ? source
+        : 'cache',
+    processedRevenueCatEventIds: normalizeUidList(
+      current.processedRevenueCatEventIds
+    ),
+  };
+};
+
+const getDailyUsageDateKey = (date = new Date()) => {
+  const month = `${date.getUTCMonth() + 1}`.padStart(2, '0');
+  const day = `${date.getUTCDate()}`.padStart(2, '0');
+
+  return `${date.getUTCFullYear()}-${month}-${day}`;
+};
+
+const isFutureDate = (value: unknown) => {
+  if (typeof value !== 'string' || !value) {
+    return false;
+  }
+
+  const timestamp = Date.parse(value);
+
+  return !Number.isNaN(timestamp) && timestamp > Date.now();
+};
+
+const toIsoStringFromMs = (value: unknown) => {
+  const timestamp = Number(value);
+
+  if (!Number.isFinite(timestamp) || timestamp <= 0) {
+    return null;
+  }
+
+  return new Date(timestamp).toISOString();
+};
+
+const consumableDeltaForProduct = (productId: string) => {
+  if (SUPER_LIKE_PRODUCT_IDS.has(productId)) {
+    return {
+      superLikes: SUPER_LIKE_PACK_SIZE,
+    };
+  }
+
+  if (PROFILE_BOOST_PRODUCT_IDS.has(productId)) {
+    return {
+      profileBoosts: 1,
+    };
+  }
+
+  return {};
+};
+
+const isConsumableProduct = (productId: string) =>
+  SUPER_LIKE_PRODUCT_IDS.has(productId) ||
+  PROFILE_BOOST_PRODUCT_IDS.has(productId);
+
+const incrementDailyUsage = (
+  transaction: admin.firestore.Transaction,
+  usageRef: admin.firestore.DocumentReference,
+  usageData: Record<string, unknown>,
+  field: 'superLikesUsed' | 'rewindsUsed'
+) => {
+  transaction.set(
+    usageRef,
+    {
+      date: getDailyUsageDateKey(),
+      [field]: Number(usageData[field] ?? 0) + 1,
+      updatedAt: admin.firestore.FieldValue.serverTimestamp(),
+    },
+    { merge: true }
+  );
+};
+
+const consumeRewindAllowance = async (
+  db: admin.firestore.Firestore,
+  transaction: admin.firestore.Transaction,
+  uid: string
+) => {
+  const billingRef = db.doc(`users/${uid}/billing/current`);
+  const usageRef = db.doc(`users/${uid}/usage/${getDailyUsageDateKey()}`);
+  const [billingSnapshot, usageSnapshot] = await Promise.all([
+    transaction.get(billingRef),
+    transaction.get(usageRef),
+  ]);
+  const billing = normalizeBillingCurrent(billingSnapshot.data());
+
+  if (billing.isPremium) {
+    return;
+  }
+
+  const usageData = usageSnapshot.data() ?? {};
+  const rewindsUsed = Number(usageData.rewindsUsed ?? 0);
+
+  if (rewindsUsed >= FREE_DAILY_REWINDS) {
+    throw new Error('rewind_limit_reached');
+  }
+
+  incrementDailyUsage(transaction, usageRef, usageData, 'rewindsUsed');
+};
+
+const consumeSuperLikeAllowance = async (
+  db: admin.firestore.Firestore,
+  transaction: admin.firestore.Transaction,
+  uid: string
+) => {
+  const billingRef = db.doc(`users/${uid}/billing/current`);
+  const usageRef = db.doc(`users/${uid}/usage/${getDailyUsageDateKey()}`);
+  const [billingSnapshot, usageSnapshot] = await Promise.all([
+    transaction.get(billingRef),
+    transaction.get(usageRef),
+  ]);
+  const billing = normalizeBillingCurrent(billingSnapshot.data());
+  const usageData = usageSnapshot.data() ?? {};
+  const superLikesUsed = Number(usageData.superLikesUsed ?? 0);
+
+  if (billing.isPremium && superLikesUsed < PREMIUM_DAILY_SUPER_LIKES) {
+    incrementDailyUsage(transaction, usageRef, usageData, 'superLikesUsed');
+    return;
+  }
+
+  const superLikesBalance = Number(billing.consumables.superLikes ?? 0);
+
+  if (superLikesBalance > 0) {
+    transaction.set(
+      billingRef,
+      {
+        consumables: {
+          ...billing.consumables,
+          superLikes: superLikesBalance - 1,
+        },
+        updatedAt: admin.firestore.FieldValue.serverTimestamp(),
+      },
+      { merge: true }
+    );
+    return;
+  }
+
+  if (!billing.isPremium && superLikesUsed < FREE_DAILY_SUPER_LIKES) {
+    incrementDailyUsage(transaction, usageRef, usageData, 'superLikesUsed');
+    return;
+  }
+
+  throw new Error('super_like_unavailable');
+};
+
 const buildMutualMatchParts = (
   matchParts: ServerMatchParts,
   otherUid: string
@@ -175,6 +400,220 @@ const buildMutualMatchParts = (
   liked: withoutUid(matchParts.liked, otherUid),
   notLiked: withoutUid(matchParts.notLiked, otherUid),
 });
+
+const getRequestedActionUid = (
+  req: AuthenticatedRequest,
+  requestedUid: unknown
+): string | null => {
+  const uid =
+    typeof requestedUid === 'string' && requestedUid.trim()
+      ? requestedUid.trim()
+      : req.user?.uid;
+
+  if (!uid || !canAccessUser(req, uid)) {
+    return null;
+  }
+
+  return uid;
+};
+
+const buildLikeMatchParts = (
+  matchParts: ServerMatchParts,
+  otherUid: string,
+  isSuperLike = false
+): ServerMatchParts => ({
+  ...matchParts,
+  possMatches: withoutUid(matchParts.possMatches, otherUid),
+  liked: withUniqueUid(matchParts.liked, otherUid),
+  notLiked: withoutUid(matchParts.notLiked, otherUid),
+  superLiked: isSuperLike
+    ? withUniqueUid(matchParts.superLiked, otherUid)
+    : matchParts.superLiked,
+});
+
+const buildPassMatchParts = (
+  matchParts: ServerMatchParts,
+  otherUid: string
+): ServerMatchParts => ({
+  ...matchParts,
+  possMatches: withoutUid(matchParts.possMatches, otherUid),
+  liked: withoutUid(matchParts.liked, otherUid),
+  notLiked: withUniqueUid(matchParts.notLiked, otherUid),
+  superLiked: withoutUid(matchParts.superLiked, otherUid),
+});
+
+const buildRewindMatchParts = (
+  matchParts: ServerMatchParts,
+  otherUid: string
+): ServerMatchParts => {
+  const nextMatchParts: ServerMatchParts = {
+    ...matchParts,
+    notLiked: withoutUid(matchParts.notLiked, otherUid),
+  };
+
+  const shouldRestorePossibleMatch =
+    !nextMatchParts.matches.includes(otherUid) &&
+    !nextMatchParts.liked.includes(otherUid) &&
+    !nextMatchParts.superLiked.includes(otherUid);
+
+  return {
+    ...nextMatchParts,
+    possMatches: shouldRestorePossibleMatch
+      ? withUniqueUid(nextMatchParts.possMatches, otherUid)
+      : nextMatchParts.possMatches,
+  };
+};
+
+const buildRemoveMatchParts = (
+  matchParts: ServerMatchParts,
+  otherUid: string
+): ServerMatchParts => ({
+  ...matchParts,
+  matches: withoutUid(matchParts.matches, otherUid),
+  liked: withoutUid(matchParts.liked, otherUid),
+  superLiked: withoutUid(matchParts.superLiked, otherUid),
+  notLiked: withUniqueUid(matchParts.notLiked, otherUid),
+});
+
+const runMatchActionTransaction = async (
+  myUid: string,
+  otherUid: string,
+  action: ServerMatchAction
+): Promise<ServerMatchActionResult> => {
+  const db = admin.firestore();
+
+  return db.runTransaction(async (transaction) => {
+    const myProfileRef = db.collection('users').doc(myUid);
+    const otherProfileRef = db.collection('users').doc(otherUid);
+    const [myProfileSnapshot, otherProfileSnapshot] = await Promise.all([
+      transaction.get(myProfileRef),
+      transaction.get(otherProfileRef),
+    ]);
+
+    if (!myProfileSnapshot.exists || (action !== 'remove' && !otherProfileSnapshot.exists)) {
+      throw new Error('profile_not_found');
+    }
+
+    const myMatchParts = normalizeMatchParts(
+      myProfileSnapshot.data()?.matchParts
+    );
+    const otherMatchParts = normalizeMatchParts(
+      otherProfileSnapshot.data()?.matchParts
+    );
+
+    if (action === 'remove') {
+      const nextMyMatchParts = buildRemoveMatchParts(myMatchParts, otherUid);
+
+      transaction.update(myProfileRef, {
+        matchParts: nextMyMatchParts,
+      });
+
+      if (otherProfileSnapshot.exists) {
+        transaction.update(otherProfileRef, {
+          'matchParts.matches': withoutUid(otherMatchParts.matches, myUid),
+        });
+      }
+
+      return {
+        matched: false,
+        created: false,
+        matchParts: nextMyMatchParts,
+      };
+    }
+
+    if (action === 'pass') {
+      const nextMyMatchParts = buildPassMatchParts(myMatchParts, otherUid);
+
+      transaction.update(myProfileRef, {
+        matchParts: nextMyMatchParts,
+      });
+
+      return {
+        matched: false,
+        created: false,
+        matchParts: nextMyMatchParts,
+      };
+    }
+
+    if (action === 'rewind') {
+      await consumeRewindAllowance(db, transaction, myUid);
+
+      const nextMyMatchParts = buildRewindMatchParts(myMatchParts, otherUid);
+
+      transaction.update(myProfileRef, {
+        matchParts: nextMyMatchParts,
+      });
+
+      return {
+        matched: false,
+        created: false,
+        matchParts: nextMyMatchParts,
+      };
+    }
+
+    const nextMyDecisionMatchParts = buildLikeMatchParts(
+      myMatchParts,
+      otherUid,
+      action === 'superLike'
+    );
+    const alreadyMatched =
+      nextMyDecisionMatchParts.matches.includes(otherUid) ||
+      otherMatchParts.matches.includes(myUid);
+
+    if (alreadyMatched) {
+      const nextMyMatchParts = buildMutualMatchParts(myMatchParts, otherUid);
+
+      transaction.update(myProfileRef, {
+        matchParts: nextMyMatchParts,
+      });
+
+      return {
+        matched: true,
+        created: false,
+        matchParts: nextMyMatchParts,
+      };
+    }
+
+    if (action === 'superLike') {
+      await consumeSuperLikeAllowance(db, transaction, myUid);
+    }
+
+    const otherLikesMe =
+      otherMatchParts.liked.includes(myUid) ||
+      otherMatchParts.superLiked.includes(myUid);
+
+    if (!otherLikesMe) {
+      transaction.update(myProfileRef, {
+        matchParts: nextMyDecisionMatchParts,
+      });
+
+      return {
+        matched: false,
+        created: false,
+        matchParts: nextMyDecisionMatchParts,
+      };
+    }
+
+    const nextMyMatchParts = buildMutualMatchParts(
+      nextMyDecisionMatchParts,
+      otherUid
+    );
+    const nextOtherMatchParts = buildMutualMatchParts(otherMatchParts, myUid);
+
+    transaction.update(myProfileRef, {
+      matchParts: nextMyMatchParts,
+    });
+    transaction.update(otherProfileRef, {
+      matchParts: nextOtherMatchParts,
+    });
+
+    return {
+      matched: true,
+      created: true,
+      matchParts: nextMyMatchParts,
+    };
+  });
+};
 
 const createNotificationPayload = (
   type: ServerNotificationType,
@@ -386,6 +825,495 @@ const notifyUserIfEnabled = async (
   return inAppCreated || pushSent;
 };
 
+const notifyMutualMatchCreated = (myUid: string, otherUid: string) =>
+  Promise.all([
+    notifyUserIfEnabled(
+      myUid,
+      createNotificationPayload(
+        'new_match',
+        otherUid,
+        'New match',
+        'You have a new match on Amor.'
+      ),
+      {
+        title: 'New match',
+        body: 'You have a new match on Amor.',
+      },
+      {
+        type: 'new_match',
+        actorUid: otherUid,
+      }
+    ),
+    notifyUserIfEnabled(
+      otherUid,
+      createNotificationPayload(
+        'new_match',
+        myUid,
+        'New match',
+        'You have a new match on Amor.'
+      ),
+      {
+        title: 'New match',
+        body: 'You have a new match on Amor.',
+      },
+      {
+        type: 'new_match',
+        actorUid: myUid,
+      }
+    ),
+  ]);
+
+const createMatchActionHandler =
+  (action: ServerMatchAction) =>
+    async (req: AuthenticatedRequest, res: express.Response) => {
+      const { uid, otherUid } = req.body;
+      const myUid = getRequestedActionUid(req, uid);
+
+      if (!myUid || typeof otherUid !== 'string' || !otherUid || myUid === otherUid) {
+        res.sendStatus(403);
+        return;
+      }
+
+      try {
+        const result = await runMatchActionTransaction(myUid, otherUid, action);
+
+        if (result.created) {
+          await notifyMutualMatchCreated(myUid, otherUid);
+        }
+
+        res.json({
+          message: 'OK',
+          ...result,
+        });
+      } catch (error) {
+        console.error('Hiba tortent a match action futtatasa kozben:', error);
+
+        if ((error as Error).message === 'super_like_unavailable') {
+          res.sendStatus(402);
+          return;
+        }
+
+        if ((error as Error).message === 'rewind_limit_reached') {
+          res.sendStatus(429);
+          return;
+        }
+
+        res.sendStatus(500);
+      }
+    };
+
+type RevenueCatBillingEvent = {
+  id: string;
+  appUserId: string;
+  productId: string;
+  type: string;
+  entitlementIds: string[];
+  expirationAt: string | null;
+  platform: ServerBillingCurrent['platform'];
+};
+
+const getStringValue = (value: unknown) =>
+  typeof value === 'string' ? value.trim() : '';
+
+const getRevenueCatWebhookEvent = (body: unknown): RevenueCatBillingEvent | null => {
+  const payload =
+    body && typeof body === 'object'
+      ? (body as Record<string, unknown>)
+      : {};
+  const event =
+    payload.event && typeof payload.event === 'object'
+      ? (payload.event as Record<string, unknown>)
+      : payload;
+  const appUserId =
+    getStringValue(event.app_user_id) ||
+    getStringValue(event.appUserId) ||
+    getStringValue(event.original_app_user_id);
+  const productId =
+    getStringValue(event.product_id) ||
+    getStringValue(event.productId) ||
+    getStringValue(event.product_identifier);
+  const type = getStringValue(event.type).toUpperCase();
+  const platformValue =
+    getStringValue(event.store).toLowerCase() ||
+    getStringValue(event.platform).toLowerCase();
+  const platform =
+    platformValue.includes('app_store') || platformValue.includes('ios')
+      ? 'ios'
+      : platformValue.includes('play') || platformValue.includes('android')
+        ? 'android'
+        : 'web';
+  const expirationAt =
+    toIsoStringFromMs(event.expiration_at_ms) ||
+    getStringValue(event.expiration_at) ||
+    getStringValue(event.expires_date) ||
+    null;
+  const id =
+    getStringValue(event.id) ||
+    getStringValue(event.event_id) ||
+    `${appUserId}:${productId}:${type}:${expirationAt ?? ''}`;
+
+  if (!appUserId || !productId || !type) {
+    return null;
+  }
+
+  return {
+    id,
+    appUserId,
+    productId,
+    type,
+    entitlementIds: normalizeUidList(event.entitlement_ids),
+    expirationAt,
+    platform,
+  };
+};
+
+const isRevenueCatWebhookAuthorized = (req: express.Request) => {
+  const secret = process.env.REVENUECAT_WEBHOOK_SECRET;
+
+  if (!secret) {
+    return process.env.FUNCTIONS_EMULATOR === 'true';
+  }
+
+  return getIdTokenFromRequest(req) === secret;
+};
+
+const isRevenueCatPurchaseEvent = (eventType: string) =>
+  [
+    'INITIAL_PURCHASE',
+    'NON_RENEWING_PURCHASE',
+    'RENEWAL',
+    'PRODUCT_CHANGE',
+  ].includes(eventType);
+
+const applyRevenueCatBillingEvent = async (event: RevenueCatBillingEvent) => {
+  const db = admin.firestore();
+  const billingRef = db.doc(`users/${event.appUserId}/billing/current`);
+
+  return db.runTransaction(async (transaction) => {
+    const snapshot = await transaction.get(billingRef);
+    const current = normalizeBillingCurrent(snapshot.data());
+    const processedEventIds = current.processedRevenueCatEventIds ?? [];
+
+    if (processedEventIds.includes(event.id)) {
+      return current;
+    }
+
+    const nextProcessedEventIds = [...processedEventIds, event.id].slice(-100);
+    const nextConsumables = { ...current.consumables };
+    const consumableDelta = consumableDeltaForProduct(event.productId);
+    const isConsumable = isConsumableProduct(event.productId);
+    const isPurchaseEvent = isRevenueCatPurchaseEvent(event.type);
+
+    if (isConsumable && isPurchaseEvent) {
+      for (const [key, value] of Object.entries(consumableDelta)) {
+        nextConsumables[key] = Number(nextConsumables[key] ?? 0) + Number(value);
+      }
+    }
+
+    const entitlementIds = event.entitlementIds.length
+      ? event.entitlementIds
+      : event.type === 'EXPIRATION'
+        ? []
+        : [BILLING_ENTITLEMENT_ID];
+    const subscriptionIsActive =
+      !isConsumable &&
+      event.type !== 'EXPIRATION' &&
+      (!event.expirationAt || isFutureDate(event.expirationAt));
+    const nextCurrent: ServerBillingCurrent = isConsumable
+      ? {
+        ...current,
+        productId: event.productId,
+        platform: event.platform,
+        consumables: nextConsumables,
+        source: 'revenuecat',
+        processedRevenueCatEventIds: nextProcessedEventIds,
+      }
+      : {
+        ...current,
+        isPremium:
+          subscriptionIsActive && entitlementIds.includes(BILLING_ENTITLEMENT_ID),
+        entitlement:
+          subscriptionIsActive && entitlementIds.includes(BILLING_ENTITLEMENT_ID)
+            ? BILLING_ENTITLEMENT_ID
+            : null,
+        productId: subscriptionIsActive ? event.productId : null,
+        platform: event.platform,
+        expiresAt: subscriptionIsActive ? event.expirationAt : null,
+        activeEntitlements: subscriptionIsActive ? entitlementIds : [],
+        activeSubscriptions: subscriptionIsActive ? [event.productId] : [],
+        consumables: nextConsumables,
+        source: 'revenuecat',
+        processedRevenueCatEventIds: nextProcessedEventIds,
+      };
+
+    transaction.set(
+      billingRef,
+      {
+        ...nextCurrent,
+        updatedAt: admin.firestore.FieldValue.serverTimestamp(),
+      },
+      { merge: true }
+    );
+
+    return nextCurrent;
+  });
+};
+
+const toTimestampMillis = (value: unknown) => {
+  if (!value) {
+    return 0;
+  }
+
+  if (value instanceof Date) {
+    return value.getTime();
+  }
+
+  if (typeof value === 'number') {
+    return value;
+  }
+
+  if (typeof value === 'string') {
+    const timestamp = Date.parse(value);
+
+    return Number.isNaN(timestamp) ? 0 : timestamp;
+  }
+
+  if (typeof value === 'object') {
+    const maybeTimestamp = value as {
+      toMillis?: () => number;
+      toDate?: () => Date;
+    };
+
+    if (typeof maybeTimestamp.toMillis === 'function') {
+      return maybeTimestamp.toMillis();
+    }
+
+    if (typeof maybeTimestamp.toDate === 'function') {
+      return maybeTimestamp.toDate().getTime();
+    }
+  }
+
+  return 0;
+};
+
+const toRadians = (value: number) => (value * Math.PI) / 180;
+
+const getDistanceKm = (
+  originLat: number,
+  originLon: number,
+  candidateLat: number,
+  candidateLon: number
+) => {
+  const earthRadiusKm = 6371;
+  const latDelta = toRadians(candidateLat - originLat);
+  const lonDelta = toRadians(candidateLon - originLon);
+  const a =
+    Math.sin(latDelta / 2) * Math.sin(latDelta / 2) +
+    Math.cos(toRadians(originLat)) *
+      Math.cos(toRadians(candidateLat)) *
+      Math.sin(lonDelta / 2) *
+      Math.sin(lonDelta / 2);
+
+  return earthRadiusKm * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+};
+
+const isWithinDistanceKm = (
+  origin: unknown,
+  candidate: unknown,
+  maxDistanceKm: number
+) => {
+  const originCoords =
+    origin && typeof origin === 'object'
+      ? (origin as Record<string, unknown>)
+      : {};
+  const candidateCoords =
+    candidate && typeof candidate === 'object'
+      ? (candidate as Record<string, unknown>)
+      : {};
+  const originLat = Number(originCoords.lat);
+  const originLon = Number(originCoords.lon);
+  const candidateLat = Number(candidateCoords.lat);
+  const candidateLon = Number(candidateCoords.lon);
+
+  if (
+    !Number.isFinite(originLat) ||
+    !Number.isFinite(originLon) ||
+    !Number.isFinite(candidateLat) ||
+    !Number.isFinite(candidateLon) ||
+    !Number.isFinite(maxDistanceKm)
+  ) {
+    return true;
+  }
+
+  return getDistanceKm(originLat, originLon, candidateLat, candidateLon) <= maxDistanceKm;
+};
+
+const isBoostedIndexEntry = (entry: Record<string, unknown>) =>
+  toTimestampMillis(entry.boostedUntil) > Date.now();
+
+app.post('/revenueCatWebhook', async (req: express.Request, res: express.Response) => {
+  if (!isRevenueCatWebhookAuthorized(req)) {
+    res.sendStatus(403);
+    return;
+  }
+
+  const event = getRevenueCatWebhookEvent(req.body);
+
+  if (!event) {
+    res.sendStatus(400);
+    return;
+  }
+
+  try {
+    const current = await applyRevenueCatBillingEvent(event);
+
+    res.json({
+      message: 'OK',
+      current,
+    });
+  } catch (error) {
+    console.error('RevenueCat webhook feldolgozasi hiba:', error);
+    res.sendStatus(500);
+  }
+});
+
+app.post('/discoverCandidates', verifyToken, async (req: AuthenticatedRequest, res: express.Response) => {
+  const { uid, startAfter } = req.body;
+  const myUid = getRequestedActionUid(req, uid);
+  const resultLimit = Math.min(Math.max(Number(req.body.limit ?? 20), 1), 20);
+  const cursor = typeof startAfter === 'string' && startAfter ? startAfter : '';
+
+  if (!myUid) {
+    res.sendStatus(403);
+    return;
+  }
+
+  try {
+    const db = admin.firestore();
+    const profileSnapshot = await db.collection('users').doc(myUid).get();
+
+    if (!profileSnapshot.exists) {
+      res.sendStatus(404);
+      return;
+    }
+
+    const profile = profileSnapshot.data() ?? {};
+    const requestCoords =
+      req.body.currentLocCoords && typeof req.body.currentLocCoords === 'object'
+        ? (req.body.currentLocCoords as Record<string, unknown>)
+        : {};
+    const currentLocCoords =
+      typeof requestCoords.lat === 'number' &&
+      typeof requestCoords.lon === 'number'
+        ? {
+          lat: requestCoords.lat,
+          lon: requestCoords.lon,
+        }
+        : profile.currentLocCoords;
+    const matchParts = normalizeMatchParts(profile.matchParts);
+    const excludedUids = new Set([
+      myUid,
+      ...matchParts.matches,
+      ...matchParts.liked,
+      ...matchParts.notLiked,
+      ...normalizeUidList(profile.blockedUsers),
+      ...normalizeUidList(profile.reportedUsers),
+    ]);
+    const lookingForGender =
+      typeof profile.lookingForGender === 'string'
+        ? profile.lookingForGender
+        : '';
+    const profileGender =
+      typeof profile.gender === 'string' ? profile.gender : '';
+    const preferredAge =
+      profile.lookingForAge && typeof profile.lookingForAge === 'object'
+        ? (profile.lookingForAge as Record<string, unknown>)
+        : {};
+    const lowerAge = Number(preferredAge.lower ?? 18);
+    const upperAge = Number(preferredAge.upper ?? 100);
+    const maxDistanceKm = Number(profile.lookingForDistance ?? 50);
+    const scanLimit = Math.min(resultLimit * 5, 100);
+    let queryRef: admin.firestore.Query = db
+      .collection('matchIndex')
+      .where('isVisible', '==', true)
+      .where('isBanned', '==', false)
+      .where('profileCompleted', '==', true)
+      .where('hasPhoto', '==', true);
+
+    if (lookingForGender) {
+      queryRef = queryRef.where('gender', '==', lookingForGender);
+    }
+
+    if (profileGender) {
+      queryRef = queryRef.where('lookingForGender', '==', profileGender);
+    }
+
+    queryRef = queryRef
+      .orderBy(admin.firestore.FieldPath.documentId())
+      .limit(scanLimit);
+
+    if (cursor) {
+      queryRef = queryRef.startAfter(cursor);
+    }
+
+    const snapshot = await queryRef.get();
+    const scannedCandidates: Array<{
+      uid: string;
+      claims: Record<string, unknown>;
+    }> = snapshot.docs.map((candidateSnapshot) => {
+      const claims = candidateSnapshot.data() as Record<string, unknown>;
+
+      return {
+        uid: candidateSnapshot.id,
+        claims: {
+          ...claims,
+          uid: candidateSnapshot.id,
+        },
+      };
+    });
+    const candidates = scannedCandidates
+      .filter((candidate) => !excludedUids.has(candidate.uid))
+      .filter((candidate) => {
+        const age = Number(candidate.claims['age']);
+
+        return (
+          !Number.isFinite(age) ||
+          (
+            age >= Number(lowerAge) &&
+            age <= Number(upperAge)
+          )
+        );
+      })
+      .filter((candidate) =>
+        isWithinDistanceKm(
+          currentLocCoords,
+          candidate.claims['currentLocCoords'],
+          maxDistanceKm
+        )
+      )
+      .sort(
+        (candidateA, candidateB) =>
+          Number(isBoostedIndexEntry(candidateB.claims)) -
+            Number(isBoostedIndexEntry(candidateA.claims)) ||
+          toTimestampMillis(candidateB.claims['lastActiveAt']) -
+            toTimestampMillis(candidateA.claims['lastActiveAt'])
+      )
+      .slice(0, resultLimit);
+    const nextCursor =
+      snapshot.docs.length === scanLimit
+        ? snapshot.docs[snapshot.docs.length - 1]?.id ?? null
+        : null;
+
+    res.json({
+      candidates,
+      nextCursor,
+    });
+  } catch (error) {
+    console.error('Discovery candidate lookup failed:', error);
+    res.sendStatus(500);
+  }
+});
+
 app.post('/setCustomClaims', verifyToken, async (req: AuthenticatedRequest, res: express.Response) => {
   const { uid, claims } = req.body;
 
@@ -464,64 +1392,104 @@ app.post('/deleteUser', verifyToken, (req: AuthenticatedRequest, res: express.Re
     });
 });
 
+app.post('/likeUser', verifyToken, createMatchActionHandler('like'));
+
+app.post('/passUser', verifyToken, createMatchActionHandler('pass'));
+
+app.post('/superLikeUser', verifyToken, createMatchActionHandler('superLike'));
+
+app.post('/rewind', verifyToken, createMatchActionHandler('rewind'));
+
 app.post('/removeMatch', verifyToken, async (req: AuthenticatedRequest, res: express.Response) => {
   const { uid, otherUid } = req.body;
-  const myUid = uid ?? req.user?.uid;
+  const myUid = getRequestedActionUid(req, uid);
 
-  if (!myUid || !otherUid || !canAccessUser(req, myUid)) {
+  if (!myUid || typeof otherUid !== 'string' || !otherUid || myUid === otherUid) {
     res.sendStatus(403);
     return;
   }
 
   try {
-    const db = admin.firestore();
-    const nextMyMatchParts = await db.runTransaction(async (transaction) => {
-      const myProfileRef = db.collection('users').doc(myUid);
-      const otherProfileRef = db.collection('users').doc(otherUid);
-      const [myProfileSnapshot, otherProfileSnapshot] = await Promise.all([
-        transaction.get(myProfileRef),
-        transaction.get(otherProfileRef),
-      ]);
+    const result = await runMatchActionTransaction(myUid, otherUid, 'remove');
 
-      if (!myProfileSnapshot.exists) {
-        throw new Error('profile_not_found');
-      }
-
-      const myMatchParts = myProfileSnapshot.data()?.matchParts ?? {};
-      const otherMatchParts = otherProfileSnapshot.data()?.matchParts ?? {};
-      const nextMatchParts = {
-        ...myMatchParts,
-        matches: withoutUid(myMatchParts.matches, otherUid),
-        liked: withoutUid(myMatchParts.liked, otherUid),
-        superLiked: withoutUid(myMatchParts.superLiked, otherUid),
-        notLiked: withUniqueUid(myMatchParts.notLiked, otherUid),
-      };
-
-      transaction.update(myProfileRef, {
-        matchParts: nextMatchParts,
-      });
-
-      if (otherProfileSnapshot.exists) {
-        transaction.update(otherProfileRef, {
-          'matchParts.matches': withoutUid(otherMatchParts.matches, myUid),
-        });
-      }
-
-      return nextMatchParts;
-    });
-
-    res.json({ message: 'OK', matchParts: nextMyMatchParts });
+    res.json({ message: 'OK', ...result });
   } catch (error) {
     console.error('Hiba tÃ¶rtÃ©nt a match eltÃ¡volÃ­tÃ¡sakor:', error);
     res.sendStatus(500);
   }
 });
 
+app.post('/activateProfileBoost', verifyToken, async (req: AuthenticatedRequest, res: express.Response) => {
+  const { uid } = req.body;
+  const myUid = getRequestedActionUid(req, uid);
+
+  if (!myUid) {
+    res.sendStatus(403);
+    return;
+  }
+
+  try {
+    const db = admin.firestore();
+    const result = await db.runTransaction(async (transaction) => {
+      const billingRef = db.doc(`users/${myUid}/billing/current`);
+      const matchIndexRef = db.doc(`matchIndex/${myUid}`);
+      const billingSnapshot = await transaction.get(billingRef);
+      const billing = normalizeBillingCurrent(billingSnapshot.data());
+      const profileBoosts = Number(billing.consumables.profileBoosts ?? 0);
+
+      if (!Number.isFinite(profileBoosts) || profileBoosts <= 0) {
+        throw new Error('profile_boost_unavailable');
+      }
+
+      const boostedUntil = new Date(Date.now() + 30 * 60 * 1000).toISOString();
+
+      transaction.set(
+        billingRef,
+        {
+          consumables: {
+            ...billing.consumables,
+            profileBoosts: profileBoosts - 1,
+          },
+          updatedAt: admin.firestore.FieldValue.serverTimestamp(),
+        },
+        { merge: true }
+      );
+      transaction.set(
+        matchIndexRef,
+        {
+          boostedUntil,
+          lastActiveAt: admin.firestore.FieldValue.serverTimestamp(),
+        },
+        { merge: true }
+      );
+
+      return {
+        boostedUntil,
+        profileBoostsBalance: profileBoosts - 1,
+      };
+    });
+
+    res.json({
+      message: 'OK',
+      ...result,
+    });
+  } catch (error) {
+    console.error('Hiba tortent a profil boost aktivalasakor:', error);
+
+    if ((error as Error).message === 'profile_boost_unavailable') {
+      res.sendStatus(402);
+      return;
+    }
+
+    res.sendStatus(500);
+  }
+});
+
 app.post('/createMutualMatch', verifyToken, async (req: AuthenticatedRequest, res: express.Response) => {
   const { uid, otherUid } = req.body;
-  const myUid = uid ?? req.user?.uid;
+  const myUid = getRequestedActionUid(req, uid);
 
-  if (!myUid || !otherUid || !canAccessUser(req, myUid) || myUid === otherUid) {
+  if (!myUid || typeof otherUid !== 'string' || !otherUid || myUid === otherUid) {
     res.sendStatus(403);
     return;
   }
@@ -589,42 +1557,7 @@ app.post('/createMutualMatch', verifyToken, async (req: AuthenticatedRequest, re
     });
 
     if (result.created) {
-      await Promise.all([
-        notifyUserIfEnabled(
-          myUid,
-          createNotificationPayload(
-            'new_match',
-            otherUid,
-            'New match',
-            'You have a new match on Amor.'
-          ),
-          {
-            title: 'New match',
-            body: 'You have a new match on Amor.',
-          },
-          {
-            type: 'new_match',
-            actorUid: otherUid,
-          }
-        ),
-        notifyUserIfEnabled(
-          otherUid,
-          createNotificationPayload(
-            'new_match',
-            myUid,
-            'New match',
-            'You have a new match on Amor.'
-          ),
-          {
-            title: 'New match',
-            body: 'You have a new match on Amor.',
-          },
-          {
-            type: 'new_match',
-            actorUid: myUid,
-          }
-        ),
-      ]);
+      await notifyMutualMatchCreated(myUid, otherUid);
     }
 
     res.json({
@@ -638,20 +1571,23 @@ app.post('/createMutualMatch', verifyToken, async (req: AuthenticatedRequest, re
 });
 
 app.get('/users', verifyToken, (req: AuthenticatedRequest, res: express.Response) => {
+  if (!isPrivilegedUser(req)) {
+    res.sendStatus(403);
+    return;
+  }
+
   admin
     .auth()
     .listUsers()
     .then((userRecords) => {
-      const users = isPrivilegedUser(req)
-        ? userRecords.users.map((user) => ({
+      const users = userRecords.users.map((user) => ({
           uid: user.uid,
           email: user.email,
           displayName: user.displayName,
           claims: user.customClaims,
           profilePicture: user.photoURL,
           phoneNumber: user.phoneNumber,
-        }))
-        : userRecords.users.map(toPublicAuthUser);
+        }));
 
       res.json(users);
     })

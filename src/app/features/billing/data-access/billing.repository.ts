@@ -2,15 +2,12 @@ import { Injectable, Injector, inject, runInInjectionContext } from '@angular/co
 import { Capacitor } from '@capacitor/core';
 import {
   Purchases,
-  type CustomerInfo,
   type PurchasesPackage,
 } from '@revenuecat/purchases-capacitor';
 import {
   Firestore,
   doc,
   getDoc,
-  serverTimestamp,
-  setDoc,
 } from '@angular/fire/firestore';
 
 import { environment } from '../../../../environments/environment';
@@ -143,13 +140,7 @@ export class BillingRepository {
     const result = await Purchases.purchasePackage({
       aPackage: packageToBuy,
     });
-
-    const configuredPackage = this.getConfiguredPackage(packageId);
-    const cachedCurrent = await this.cacheCustomerInfo(uid, result.customerInfo);
-    const current =
-      configuredPackage?.kind === 'consumable'
-        ? await this.applyConsumablePurchase(uid, cachedCurrent, configuredPackage)
-        : cachedCurrent;
+    const current = await this.syncBillingWithBackend(uid);
 
     return {
       customerInfo: result.customerInfo,
@@ -172,7 +163,7 @@ export class BillingRepository {
     }
 
     const result = await Purchases.restorePurchases();
-    const current = await this.cacheCustomerInfo(uid, result.customerInfo);
+    const current = await this.syncBillingWithBackend(uid);
 
     return {
       customerInfo: result.customerInfo,
@@ -191,7 +182,7 @@ export class BillingRepository {
     }
 
     const result = await Purchases.getCustomerInfo();
-    const current = await this.cacheCustomerInfo(uid, result.customerInfo);
+    const current = await this.syncBillingWithBackend(uid);
 
     return {
       customerInfo: result.customerInfo,
@@ -220,75 +211,8 @@ export class BillingRepository {
     return this.resolveCachedBillingCurrent(current);
   }
 
-  async cacheCustomerInfo(uid: string, customerInfo: CustomerInfo) {
-    const cached = await this.getCachedBilling(uid);
-    const current = {
-      ...this.mapCustomerInfo(customerInfo),
-      consumables: cached.consumables ?? {},
-    };
-
-    await this.cacheBillingCurrent(uid, current);
-
-    return current;
-  }
-
-  async cacheBillingCurrent(uid: string, current: BillingCurrent) {
-    await this.runInFirebaseContext(() => {
-      const billingRef = doc(this.firestore, `users/${uid}/billing/current`);
-
-      return setDoc(
-        billingRef,
-        {
-          ...current,
-          updatedAt: serverTimestamp(),
-        },
-        { merge: true }
-      );
-    });
-
-    return current;
-  }
-
-  async consumeSuperLike(uid: string) {
-    const current = await this.getCachedBilling(uid);
-    const superLikes = current.consumables.superLikes ?? 0;
-
-    if (superLikes <= 0) {
-      return {
-        current,
-        consumed: false,
-      };
-    }
-
-    const nextCurrent = await this.updateConsumables(uid, current, {
-      superLikes: superLikes - 1,
-    });
-
-    return {
-      current: nextCurrent,
-      consumed: true,
-    };
-  }
-
-  async consumeProfileBoost(uid: string) {
-    const current = await this.getCachedBilling(uid);
-    const profileBoosts = current.consumables.profileBoosts ?? 0;
-
-    if (profileBoosts <= 0) {
-      return {
-        current,
-        consumed: false,
-      };
-    }
-
-    const nextCurrent = await this.updateConsumables(uid, current, {
-      profileBoosts: profileBoosts - 1,
-    });
-
-    return {
-      current: nextCurrent,
-      consumed: true,
-    };
+  async syncBillingWithBackend(uid: string) {
+    return this.getCachedBilling(uid);
   }
 
   isPurchaseCancelled(error: unknown) {
@@ -328,25 +252,6 @@ export class BillingRepository {
       kind: configuredPackage?.kind ?? 'subscription',
       entitlementId: configuredPackage?.entitlementId,
       isFeatured: configuredPackage?.isFeatured,
-    };
-  }
-
-  private mapCustomerInfo(customerInfo: CustomerInfo): BillingCurrent {
-    const activeEntitlements = Object.keys(customerInfo.entitlements.active ?? {});
-    const entitlement = activeEntitlements.includes(this.entitlementId)
-      ? this.entitlementId
-      : activeEntitlements[0] ?? null;
-
-    return {
-      isPremium: activeEntitlements.includes(this.entitlementId),
-      entitlement,
-      productId: customerInfo.activeSubscriptions[0] ?? null,
-      platform: this.getPlatform(),
-      expiresAt: customerInfo.latestExpirationDate,
-      activeEntitlements,
-      activeSubscriptions: customerInfo.activeSubscriptions,
-      consumables: {},
-      source: 'revenuecat',
     };
   }
 
@@ -401,8 +306,8 @@ export class BillingRepository {
 
     const nextCurrent =
       billingPackage.kind === 'consumable'
-        ? await this.applyConsumablePurchase(uid, current, billingPackage)
-        : await this.cacheBillingCurrent(uid, current);
+        ? this.applyLocalConsumablePurchase(current, billingPackage)
+        : current;
 
     return {
       customerInfo: null,
@@ -436,42 +341,31 @@ export class BillingRepository {
     );
   }
 
-  private async applyConsumablePurchase(
-    uid: string,
+  private applyLocalConsumablePurchase(
     current: BillingCurrent,
     billingPackage: BillingPackage
   ) {
     if (billingPackage.id === 'superLikePack') {
-      return this.updateConsumables(uid, current, {
-        superLikes: (current.consumables.superLikes ?? 0) + SUPER_LIKE_PACK_SIZE,
-      });
+      return {
+        ...current,
+        consumables: {
+          ...(current.consumables ?? {}),
+          superLikes: (current.consumables.superLikes ?? 0) + SUPER_LIKE_PACK_SIZE,
+        },
+      };
     }
 
     if (billingPackage.id === 'profileBoost') {
-      return this.updateConsumables(uid, current, {
-        profileBoosts: (current.consumables.profileBoosts ?? 0) + 1,
-      });
+      return {
+        ...current,
+        consumables: {
+          ...(current.consumables ?? {}),
+          profileBoosts: (current.consumables.profileBoosts ?? 0) + 1,
+        },
+      };
     }
 
-    return this.cacheBillingCurrent(uid, current);
-  }
-
-  private async updateConsumables(
-    uid: string,
-    current: BillingCurrent,
-    consumables: BillingConsumables
-  ) {
-    const nextCurrent: BillingCurrent = {
-      ...current,
-      consumables: {
-        ...(current.consumables ?? {}),
-        ...consumables,
-      },
-    };
-
-    await this.cacheBillingCurrent(uid, nextCurrent);
-
-    return nextCurrent;
+    return current;
   }
 
   private canUseWebMock() {

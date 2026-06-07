@@ -12,7 +12,10 @@ import { LocationService } from '../../../services/location.service';
 import { MatchParts, UserClass } from '../../../shared/models/user.model';
 import { DiscoverRepository } from '../data-access/discover.repository';
 import { AuthUser, UserClaims } from '../../auth/store/auth.slice';
-import { MatchIndexRepository } from '../../matching/data-access/match-index.repository';
+import {
+    DiscoverCandidatesResponse,
+    MatchIndexRepository,
+} from '../../matching/data-access/match-index.repository';
 import { isProfileCompleteForDiscovery } from '../../profile/utils/profile-completeness';
 
 type DiscoverState = {
@@ -22,6 +25,7 @@ type DiscoverState = {
     matches: UserClass[];
     progress: number;
     buffer: number;
+    candidateCursor: string | null;
     loading: boolean;
     error: string | null;
 };
@@ -33,6 +37,7 @@ const initialState: DiscoverState = {
     matches: [],
     progress: 0,
     buffer: 0,
+    candidateCursor: null,
     loading: false,
     error: null,
 };
@@ -61,23 +66,23 @@ export const DiscoverStore = signalStore(
             return null;
         }
 
-        async function getUsers(userProfile: UserClass) {
+        async function getCandidatePage(
+            userProfile: UserClass,
+            startAfter?: string | null
+        ): Promise<DiscoverCandidatesResponse> {
             try {
-                const indexedCandidates =
-                    await matchIndexRepository.loadCandidates(userProfile);
-
-                if (indexedCandidates.length) {
-                    return indexedCandidates;
-                }
+                return matchIndexRepository.loadCandidatePage(
+                    userProfile,
+                    20,
+                    startAfter ?? undefined
+                );
             } catch (error) {
-                console.warn('Match index lookup failed, using auth fallback.', error);
+                console.warn('Match index lookup failed.', error);
+                return {
+                    candidates: [],
+                    nextCursor: null,
+                };
             }
-
-            if (authStore.users().length) {
-                return authStore.users();
-            }
-
-            return authStore.loadUsersForLoggedUser();
         }
 
         async function getCurrentCity(position: any): Promise<string> {
@@ -295,6 +300,7 @@ export const DiscoverStore = signalStore(
                     error: null,
                     progress: 0,
                     buffer: 0,
+                    candidateCursor: null,
                 });
 
                 startProgressBuffer();
@@ -421,7 +427,12 @@ export const DiscoverStore = signalStore(
                         progress: 55,
                     });
 
-                    const users = await getUsers(userProfile);
+                    const candidatePage = await getCandidatePage(userProfile);
+                    const users = candidatePage.candidates;
+
+                    patchState(store, {
+                        candidateCursor: candidatePage.nextCursor,
+                    });
                     const hasPossibleMatches = !!possibleMatchIds.length;
                     const shouldRebuildPossibleMatches =
                         !hasPossibleMatches ||

@@ -112,16 +112,6 @@ export const ModerationStore = signalStore(
             const matchUid = matchProfile.uid;
             const matchParts = ensureMatchParts(userProfile);
 
-            matchParts.matches = matchParts.matches.filter((uid) => uid !== matchUid);
-            matchParts.liked = matchParts.liked.filter((uid) => uid !== matchUid);
-            matchParts.superLiked = matchParts.superLiked.filter(
-                (uid) => uid !== matchUid
-            );
-
-            if (!matchParts.notLiked.includes(matchUid)) {
-                matchParts.notLiked.push(matchUid);
-            }
-
             patchState(store, setModerationLoading());
 
             try {
@@ -132,6 +122,7 @@ export const ModerationStore = signalStore(
                     );
                 Object.assign(matchParts, persistedMatchParts);
                 userProfile.matchParts = matchParts;
+                profileStore.setProfile(userProfile);
                 patchState(store, setModerationLoaded());
                 return matchParts;
             } catch (error) {

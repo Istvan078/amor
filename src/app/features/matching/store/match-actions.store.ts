@@ -1,9 +1,13 @@
 import { inject } from '@angular/core';
 import { signalStore, withMethods, withState } from '@ngrx/signals';
 
-import { MatchParts, UserClass } from '../../../shared/models/user.model';
+import { UserClass } from '../../../shared/models/user.model';
 import { AnalyticsService } from '../../analytics/data-access/analytics.service';
 import { BillingStore } from '../../billing/store/billing.store';
+import {
+    MatchActionResponse,
+    MatchActionsRepository,
+} from '../data-access/match-actions.repository';
 import { ProfileStore } from '../../profile/store/profile.store';
 import { DailyUsageStore } from '../../usage/store/daily-usage.store';
 
@@ -13,22 +17,10 @@ const initialState = {};
 const FREE_DAILY_SUPER_LIKES = 1;
 const PREMIUM_DAILY_SUPER_LIKES = 5;
 
-function ensureMatchParts(profile: UserClass) {
-    profile.matchParts ??= new MatchParts();
-    profile.matchParts.matches ??= [];
-    profile.matchParts.possMatches ??= [];
-    profile.matchParts.liked ??= [];
-    profile.matchParts.notLiked ??= [];
-    profile.matchParts.superLiked ??= [];
-
-    return profile.matchParts;
-}
-
 type BillingAccess = {
     isPremium: () => boolean;
     hasEntitlement: (entitlementId: string) => boolean;
     superLikesBalance?: () => number;
-    consumeSuperLike?: () => Promise<boolean>;
 };
 
 type DailyUsageAccess = {
@@ -70,6 +62,19 @@ function getFreeRewindsRemainingForProfile(
     return Math.max(1 - (dailyUsageStore?.getActionCount(uid, 'rewind') ?? 0), 0);
 }
 
+function applyServerMatchParts(
+    profile: UserClass,
+    response: MatchActionResponse,
+    profileStore: { setProfile: (profile: UserClass) => void }
+) {
+    if (response.matchParts) {
+        profile.matchParts = response.matchParts;
+        profileStore.setProfile(profile);
+    }
+
+    return response;
+}
+
 export const MatchActionsStore = signalStore(
     {
         providedIn: 'root',
@@ -78,6 +83,7 @@ export const MatchActionsStore = signalStore(
     withMethods((
         store,
         profileStore = inject(ProfileStore),
+        repository = inject(MatchActionsRepository),
         billingStore = inject(BillingStore),
         dailyUsageStore = inject(DailyUsageStore),
         analytics = inject(AnalyticsService)
@@ -138,48 +144,6 @@ export const MatchActionsStore = signalStore(
             );
         },
 
-        async consumeDailyAction(
-            profile: UserClass | undefined,
-            action: DailyAction,
-            fallbackUid?: string
-        ) {
-            const uid = profile?.uid ?? fallbackUid;
-
-            if (!uid) {
-                return;
-            }
-
-            await dailyUsageStore.loadDailyUsage(uid);
-
-            const isPremium = isPremiumProfile(profile, billingStore);
-
-            if (action === 'rewind' && isPremium) {
-                return;
-            }
-
-            if (action === 'super-like') {
-                if (
-                    isPremium &&
-                    dailyUsageStore.getActionCount(uid, 'super-like') <
-                    PREMIUM_DAILY_SUPER_LIKES
-                ) {
-                    await dailyUsageStore.incrementDailyUsage(uid, action);
-                    return;
-                }
-
-                if ((billingStore.superLikesBalance?.() ?? 0) > 0) {
-                    void billingStore.consumeSuperLike?.();
-                    return;
-                }
-
-                if (isPremium) {
-                    return;
-                }
-            }
-
-            await dailyUsageStore.incrementDailyUsage(uid, action);
-        },
-
         async likeOrDontUser(
             userProfile: UserClass | undefined,
             matchProfile: UserClass | undefined,
@@ -190,34 +154,18 @@ export const MatchActionsStore = signalStore(
                 return false;
             }
 
-            const matchParts = ensureMatchParts(userProfile);
+            const response = isDontLike
+                ? await repository.passUser(matchProfile.uid)
+                : await repository.likeUser(matchProfile.uid);
 
-            if (isLike && !matchParts.liked.includes(matchProfile.uid)) {
-                matchParts.liked.push(matchProfile.uid);
-            }
-
-            if (isDontLike && !matchParts.notLiked.includes(matchProfile.uid)) {
-                matchParts.notLiked.push(matchProfile.uid);
-            }
-
-            if (matchParts.possMatches.includes(matchProfile.uid)) {
-                matchParts.possMatches = matchParts.possMatches.filter(
-                    (uid) => uid !== matchProfile.uid
-                );
-            }
-
-            await profileStore.updateProfile(
-                userProfile.uid,
-                userProfile.setDataForFireStore()
-            );
-            profileStore.setProfile(userProfile);
+            applyServerMatchParts(userProfile, response, profileStore);
             void analytics.track(
                 userProfile.uid,
                 isDontLike ? 'match_passed' : 'match_liked',
                 { matchUid: matchProfile.uid }
             );
 
-            return true;
+            return response;
         },
 
         async restoreRewindCandidate(
@@ -228,29 +176,14 @@ export const MatchActionsStore = signalStore(
                 return false;
             }
 
-            const matchParts = ensureMatchParts(userProfile);
+            const response = await repository.rewind(previousMatch.uid);
 
-            matchParts.notLiked = matchParts.notLiked.filter(
-                (uid) => uid !== previousMatch.uid
-            );
-
-            if (
-                !matchParts.possMatches.includes(previousMatch.uid) &&
-                !matchParts.liked.includes(previousMatch.uid)
-            ) {
-                matchParts.possMatches.push(previousMatch.uid);
-            }
-
-            await profileStore.updateProfile(
-                userProfile.uid,
-                userProfile.setDataForFireStore()
-            );
-            profileStore.setProfile(userProfile);
+            applyServerMatchParts(userProfile, response, profileStore);
             void analytics.track(userProfile.uid, 'match_rewind_used', {
                 matchUid: previousMatch.uid,
             });
 
-            return true;
+            return response;
         },
 
         async superLikeUser(
@@ -261,32 +194,14 @@ export const MatchActionsStore = signalStore(
                 return false;
             }
 
-            const matchParts = ensureMatchParts(userProfile);
+            const response = await repository.superLikeUser(matchProfile.uid);
 
-            if (!matchParts.superLiked.includes(matchProfile.uid)) {
-                matchParts.superLiked.push(matchProfile.uid);
-            }
-
-            if (!matchParts.liked.includes(matchProfile.uid)) {
-                matchParts.liked.push(matchProfile.uid);
-            }
-
-            if (matchParts.possMatches.includes(matchProfile.uid)) {
-                matchParts.possMatches = matchParts.possMatches.filter(
-                    (uid) => uid !== matchProfile.uid
-                );
-            }
-
-            await profileStore.updateProfile(
-                userProfile.uid,
-                userProfile.setDataForFireStore()
-            );
-            profileStore.setProfile(userProfile);
+            applyServerMatchParts(userProfile, response, profileStore);
             void analytics.track(userProfile.uid, 'match_super_liked', {
                 matchUid: matchProfile.uid,
             });
 
-            return true;
+            return response;
         },
     }))
 );

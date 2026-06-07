@@ -153,7 +153,8 @@ app-discover {
     border-radius: 8px;
     background: #252b3e;
     box-shadow: var(--amor-shadow);
-    transform: translate3d(var(--swipe-x, 0), var(--swipe-y, 0), 0) rotate(var(--swipe-rotate, 0deg));
+    transform: translate3d(var(--swipe-x, 0), var(--swipe-y, 0), 0)
+      rotate(var(--swipe-rotate, 0deg));
     transform-origin: 50% 92%;
     transition:
       transform 260ms cubic-bezier(0.2, 0.82, 0.28, 1),
@@ -491,17 +492,19 @@ app-discover {
 
   .action-button.rewind.is-rewind-animating {
     --background: linear-gradient(135deg, rgba(242, 199, 110, 0.38), rgba(53, 198, 189, 0.28));
-    --background-hover: linear-gradient(135deg, rgba(242, 199, 110, 0.44), rgba(53, 198, 189, 0.34));
+    --background-hover: linear-gradient(
+      135deg,
+      rgba(242, 199, 110, 0.44),
+      rgba(53, 198, 189, 0.34)
+    );
     --box-shadow:
-      0 0 0 1px rgba(242, 199, 110, 0.35),
-      0 0 34px rgba(242, 199, 110, 0.32),
+      0 0 0 1px rgba(242, 199, 110, 0.35), 0 0 34px rgba(242, 199, 110, 0.32),
       0 16px 38px rgba(0, 0, 0, 0.26);
   }
 
   .action-button.rewind.is-rewind-animating ion-icon[slot='icon-only'] {
     animation: rewind-icon-return 760ms cubic-bezier(0.2, 0.9, 0.22, 1);
-    filter:
-      drop-shadow(0 0 9px rgba(242, 199, 110, 0.8))
+    filter: drop-shadow(0 0 9px rgba(242, 199, 110, 0.8))
       drop-shadow(0 0 16px rgba(53, 198, 189, 0.38));
   }
 
@@ -515,15 +518,14 @@ app-discover {
     inset: -9px;
     border-radius: 999px;
     opacity: 0;
-    background:
-      conic-gradient(
-        from 280deg,
-        transparent 0deg,
-        rgba(242, 199, 110, 0.9) 46deg,
-        rgba(53, 198, 189, 0.74) 90deg,
-        transparent 138deg,
-        transparent 360deg
-      );
+    background: conic-gradient(
+      from 280deg,
+      transparent 0deg,
+      rgba(242, 199, 110, 0.9) 46deg,
+      rgba(53, 198, 189, 0.74) 90deg,
+      transparent 138deg,
+      transparent 360deg
+    );
     mask: radial-gradient(circle, transparent 58%, #000 61%);
   }
 
@@ -828,8 +830,8 @@ app-discover {
   }
 
   .promotions-container {
-    flex: 0 0 224px;
-    min-height: 224px;
+    // flex: 0 0 224px;
+    // min-height: 224px;
   }
 
   .promotions-container .swiper-cont {
@@ -842,7 +844,6 @@ app-discover {
     --swiper-theme-color: var(--amor-rose);
     width: 100%;
     height: 100%;
-    padding-bottom: 18px;
   }
 
   .promotions-container .swiper-cont::part(button-prev),
@@ -872,10 +873,8 @@ app-discover {
     display: flex;
     flex-direction: column;
     justify-content: space-between;
-    height: 202px;
     margin: 0;
     padding: 14px;
-    overflow: hidden;
     border: 1px solid rgba(255, 255, 255, 0.14);
     border-radius: 8px;
     background:
@@ -1133,8 +1132,7 @@ app-discover {
   .match-container.is-blocked {
     border-color: rgba(255, 93, 143, 0.28);
     background:
-      linear-gradient(135deg, rgba(255, 93, 143, 0.12), rgba(255, 255, 255, 0.04)),
-      #171d2e;
+      linear-gradient(135deg, rgba(255, 93, 143, 0.12), rgba(255, 255, 255, 0.04)), #171d2e;
   }
 
   .match-avatar {
@@ -1473,7 +1471,7 @@ app-discover {
   }
 
   .discover-onboarding-orbit::before {
-    content: "";
+    content: '';
     width: 52px;
     height: 52px;
     border-radius: 999px;
@@ -1562,10 +1560,10 @@ app-discover {
     display: grid;
     grid-template-columns: minmax(320px, 420px) minmax(480px, 720px);
     grid-template-areas:
-      "hero info"
-      "actions info"
-      "completion info"
-      "editor editor";
+      'hero info'
+      'actions info'
+      'completion info'
+      'editor editor';
     gap: 18px 24px;
     align-items: start;
     justify-content: center;
@@ -1664,16 +1662,8 @@ app-discover {
 
   .profile-admin-button {
     --border-color: rgba(242, 199, 110, 0.32);
-    --background: linear-gradient(
-      135deg,
-      rgba(242, 199, 110, 0.13),
-      rgba(53, 198, 189, 0.1)
-    );
-    --background-hover: linear-gradient(
-      135deg,
-      rgba(242, 199, 110, 0.2),
-      rgba(53, 198, 189, 0.16)
-    );
+    --background: linear-gradient(135deg, rgba(242, 199, 110, 0.13), rgba(53, 198, 189, 0.1));
+    --background-hover: linear-gradient(135deg, rgba(242, 199, 110, 0.2), rgba(53, 198, 189, 0.16));
     --color: var(--amor-text);
     filter: drop-shadow(0 12px 24px rgba(242, 199, 110, 0.1));
   }

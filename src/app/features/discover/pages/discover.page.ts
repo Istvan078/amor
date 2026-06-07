@@ -49,6 +49,7 @@ import { UserClass } from '../../../shared/models/user.model';
 import { Message } from '../../../shared/models/message.model';
 import { MatchConversationPreviewsStore } from '../../messages/store/match-conversation-previews.store';
 import { MatchActionsStore } from '../../matching/store/match-actions.store';
+import { type MatchActionResponse } from '../../matching/data-access/match-actions.repository';
 import { MatchIndexRepository } from '../../matching/data-access/match-index.repository';
 import { LikedByRepository } from '../../matching/data-access/liked-by.repository';
 import { OnlinePresenceService } from '../../presence/data-access/online-presence.service';
@@ -821,22 +822,22 @@ export class DiscoverPage implements OnInit, OnDestroy {
       return false;
     }
 
-    const consumed = await this.billingStore.consumeProfileBoost();
+    try {
+      const boostedUntil = await this.matchIndexRepository.activateProfileBoost(uid);
+      this.profileBoostedUntil = boostedUntil.toISOString();
+      this.syncBoostCountdownTimer();
+      await this.billingStore.refreshCustomerInfo(uid);
+      await this.dailyUsageStore.incrementDailyUsage(uid, 'boost');
+      void this.analytics.track(uid, 'boost_started', {
+        boostedUntil: boostedUntil.toISOString(),
+        durationMinutes: 30,
+      });
 
-    if (!consumed) {
+      return true;
+    } catch (error) {
+      console.warn('Failed to activate profile boost.', error);
       return false;
     }
-
-    const boostedUntil = await this.matchIndexRepository.activateProfileBoost(uid);
-    this.profileBoostedUntil = boostedUntil.toISOString();
-    this.syncBoostCountdownTimer();
-    await this.dailyUsageStore.incrementDailyUsage(uid, 'boost');
-    void this.analytics.track(uid, 'boost_started', {
-      boostedUntil: boostedUntil.toISOString(),
-      durationMinutes: 30,
-    });
-
-    return true;
   }
 
   private async canUseDailyLike(uid: string, likeLimit: number) {
@@ -1034,9 +1035,9 @@ export class DiscoverPage implements OnInit, OnDestroy {
       return;
     }
 
-    const liked = await this.likeOrDontUser(likedProfile, true);
+    const likeResult = await this.likeOrDontUser(likedProfile, true);
 
-    if (!liked) {
+    if (!likeResult) {
       return;
     }
 
@@ -1044,7 +1045,10 @@ export class DiscoverPage implements OnInit, OnDestroy {
       await this.dailyUsageStore.incrementDailyUsage(uid, 'like');
     }
 
-    const newMatch = await this.completeMutualMatchIfNeeded(likedProfile);
+    const newMatch = this.completeMutualMatchFromAction(
+      likedProfile,
+      likeResult
+    );
     this.removeLikedByProfile(likedProfile?.uid);
 
     this.changeMatchProf();
@@ -1090,15 +1094,29 @@ export class DiscoverPage implements OnInit, OnDestroy {
       return;
     }
 
-    await this.matchActionsStore.consumeDailyAction(
-      this.userProf,
-      'rewind',
-      this.user?.uid
-    );
-    await this.matchActionsStore.restoreRewindCandidate(
-      this.userProf,
-      previousMatch
-    );
+    let rewindResult: MatchActionResponse | false;
+
+    try {
+      rewindResult = await this.matchActionsStore.restoreRewindCandidate(
+        this.userProf,
+        previousMatch
+      );
+    } catch (error) {
+      console.warn('Failed to rewind match candidate.', error);
+      this.rewindStack = [previousMatch, ...this.rewindStack].slice(0, 3);
+      return;
+    }
+
+    if (!rewindResult) {
+      this.rewindStack = [previousMatch, ...this.rewindStack].slice(0, 3);
+      return;
+    }
+
+    const uid = this.userProf?.uid ?? this.user?.uid;
+
+    if (uid) {
+      await this.dailyUsageStore.loadDailyUsage(uid, true);
+    }
 
     this.matchProf = previousMatch;
     this.matchProf['index'] = Number(previousMatch['index'] ?? 0);
@@ -1118,15 +1136,30 @@ export class DiscoverPage implements OnInit, OnDestroy {
       return;
     }
 
-    await this.matchActionsStore.consumeDailyAction(
-      this.userProf,
-      'super-like',
-      this.user?.uid
-    );
     const superLikedProfile = this.matchProf;
 
-    await this.matchActionsStore.superLikeUser(this.userProf, superLikedProfile);
-    const newMatch = await this.completeMutualMatchIfNeeded(superLikedProfile);
+    const superLikeResult = await this.matchActionsStore.superLikeUser(
+      this.userProf,
+      superLikedProfile
+    );
+
+    if (!superLikeResult) {
+      return;
+    }
+
+    const uid = this.userProf?.uid ?? this.user?.uid;
+
+    if (uid) {
+      await Promise.all([
+        this.dailyUsageStore.loadDailyUsage(uid, true),
+        this.billingStore.refreshCustomerInfo(uid),
+      ]);
+    }
+
+    const newMatch = this.completeMutualMatchFromAction(
+      superLikedProfile,
+      superLikeResult
+    );
 
     this.changeMatchProf();
     this.syncMatchActionState();
@@ -1136,53 +1169,27 @@ export class DiscoverPage implements OnInit, OnDestroy {
     }
   }
 
-  private async completeMutualMatchIfNeeded(
-    likedProfile?: UserClass
-  ): Promise<UserClass | null> {
-    if (!this.userProf?.uid || !likedProfile?.uid) {
+  private completeMutualMatchFromAction(
+    matchProfile: UserClass,
+    actionResult: MatchActionResponse
+  ) {
+    if (!this.userProf?.uid || !matchProfile.uid || !actionResult.created) {
       return null;
     }
 
-    const latestLikedProfile = await this.discoverRepository.getUserProfile(
-      likedProfile.uid
-    );
-
-    if (!latestLikedProfile?.uid) {
-      return null;
-    }
-
-    const myMatchParts = this.ensureMatchParts(this.userProf);
-    const likedMatchParts = this.ensureMatchParts(latestLikedProfile);
-    const likedBack = likedMatchParts.liked.includes(this.userProf.uid);
-    const alreadyMatched =
-      myMatchParts.matches.includes(latestLikedProfile.uid) ||
-      likedMatchParts.matches.includes(this.userProf.uid);
-
-    if (!likedBack || alreadyMatched) {
-      return null;
-    }
-
-    const matchResult = await this.discoverRepository.createMutualMatch(
-      latestLikedProfile.uid
-    );
-
-    if (!matchResult.created) {
-      return null;
-    }
-
-    if (matchResult.matchParts) {
-      this.userProf.matchParts = matchResult.matchParts;
+    if (actionResult.matchParts) {
+      this.userProf.matchParts = actionResult.matchParts;
     }
 
     this.profileStore.setProfile(this.userProf);
-    this.discoverStore.addMatch(latestLikedProfile);
-    this.matches = this.addMatchLocally(this.matches, latestLikedProfile);
+    this.discoverStore.addMatch(matchProfile);
+    this.matches = this.addMatchLocally(this.matches, matchProfile);
 
     void this.analytics.track(this.userProf.uid, 'match_created', {
-      matchUid: latestLikedProfile.uid,
+      matchUid: matchProfile.uid,
     });
 
-    return latestLikedProfile;
+    return matchProfile;
   }
 
   private async openItsAMatchModal(matchProfile: UserClass) {
@@ -1202,23 +1209,6 @@ export class DiscoverPage implements OnInit, OnDestroy {
     if (data?.action === 'message') {
       this.openMessWithMatch(matchProfile);
     }
-  }
-
-  private ensureMatchParts(profile: UserClass) {
-    profile.matchParts ??= {
-      matches: [],
-      possMatches: [],
-      liked: [],
-      notLiked: [],
-      superLiked: [],
-    };
-    profile.matchParts.matches ??= [];
-    profile.matchParts.possMatches ??= [];
-    profile.matchParts.liked ??= [];
-    profile.matchParts.notLiked ??= [];
-    profile.matchParts.superLiked ??= [];
-
-    return profile.matchParts;
   }
 
   private addMatchLocally(matches: UserClass[], matchProfile: UserClass) {

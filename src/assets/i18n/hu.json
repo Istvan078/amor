@@ -123,7 +123,7 @@
       "unlock": "Oldd fel Amorino Golddal",
       "unlockGold": "Gold feloldása",
       "footer": "Lásd a likeokat, rewindolj és emeld ki a profilod",
-      "unlockedCount": "{{count}} ember már kedvelt",
+      "unlockedCount": "{{count}} kedvelés tőle",
       "lockedAvatarAlt": "Zárolt kedvelő profil"
     },
     "actions": {

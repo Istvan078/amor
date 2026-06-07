@@ -265,42 +265,6 @@ export const BillingStore = signalStore(
         return store.activeEntitlements().includes(entitlementId);
       },
 
-      async consumeSuperLike() {
-        const uid = store.uid();
-
-        if (!uid) {
-          return false;
-        }
-
-        try {
-          const result = await repository.consumeSuperLike(uid);
-          patchBillingCurrent(store, result.current);
-
-          return result.consumed;
-        } catch (error) {
-          console.error(error);
-          return false;
-        }
-      },
-
-      async consumeProfileBoost() {
-        const uid = store.uid();
-
-        if (!uid) {
-          return false;
-        }
-
-        try {
-          const result = await repository.consumeProfileBoost(uid);
-          patchBillingCurrent(store, result.current);
-
-          return result.consumed;
-        } catch (error) {
-          console.error(error);
-          return false;
-        }
-      },
-
       resetBilling() {
         initializedUid = null;
         patchState(store, initialState);

@@ -40,10 +40,10 @@ export const DailyUsageStore = signalStore(
   },
   withState(initialState),
   withMethods((store, repository = inject(DailyUsageRepository)) => ({
-    async loadDailyUsage(uid: string) {
+    async loadDailyUsage(uid: string, force = false) {
       const date = getDailyUsageDateKey();
 
-      if (store.uid() === uid && store.date() === date) {
+      if (!force && store.uid() === uid && store.date() === date) {
         return;
       }
 

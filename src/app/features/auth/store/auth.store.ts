@@ -62,6 +62,16 @@ export const AuthStore = signalStore(
         }
 
         async function loadUsersForUser(user: AuthUser) {
+            const claims = user.claims ?? store.claims();
+
+            if (claims?.admin !== true && claims?.moderator !== true) {
+                patchState(store, {
+                    users: [],
+                });
+
+                return [];
+            }
+
             const users = await firstValueFrom(repository.getUsers(user.idToken));
 
             patchState(store, {
