@@ -1259,9 +1259,23 @@ export class DiscoverPage implements OnInit, OnDestroy {
     this.matchConversationPreviewsStore.upsertPreview(matchUid, {
       hasMessages: true,
       isLastMessageMine: event.message.senderUid === this.userProf?.uid,
-      lastMessage: event.message.message.trim(),
+      lastMessage: this.getSentMessagePreviewText(event.message),
       unreadCount: existingPreview?.unreadCount ?? 0,
     });
+  }
+
+  private getSentMessagePreviewText(message: Message) {
+    const text = message.message.trim();
+
+    if (text) {
+      return text;
+    }
+
+    if (message.messageType === 'gif') {
+      return message.gif?.title || 'GIF';
+    }
+
+    return '';
   }
 
   handleMatchRemoved(matchProfile: UserClass) {

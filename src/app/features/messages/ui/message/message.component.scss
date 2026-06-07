@@ -860,6 +860,17 @@
   box-shadow: 0 12px 28px rgba(255, 93, 143, 0.18);
 }
 
+.message-actions-row {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  width: fit-content;
+}
+
+.message-row.own-message .message-actions-row {
+  justify-content: flex-end;
+}
+
 .message-reaction-controls {
   position: relative;
   display: inline-flex;
@@ -1028,19 +1039,17 @@
 }
 
 .message-report-button {
-  display: inline-flex;
-  align-items: center;
-  gap: 6px;
-  width: fit-content;
+  display: grid;
+  width: 34px;
+  height: 30px;
   min-height: 30px;
-  padding: 0 10px;
+  place-items: center;
+  padding: 0;
   color: rgba(248, 245, 239, 0.82);
   background: rgba(255, 255, 255, 0.055);
   border: 1px solid rgba(255, 255, 255, 0.1);
   border-radius: 999px;
   box-shadow: 0 10px 24px rgba(4, 8, 18, 0.12);
-  font-size: 0.72rem;
-  font-weight: 900;
   transition:
     border-color 160ms ease,
     background 160ms ease,
@@ -1057,7 +1066,282 @@
 
 .message-report-button ion-icon {
   color: #ff9cbd;
-  font-size: 15px;
+  font-size: 16px;
+}
+
+.report-dialog-layer {
+  position: fixed;
+  inset: 0;
+  z-index: 80;
+  display: grid;
+  place-items: center;
+  padding: 28px;
+}
+
+.report-dialog-backdrop {
+  position: absolute;
+  inset: 0;
+  padding: 0;
+  border: 0;
+  background:
+    radial-gradient(circle at 18% 0%, rgba(255, 93, 143, 0.16), transparent 32%),
+    rgba(3, 6, 14, 0.76);
+  backdrop-filter: blur(8px);
+  cursor: pointer;
+}
+
+.report-dialog {
+  position: relative;
+  display: grid;
+  grid-template-rows: auto minmax(0, auto) auto auto;
+  width: min(680px, calc(100vw - 56px));
+  max-height: min(820px, calc(100dvh - 56px));
+  overflow: hidden;
+  border: 1px solid rgba(255, 255, 255, 0.14);
+  border-radius: 8px;
+  background:
+    radial-gradient(circle at 0% 0%, rgba(255, 93, 143, 0.23), transparent 36%),
+    linear-gradient(145deg, rgba(31, 36, 58, 0.98), rgba(10, 15, 28, 0.98) 72%);
+  box-shadow:
+    0 34px 100px rgba(0, 0, 0, 0.58),
+    inset 0 1px 0 rgba(255, 255, 255, 0.08);
+  animation: report-dialog-in 190ms cubic-bezier(0.2, 0.84, 0.24, 1) both;
+}
+
+.report-dialog header {
+  padding: 28px 32px 20px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+.report-dialog header span {
+  color: #f2c76e;
+  font-size: 0.72rem;
+  font-weight: 950;
+  letter-spacing: 0;
+  text-transform: uppercase;
+}
+
+.report-dialog h3 {
+  margin: 8px 0 8px;
+  color: #ffffff;
+  font-size: clamp(1.45rem, 2vw, 1.85rem);
+  font-weight: 950;
+  line-height: 1.1;
+}
+
+.report-dialog p {
+  max-width: 58ch;
+  margin: 0;
+  color: rgba(248, 245, 239, 0.72);
+  font-size: 0.96rem;
+  font-weight: 700;
+  line-height: 1.45;
+}
+
+.report-reason-list {
+  display: grid;
+  gap: 10px;
+  max-height: min(380px, 44dvh);
+  min-height: 0;
+  overflow-y: auto;
+  padding: 18px 20px;
+  background: rgba(255, 255, 255, 0.025);
+}
+
+.report-reason-option {
+  display: grid;
+  grid-template-columns: 34px minmax(0, 1fr);
+  align-items: center;
+  gap: 14px;
+  min-height: 62px;
+  padding: 0 18px;
+  color: #f8f5ef;
+  background:
+    linear-gradient(135deg, rgba(255, 255, 255, 0.075), rgba(255, 255, 255, 0.035)),
+    rgba(13, 18, 33, 0.8);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 8px;
+  cursor: pointer;
+  text-align: left;
+  transition:
+    border-color 160ms ease,
+    background 160ms ease,
+    box-shadow 160ms ease,
+    transform 160ms ease;
+}
+
+.report-reason-option:hover {
+  border-color: rgba(255, 93, 143, 0.42);
+  background:
+    linear-gradient(135deg, rgba(255, 93, 143, 0.15), rgba(242, 199, 110, 0.07)),
+    rgba(18, 23, 40, 0.94);
+  transform: translateY(-1px);
+}
+
+.report-reason-option.is-selected {
+  border-color: rgba(255, 93, 143, 0.75);
+  background:
+    linear-gradient(135deg, rgba(255, 93, 143, 0.24), rgba(255, 122, 89, 0.1)),
+    rgba(22, 27, 45, 0.98);
+  box-shadow:
+    0 14px 34px rgba(255, 93, 143, 0.16),
+    inset 0 1px 0 rgba(255, 255, 255, 0.1);
+}
+
+.report-reason-radio {
+  position: relative;
+  display: grid;
+  width: 24px;
+  height: 24px;
+  border: 2px solid rgba(248, 245, 239, 0.44);
+  border-radius: 999px;
+  background: rgba(5, 8, 16, 0.58);
+  transition:
+    border-color 160ms ease,
+    background 160ms ease,
+    box-shadow 160ms ease;
+}
+
+.report-reason-radio i {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: 10px;
+  height: 10px;
+  border-radius: inherit;
+  background: transparent;
+  transform: translate(-50%, -50%) scale(0.4);
+  transition:
+    background 160ms ease,
+    transform 160ms ease;
+}
+
+.report-reason-option.is-selected .report-reason-radio {
+  border-color: #ff5d8f;
+  background: rgba(255, 93, 143, 0.18);
+  box-shadow: 0 0 0 6px rgba(255, 93, 143, 0.1);
+}
+
+.report-reason-option.is-selected .report-reason-radio i {
+  background: linear-gradient(135deg, #ff5d8f, #ff7a59);
+  transform: translate(-50%, -50%) scale(1);
+}
+
+.report-reason-option strong {
+  min-width: 0;
+  color: #ffffff;
+  font-size: 0.98rem;
+  font-weight: 950;
+  overflow-wrap: anywhere;
+}
+
+.report-other-field {
+  display: grid;
+  gap: 8px;
+  padding: 0 20px 18px;
+  background: rgba(255, 255, 255, 0.025);
+  animation: report-other-in 190ms cubic-bezier(0.2, 0.84, 0.24, 1) both;
+}
+
+.report-other-field span {
+  color: #f2c76e;
+  font-size: 0.72rem;
+  font-weight: 950;
+  letter-spacing: 0;
+  text-transform: uppercase;
+}
+
+.report-other-field textarea {
+  width: 100%;
+  min-height: 112px;
+  max-height: 210px;
+  resize: vertical;
+  padding: 13px 14px;
+  color: #ffffff;
+  background: rgba(7, 11, 22, 0.78);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  border-radius: 8px;
+  outline: none;
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.06);
+  font: inherit;
+  font-size: 0.94rem;
+  line-height: 1.45;
+}
+
+.report-other-field textarea:focus {
+  border-color: rgba(255, 93, 143, 0.72);
+  box-shadow:
+    0 0 0 4px rgba(255, 93, 143, 0.12),
+    inset 0 1px 0 rgba(255, 255, 255, 0.08);
+}
+
+.report-other-field textarea::placeholder {
+  color: rgba(248, 245, 239, 0.4);
+}
+
+.report-other-field small {
+  color: rgba(248, 245, 239, 0.56);
+  font-size: 0.78rem;
+  font-weight: 800;
+  line-height: 1.3;
+}
+
+.report-dialog footer {
+  display: flex;
+  justify-content: flex-end;
+  gap: 12px;
+  padding: 18px 20px 20px;
+  border-top: 1px solid rgba(255, 255, 255, 0.08);
+  background: rgba(9, 13, 24, 0.72);
+}
+
+.report-dialog footer button {
+  min-width: 134px;
+  min-height: 48px;
+  padding: 0 20px;
+  border: 0;
+  border-radius: 999px;
+  color: #ffffff;
+  cursor: pointer;
+  font-size: 0.88rem;
+  font-weight: 950;
+  transition:
+    filter 160ms ease,
+    opacity 160ms ease,
+    transform 160ms ease;
+}
+
+.report-dialog footer button:hover:not(:disabled) {
+  filter: brightness(1.05);
+  transform: translateY(-1px);
+}
+
+.report-dialog-cancel {
+  background: rgba(255, 255, 255, 0.08);
+  color: rgba(248, 245, 239, 0.82);
+}
+
+.report-dialog-submit {
+  background: linear-gradient(135deg, #ff5d8f, #ff7a59);
+  box-shadow: 0 16px 34px rgba(255, 93, 143, 0.28);
+}
+
+.report-dialog-submit:disabled {
+  cursor: default;
+  opacity: 0.48;
+}
+
+.report-reason-list::-webkit-scrollbar {
+  width: 8px;
+}
+
+.report-reason-list::-webkit-scrollbar-track {
+  background: rgba(255, 255, 255, 0.05);
+}
+
+.report-reason-list::-webkit-scrollbar-thumb {
+  border-radius: 999px;
+  background: rgba(255, 93, 143, 0.36);
 }
 
 @keyframes reaction-picker-in {
@@ -1081,6 +1365,30 @@
   to {
     opacity: 1;
     transform: translateY(0) scale(1);
+  }
+}
+
+@keyframes report-dialog-in {
+  from {
+    opacity: 0;
+    transform: translateY(12px) scale(0.97);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+@keyframes report-other-in {
+  from {
+    opacity: 0;
+    transform: translateY(-8px);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateY(0);
   }
 }
 

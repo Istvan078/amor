@@ -460,66 +460,66 @@
                     }
                   </span>
 
-                  <div
-                    class="message-reaction-controls"
-                    [class.is-open]="isReactionPickerOpen(mess)"
-                  >
-                    <button
-                      type="button"
-                      class="message-reaction-trigger"
-                      [class.has-selected]="hasMessageReactions(mess)"
-                      [disabled]="isCurrentMatchBlocked || !mess.id || isAnyReactionPending(mess)"
-                      (click)="toggleReactionPicker(mess)"
-                      [attr.aria-label]="
-                        hasMessageReactions(mess)
-                          ? t('messages.changeReactionPicker')
-                          : t('messages.openReactionPicker')
-                      "
+                  <div class="message-actions-row">
+                    <div
+                      class="message-reaction-controls"
+                      [class.is-open]="isReactionPickerOpen(mess)"
                     >
-                      @if (getDisplayReaction(mess); as reaction) {
-                        <span>{{ reaction.emoji }}</span>
-                        @if (getReactionCountText(reaction)) {
-                          <small>{{ getReactionCountText(reaction) }}</small>
+                      <button
+                        type="button"
+                        class="message-reaction-trigger"
+                        [class.has-selected]="hasMessageReactions(mess)"
+                        [disabled]="isCurrentMatchBlocked || !mess.id || isAnyReactionPending(mess)"
+                        (click)="toggleReactionPicker(mess)"
+                        [attr.aria-label]="
+                          hasMessageReactions(mess)
+                            ? t('messages.changeReactionPicker')
+                            : t('messages.openReactionPicker')
+                        "
+                      >
+                        @if (getDisplayReaction(mess); as reaction) {
+                          <span>{{ reaction.emoji }}</span>
+                          @if (getReactionCountText(reaction)) {
+                            <small>{{ getReactionCountText(reaction) }}</small>
+                          }
+                        } @else {
+                          <ion-icon name="heart-outline"></ion-icon>
                         }
-                      } @else {
-                        <ion-icon name="heart-outline"></ion-icon>
+                      </button>
+
+                      @if (isReactionPickerOpen(mess)) {
+                        <div class="message-reaction-picker" [attr.aria-label]="t('messages.reactionPickerAria')">
+                          @for (emoji of quickReactionEmojis; track emoji) {
+                            <button
+                              type="button"
+                              [class.is-active]="hasReactionFromUser(mess, emoji)"
+                              [disabled]="isCurrentMatchBlocked || !mess.id || isReactionPending(mess, emoji)"
+                              (click)="toggleMessageReaction(mess, emoji)"
+                              [attr.aria-label]="t('messages.reactionAria', { emoji })"
+                            >
+                              {{ emoji }}
+                            </button>
+                          }
+                        </div>
                       }
-                    </button>
+                    </div>
 
-                    @if (isReactionPickerOpen(mess)) {
-                      <div class="message-reaction-picker" [attr.aria-label]="t('messages.reactionPickerAria')">
-                        @for (emoji of quickReactionEmojis; track emoji) {
-                          <button
-                            type="button"
-                            [class.is-active]="hasReactionFromUser(mess, emoji)"
-                            [disabled]="isCurrentMatchBlocked || !mess.id || isReactionPending(mess, emoji)"
-                            (click)="toggleMessageReaction(mess, emoji)"
-                            [attr.aria-label]="t('messages.reactionAria', { emoji })"
-                          >
-                            {{ emoji }}
-                          </button>
-                        }
-                      </div>
-                    }
-                  </div>
-
-                  @if (canReportMessage(mess)) {
-                    <button
-                      type="button"
-                      class="message-report-button"
-                      [disabled]="isMessageReportPending(mess)"
-                      (click)="reportMessage(mess)"
-                    >
-                      <ion-icon name="flag-outline" aria-hidden="true"></ion-icon>
-                      <span>
-                        {{
+                    @if (canReportMessage(mess)) {
+                      <button
+                        type="button"
+                        class="message-report-button"
+                        [disabled]="isMessageReportPending(mess)"
+                        (click)="reportMessage(mess)"
+                        [attr.aria-label]="
                           isMessageReportPending(mess)
                             ? t('messages.reportingMessage')
                             : t('messages.reportMessage')
-                        }}
-                      </span>
-                    </button>
-                  }
+                        "
+                      >
+                        <ion-icon name="flag-outline" aria-hidden="true"></ion-icon>
+                      </button>
+                    }
+                  </div>
 
                 </div>
               </div>
@@ -631,6 +631,76 @@
         </form>
         }
       </section>
+    }
+
+    @if (isReportDialogOpen) {
+      <div class="report-dialog-layer">
+        <button
+          type="button"
+          class="report-dialog-backdrop"
+          (click)="cancelReportDialog()"
+          [attr.aria-label]="t('common.cancel')"
+        ></button>
+
+        <section
+          class="report-dialog"
+          role="dialog"
+          aria-modal="true"
+          [attr.aria-label]="t(reportDialogTitleKey)"
+        >
+          <header>
+            <span>{{ t('messages.reportDialogEyebrow') }}</span>
+            <h3>{{ t(reportDialogTitleKey) }}</h3>
+            <p>{{ t(reportDialogTextKey) }}</p>
+          </header>
+
+          <div class="report-reason-list">
+            @for (reason of reportReasons; track reason) {
+              <button
+                type="button"
+                class="report-reason-option"
+                [class.is-selected]="reportDialogSelectedReason === reason"
+                [attr.aria-pressed]="reportDialogSelectedReason === reason"
+                (click)="selectReportDialogReason(reason)"
+              >
+                <span class="report-reason-radio" aria-hidden="true">
+                  <i></i>
+                </span>
+                <strong>{{ t('messages.reportReasons.' + reason) }}</strong>
+              </button>
+            }
+          </div>
+
+          @if (isReportDialogOtherSelected()) {
+            <label class="report-other-field">
+              <span>{{ t('messages.reportOtherLabel') }}</span>
+              <textarea
+                #reportOtherTextarea
+                [(ngModel)]="reportDialogOtherDescription"
+                [ngModelOptions]="{ standalone: true }"
+                [placeholder]="t('messages.reportOtherPlaceholder')"
+                maxlength="600"
+                rows="4"
+              ></textarea>
+              <small>{{ t('messages.reportOtherHint') }}</small>
+            </label>
+          }
+
+          <footer>
+            <button type="button" class="report-dialog-cancel" (click)="cancelReportDialog()">
+              {{ t('common.cancel') }}
+            </button>
+            <button
+              type="button"
+              class="report-dialog-submit"
+              [disabled]="isReportDialogSubmitDisabled()"
+              (click)="confirmReportDialog()"
+            >
+              {{ t('messages.reportConfirm') }}
+            </button>
+          </footer>
+        </section>
+      </div>
     }
   </div>
 </ng-container>

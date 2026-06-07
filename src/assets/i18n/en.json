@@ -523,7 +523,11 @@
     "removeMatchConfirmButton": "Remove match",
     "reportReasonTitle": "Why are you reporting this profile?",
     "reportReasonText": "Choose the reason that best describes the issue. Amor will review the report for safety.",
+    "reportDialogEyebrow": "Safety report",
     "reportConfirm": "Send report",
+    "reportOtherLabel": "Tell us what happened",
+    "reportOtherPlaceholder": "Add the details in your own words...",
+    "reportOtherHint": "Required when you choose Other. Keep it factual and specific.",
     "reportReasons": {
       "fakeProfile": "Fake profile",
       "harassment": "Harassment",

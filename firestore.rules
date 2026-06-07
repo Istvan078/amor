@@ -246,7 +246,12 @@ service cloud.firestore {
         allow read: if isMessageParticipant() || isAdminOrModerator();
         allow create: if isMessageParticipant()
           && request.resource.data.senderUid == request.auth.uid;
-        allow update: if isMessageParticipant();
+        allow update: if isMessageParticipant()
+          && request.resource.data.diff(resource.data).changedKeys().hasOnly([
+            'reactions',
+            'isRead',
+            'readAt'
+          ]);
         allow delete: if isAdminOrModerator();
       }
     }

@@ -523,7 +523,11 @@
     "removeMatchConfirmButton": "Match törlése",
     "reportReasonTitle": "Miért jelented ezt a profilt?",
     "reportReasonText": "Válaszd ki azt az okot, ami a legjobban leírja a problémát. Az Amor biztonsági ellenőrzésre jelöli a jelentést.",
+    "reportDialogEyebrow": "Biztonsági jelentés",
     "reportConfirm": "Jelentés küldése",
+    "reportOtherLabel": "Írd le, mi történt",
+    "reportOtherPlaceholder": "Fogalmazd meg a saját szavaiddal...",
+    "reportOtherHint": "Az Egyéb oknál kötelező. Legyen tényszerű és konkrét.",
     "reportReasons": {
       "fakeProfile": "Hamis profil",
       "harassment": "Zaklatás",

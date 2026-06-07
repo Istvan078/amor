@@ -65,6 +65,20 @@ import { ModerationStore } from '../../../moderation/store/moderation.store';
 import { ProfileStore } from '../../../profile/store/profile.store';
 import { MessagesStore } from '../../store/messages.store';
 
+type ReportReason =
+  | 'fakeProfile'
+  | 'harassment'
+  | 'spam'
+  | 'inappropriateContent'
+  | 'other';
+
+type ReportReasonSelection = {
+  customDescription?: string;
+  description: string;
+  reason: ReportReason;
+  reasonLabel: string;
+};
+
 @Component({
   selector: 'app-message',
   templateUrl: './message.component.html',
@@ -87,6 +101,8 @@ export class MessageComponent implements AfterViewChecked, OnChanges, OnDestroy 
   private composerTextarea?: IonTextarea;
   @ViewChild('matchPhotoSwiper')
   private matchPhotoSwiper?: ElementRef<SwiperContainer>;
+  @ViewChild('reportOtherTextarea')
+  private reportOtherTextarea?: ElementRef<HTMLTextAreaElement>;
 
   @Input() matches: UserClass[] = [];
   @Input() matchProfile?: UserClass;
@@ -127,6 +143,9 @@ export class MessageComponent implements AfterViewChecked, OnChanges, OnDestroy 
   private lastTypingWriteAt = 0;
   private pendingReactionKeys = new Set<string>();
   private reportingMessageIds = new Set<string>();
+  private reportDialogResolver?: (
+    selection?: ReportReasonSelection
+  ) => void;
   isConversationMenuOpen = false;
   isMatchProfileOpen = false;
   isMatchPhotoViewerOpen = false;
@@ -135,7 +154,19 @@ export class MessageComponent implements AfterViewChecked, OnChanges, OnDestroy 
   activeMatchPhotoIndex = 0;
   moderationNoticeKey?: string;
   readReceiptsSaving = false;
+  isReportDialogOpen = false;
+  reportDialogTitleKey = 'messages.reportReasonTitle';
+  reportDialogTextKey = 'messages.reportReasonText';
+  reportDialogSelectedReason: ReportReason = 'fakeProfile';
+  reportDialogOtherDescription = '';
   readonly profileValueText = translatedProfileValue;
+  readonly reportReasons: ReportReason[] = [
+    'fakeProfile',
+    'harassment',
+    'spam',
+    'inappropriateContent',
+    'other',
+  ];
   readonly quickReactionEmojis = ['❤️', '😂', '😍', '🔥', '👏', '😮'];
   readonly composerEmojis = [
     '❤️',
@@ -269,6 +300,7 @@ export class MessageComponent implements AfterViewChecked, OnChanges, OnDestroy 
   }
 
   ngOnDestroy() {
+    this.resolveReportDialog(undefined);
     this.clearLocalTypingStatus();
     this.document.body.classList.remove('is-mobile-messages-tab');
     this.document.body.classList.remove('is-mobile-message-view');
@@ -520,7 +552,7 @@ export class MessageComponent implements AfterViewChecked, OnChanges, OnDestroy 
       return;
     }
 
-    await this.sendComposedMessage(gif.title, 'gif', gif);
+    await this.sendComposedMessage('', 'gif', gif);
     form.controls['message']?.setValue('');
     this.activeComposerPanel = null;
     this.clearLocalTypingStatus();
@@ -743,9 +775,9 @@ export class MessageComponent implements AfterViewChecked, OnChanges, OnDestroy 
       return;
     }
 
-    const reason = await this.selectReportReason();
+    const reportReason = await this.selectReportReason();
 
-    if (!reason) {
+    if (!reportReason) {
       this.closeConversationMenu();
       return;
     }
@@ -753,8 +785,8 @@ export class MessageComponent implements AfterViewChecked, OnChanges, OnDestroy 
     await this.moderationStore.reportUser(
       this.userProfile,
       this.matchProfile,
-      reason,
-      this.transloco.translate(`messages.reportReasons.${reason}`)
+      reportReason.reason,
+      reportReason.description
     );
     this.moderationNoticeKey = 'messages.reportedNotice';
     this.closeConversationMenu();
@@ -779,12 +811,12 @@ export class MessageComponent implements AfterViewChecked, OnChanges, OnDestroy 
       return;
     }
 
-    const reason = await this.selectReportReason(
+    const reportReason = await this.selectReportReason(
       'messages.reportMessageReasonTitle',
       'messages.reportMessageReasonText'
     );
 
-    if (!reason || !message.id) {
+    if (!reportReason || !message.id) {
       return;
     }
 
@@ -796,8 +828,9 @@ export class MessageComponent implements AfterViewChecked, OnChanges, OnDestroy 
         this.userProfile,
         this.matchProfile,
         message,
-        reason,
-        this.transloco.translate(`messages.reportReasons.${reason}`)
+        reportReason.reason,
+        reportReason.reasonLabel,
+        reportReason.customDescription
       );
       this.moderationNoticeKey = 'messages.reportedMessageNotice';
     } finally {
@@ -1037,45 +1070,74 @@ export class MessageComponent implements AfterViewChecked, OnChanges, OnDestroy 
     titleKey = 'messages.reportReasonTitle',
     textKey = 'messages.reportReasonText'
   ) {
-    let selectedReason: string | undefined;
-    const reasons = [
-      'fakeProfile',
-      'harassment',
-      'spam',
-      'inappropriateContent',
-      'other',
-    ];
-    const alert = await this.alertCtrl.create({
-      header: this.transloco.translate(titleKey),
-      message: this.transloco.translate(textKey),
-      cssClass: 'premium-moderation-alert report-reason-alert',
-      inputs: reasons.map((reason, index) => ({
-        type: 'radio',
-        label: this.transloco.translate(`messages.reportReasons.${reason}`),
-        value: reason,
-        checked: index === 0,
-      })),
-      buttons: [
-        {
-          text: this.transloco.translate('common.cancel'),
-          role: 'cancel',
-          cssClass: 'premium-alert-cancel-button',
-        },
-        {
-          text: this.transloco.translate('messages.reportConfirm'),
-          cssClass: 'premium-alert-confirm-button',
-          handler: (reason?: string) => {
-            selectedReason = reason || reasons[0];
-          },
-        },
-      ],
-    });
-
     this.closeConversationMenu();
-    await alert.present();
-    await alert.onDidDismiss();
+    this.resolveReportDialog(undefined);
+    this.reportDialogTitleKey = titleKey;
+    this.reportDialogTextKey = textKey;
+    this.reportDialogSelectedReason = 'fakeProfile';
+    this.reportDialogOtherDescription = '';
+    this.isReportDialogOpen = true;
 
-    return selectedReason;
+    return new Promise<ReportReasonSelection | undefined>((resolve) => {
+      this.reportDialogResolver = resolve;
+    });
+  }
+
+  selectReportDialogReason(reason: ReportReason) {
+    this.reportDialogSelectedReason = reason;
+
+    if (reason === 'other') {
+      queueMicrotask(() => this.reportOtherTextarea?.nativeElement.focus());
+    }
+  }
+
+  isReportDialogOtherSelected() {
+    return this.reportDialogSelectedReason === 'other';
+  }
+
+  isReportDialogSubmitDisabled() {
+    return (
+      this.isReportDialogOtherSelected() &&
+      this.reportDialogOtherDescription.trim().length < 3
+    );
+  }
+
+  cancelReportDialog() {
+    this.resolveReportDialog(undefined);
+  }
+
+  confirmReportDialog() {
+    if (this.isReportDialogSubmitDisabled()) {
+      return;
+    }
+
+    const reason = this.reportDialogSelectedReason;
+    const reasonLabel = this.transloco.translate(
+      `messages.reportReasons.${reason}`
+    );
+    const customDescription = this.reportDialogOtherDescription.trim();
+    const description =
+      reason === 'other' && customDescription
+        ? `${reasonLabel}: ${customDescription}`
+        : reasonLabel;
+
+    this.resolveReportDialog({
+      customDescription: customDescription || undefined,
+      description,
+      reason,
+      reasonLabel,
+    });
+  }
+
+  private resolveReportDialog(selection?: ReportReasonSelection) {
+    const resolve = this.reportDialogResolver;
+
+    this.reportDialogResolver = undefined;
+    this.isReportDialogOpen = false;
+    this.reportDialogOtherDescription = '';
+    this.reportDialogSelectedReason = 'fakeProfile';
+
+    resolve?.(selection);
   }
 
 }

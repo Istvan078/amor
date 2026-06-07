@@ -192,7 +192,8 @@ export const ModerationStore = signalStore(
             matchProfile: UserClass,
             message: Message,
             reason = 'conversation_report',
-            reasonLabel?: string
+            reasonLabel?: string,
+            customDescription?: string
         ) {
             if (
                 !userProfile.uid ||
@@ -215,10 +216,11 @@ export const ModerationStore = signalStore(
             );
             const reportDescription = [
                 `Message report: ${reasonLabel || reason}.`,
+                customDescription ? `User note: ${customDescription}` : undefined,
                 `Message: "${messageText || 'No text content'}"`,
                 `Message id: ${message.id}`,
                 `Conversation id: ${conversationId}`,
-            ].join('\n');
+            ].filter(Boolean).join('\n');
 
             patchState(store, setModerationLoading());
 
