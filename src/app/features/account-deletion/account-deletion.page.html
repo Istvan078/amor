@@ -1,0 +1,97 @@
+<ng-container *transloco="let t">
+  <ion-content class="account-deletion-page" [fullscreen]="true">
+    <section class="account-deletion-shell">
+      <aside class="account-deletion-hero">
+        <img
+          src="https://img.freepik.com/free-photo/silhouette-couple-love-being-affectionate_23-2150984243.jpg?t=st=1741881261~exp=1741884861~hmac=f9d3a5a0a33547efaac51151634c9c05c1de7deadfe301a56e56ff9cd2d284a9&w=740"
+          alt=""
+        />
+        <div class="account-deletion-hero-copy">
+          <span>{{ t('accountDeletion.eyebrow') }}</span>
+          <h1>{{ t('accountDeletion.title') }}</h1>
+          <p>{{ t('accountDeletion.subtitle') }}</p>
+        </div>
+      </aside>
+
+      <form
+        class="account-deletion-panel"
+        (ngSubmit)="deleteAccount()"
+        #deletionForm="ngForm"
+      >
+        <div class="account-deletion-heading">
+          <span>{{ t('app.name') }}</span>
+          <h2>{{ t('accountDeletion.formTitle') }}</h2>
+          <p>{{ t('accountDeletion.formCopy') }}</p>
+        </div>
+
+        @if (deleted()) {
+          <div class="account-deletion-success">
+            <ion-icon name="shield-checkmark-outline" aria-hidden="true"></ion-icon>
+            <strong>{{ t('accountDeletion.successTitle') }}</strong>
+            <p>{{ t('accountDeletion.successCopy') }}</p>
+          </div>
+        } @else {
+          @if (!isAuthenticated()) {
+            <ion-label>{{ t('auth.login.email') }}</ion-label>
+            <ion-input
+              [(ngModel)]="credentials.email"
+              [placeholder]="t('auth.login.emailPlaceholder')"
+              autocomplete="email"
+              inputmode="email"
+              name="email"
+              type="email"
+              required
+            ></ion-input>
+
+            <ion-label>{{ t('auth.login.password') }}</ion-label>
+            <ion-input
+              [(ngModel)]="credentials.password"
+              [placeholder]="t('auth.login.passwordPlaceholder')"
+              autocomplete="current-password"
+              name="password"
+              type="password"
+              required
+            ></ion-input>
+          } @else {
+            <div class="account-deletion-session">
+              <ion-icon name="log-in-outline" aria-hidden="true"></ion-icon>
+              <span>{{ t('accountDeletion.signedInAs', { email: authStore.email() }) }}</span>
+            </div>
+          }
+
+          <div class="account-deletion-effects">
+            <span>{{ t('accountDeletion.effects.profile') }}</span>
+            <span>{{ t('accountDeletion.effects.photos') }}</span>
+            <span>{{ t('accountDeletion.effects.matches') }}</span>
+            <span>{{ t('accountDeletion.effects.notifications') }}</span>
+            <span>{{ t('accountDeletion.effects.retention') }}</span>
+          </div>
+
+          @if (errorKey(); as errorTranslationKey) {
+            <p class="account-deletion-error">{{ t(errorTranslationKey) }}</p>
+          }
+
+          <ion-button
+            class="account-deletion-submit"
+            expand="block"
+            type="submit"
+            [disabled]="isBusy() || (!isAuthenticated() && deletionForm.invalid)"
+          >
+            @if (isBusy()) {
+              <ion-spinner name="crescent" aria-hidden="true"></ion-spinner>
+              {{ t('accountDeletion.deleting') }}
+            } @else {
+              {{ t('accountDeletion.submit') }}
+              <ion-icon name="trash-outline" slot="end" aria-hidden="true"></ion-icon>
+            }
+          </ion-button>
+        }
+
+        <ion-button fill="clear" routerLink="/amor/login">
+          <ion-icon name="arrow-back-outline" slot="start" aria-hidden="true"></ion-icon>
+          {{ t('accountDeletion.backToLogin') }}
+        </ion-button>
+      </form>
+    </section>
+  </ion-content>
+</ng-container>

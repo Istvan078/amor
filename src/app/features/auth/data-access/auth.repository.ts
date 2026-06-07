@@ -10,7 +10,7 @@ import {
     signInWithEmailAndPassword,
     signOut,
 } from '@angular/fire/auth';
-import { Observable, of } from 'rxjs';
+import { firstValueFrom, Observable, of } from 'rxjs';
 
 import { environment } from '../../../../environments/environment';
 import { AuthUser, UserClaims } from '../store/auth.slice';
@@ -131,8 +131,28 @@ export class AuthRepository {
         );
     }
 
-    async deleteUser() {
-        await this.auth.currentUser?.delete();
+    async deleteUser(uid?: string) {
+        const user = this.auth.currentUser;
+        const targetUid = uid ?? user?.uid;
+
+        if (!user || !targetUid) {
+            throw new Error('auth.errors.accountDeletionAuthRequired');
+        }
+
+        const idToken = await user.getIdToken(true);
+
+        await firstValueFrom(
+            this.http.post(
+                this.usersApiUrl + 'deleteAccount',
+                {
+                    uid: targetUid,
+                },
+                {
+                    headers: this.createAuthHeaders(idToken),
+                }
+            )
+        );
+        await this.runInFirebaseContext(() => signOut(this.auth));
     }
 
     private createAuthHeaders(idToken: string) {

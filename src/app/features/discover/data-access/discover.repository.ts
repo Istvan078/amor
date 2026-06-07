@@ -19,6 +19,14 @@ export type CreateMutualMatchResponse = {
     matchParts?: UserClass['matchParts'];
 };
 
+function sanitizeDiscoverProfileUpdate(profile: Partial<UserClass>) {
+    const nextProfile = { ...profile } as Record<string, any>;
+
+    delete nextProfile['isBanned'];
+
+    return nextProfile;
+}
+
 @Injectable({
     providedIn: 'root',
 })
@@ -65,16 +73,22 @@ export class DiscoverRepository {
     }
 
     async updateUserProfile(uid: string, profile: Partial<UserClass>) {
+        const profileUpdate = sanitizeDiscoverProfileUpdate(profile);
+
         await this.runInFirebaseContext(() => {
             const profileRef = doc(this.firestore, `users/${uid}`);
 
-            return updateDoc(profileRef, profile);
+            return updateDoc(profileRef, profileUpdate);
         });
 
-        await this.matchIndexRepository.upsertProfileIndex({
-            uid,
-            ...profile,
-        });
+        try {
+            await this.matchIndexRepository.upsertProfileIndex({
+                uid,
+                ...profile,
+            });
+        } catch (error) {
+            console.warn('Profile was updated, but index sync failed.', error);
+        }
     }
 
     async updateUserOnlineStatus(uid: string, isOnline: boolean) {

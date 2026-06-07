@@ -92,6 +92,28 @@
       "confirm": "Kilépés"
     }
   },
+  "accountDeletion": {
+    "link": "Fiók törlése",
+    "eyebrow": "Fióktörlés",
+    "title": "Amor fiók törlése",
+    "subtitle": "Ezen az oldalon véglegesen törölheted az Amor fiókodat és a hozzá kapcsolódó személyes adatokat.",
+    "formTitle": "Végleges törlés",
+    "formCopy": "Jelentkezz be abba a fiókba, amelyet törölni szeretnél. A művelet eltávolítja a fiókhozzáférést és a profiladatokat.",
+    "signedInAs": "Bejelentkezve: {{email}}",
+    "effects": {
+      "profile": "A társkereső profilod és a felfedezési indexed törlődik.",
+      "photos": "A fiókodhoz mentett profilképek törlődnek.",
+      "matches": "A fiókodat érintő matchek és beszélgetések törlődnek.",
+      "notifications": "A push tokenek, értesítések, használati és billing cache adatok törlődnek.",
+      "retention": "Moderációs riportok és audit rekordok csak biztonsági, jogi vagy visszaélés-megelőzési okból maradhatnak meg."
+    },
+    "submit": "Fiók végleges törlése",
+    "deleting": "Fiók törlése...",
+    "successTitle": "Fiók törölve",
+    "successCopy": "Az Amor fiók törlése befejeződött. Bezárhatod ezt az oldalt.",
+    "error": "A fiók törlése nem sikerült. Jelentkezz be újra, majd próbáld meg ismét.",
+    "backToLogin": "Vissza a belépéshez"
+  },
   "discover": {
     "title": "Felfedezés",
     "empty": "Még nem találtunk profilokat.",

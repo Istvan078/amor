@@ -417,6 +417,154 @@ const getRequestedActionUid = (
   return uid;
 };
 
+const PROFILE_COMPLETENESS_DISCOVERY_THRESHOLD = 70;
+
+const hasProfilePhoto = (profile: Record<string, unknown>) => {
+  const pictures = profile.pictures;
+
+  return (
+    typeof profile.profilePicture === 'string' && !!profile.profilePicture
+  ) || (Array.isArray(pictures) && pictures.length > 0);
+};
+
+const hasProfileLocation = (profile: Record<string, unknown>) => {
+  const coords =
+    profile.currentLocCoords && typeof profile.currentLocCoords === 'object'
+      ? (profile.currentLocCoords as Record<string, unknown>)
+      : {};
+
+  return (
+    typeof profile.currentPlace === 'string' && !!profile.currentPlace
+  ) || (
+    Number.isFinite(Number(coords.lat)) &&
+    Number.isFinite(Number(coords.lon))
+  );
+};
+
+const getProfileCompleteness = (profile: Record<string, unknown>) => {
+  const hasCoreIdentity =
+    !!profile.birthDate &&
+    !!profile.gender &&
+    !!profile.lookingForGender;
+
+  const score =
+    (hasProfilePhoto(profile) ? 30 : 0) +
+    (profile.aboutMe ? 20 : 0) +
+    (profile.lookingForType ? 15 : 0) +
+    (Array.isArray(profile.interests) && profile.interests.length ? 15 : 0) +
+    (hasProfileLocation(profile) ? 10 : 0) +
+    (hasCoreIdentity ? 10 : 0);
+
+  return Math.min(score, 100);
+};
+
+const normalizeProfileAge = (profile: Record<string, unknown>) => {
+  const storedAge = Number(profile.age);
+
+  if (Number.isFinite(storedAge) && storedAge > 0) {
+    return storedAge;
+  }
+
+  if (typeof profile.birthDate !== 'string') {
+    return undefined;
+  }
+
+  const birthDate = new Date(profile.birthDate);
+
+  if (Number.isNaN(birthDate.getTime())) {
+    return undefined;
+  }
+
+  const today = new Date();
+  let age = today.getFullYear() - birthDate.getFullYear();
+  const birthdayPassed =
+    today.getMonth() > birthDate.getMonth() ||
+    (
+      today.getMonth() === birthDate.getMonth() &&
+      today.getDate() >= birthDate.getDate()
+    );
+
+  if (!birthdayPassed) {
+    age--;
+  }
+
+  return age;
+};
+
+const createApproximateGeoHash = (coords: unknown) => {
+  const location =
+    coords && typeof coords === 'object'
+      ? (coords as Record<string, unknown>)
+      : {};
+  const lat = Number(location.lat);
+  const lon = Number(location.lon);
+
+  if (!Number.isFinite(lat) || !Number.isFinite(lon)) {
+    return undefined;
+  }
+
+  return `${lat.toFixed(2)}:${lon.toFixed(2)}`;
+};
+
+const getProfilePhotoUrl = (profile: Record<string, unknown>) => {
+  if (typeof profile.profilePicture === 'string') {
+    return profile.profilePicture;
+  }
+
+  const pictures = Array.isArray(profile.pictures) ? profile.pictures : [];
+  const firstPicture = pictures[0];
+
+  if (firstPicture && typeof firstPicture === 'object') {
+    const picture = firstPicture as Record<string, unknown>;
+
+    if (typeof picture.url === 'string') {
+      return picture.url;
+    }
+  }
+
+  return '';
+};
+
+const buildMatchIndexEntry = (
+  uid: string,
+  profile: Record<string, unknown>
+) => {
+  const profileCompleteness = getProfileCompleteness(profile);
+  const profileCompleted =
+    profileCompleteness >= PROFILE_COMPLETENESS_DISCOVERY_THRESHOLD;
+  const hasPhoto = hasProfilePhoto(profile);
+  const isBanned = profile.isBanned === true;
+  const isVisible =
+    profile.isVisible !== false && !isBanned && profileCompleted && hasPhoto;
+  const entry: Record<string, unknown> = {
+    uid,
+    gender: profile.gender,
+    lookingForGender: profile.lookingForGender,
+    age: normalizeProfileAge(profile),
+    currentLocCoords: profile.currentLocCoords,
+    geohash: createApproximateGeoHash(profile.currentLocCoords),
+    currentPlace: profile.currentPlace,
+    isVisible,
+    isBanned,
+    profileCompleted,
+    profileCompleteness,
+    hasPhoto,
+    lastActiveAt: admin.firestore.FieldValue.serverTimestamp(),
+    photoUrl: getProfilePhotoUrl(profile),
+  };
+
+  return Object.entries(entry).reduce<Record<string, unknown>>(
+    (result, [key, value]) => {
+      if (value !== undefined) {
+        result[key] = value;
+      }
+
+      return result;
+    },
+    {}
+  );
+};
+
 const buildLikeMatchParts = (
   matchParts: ServerMatchParts,
   otherUid: string,
@@ -862,6 +1010,338 @@ const notifyMutualMatchCreated = (myUid: string, otherUid: string) =>
       }
     ),
   ]);
+
+type AccountDeletionResult = {
+  uid: string;
+  userDocumentDeleted: boolean;
+  matchIndexDeleted: boolean;
+  storageFilesDeleted: number;
+  conversationsDeleted: number;
+  userReferencesCleaned: number;
+  reportsRetained: number;
+  auditEventsRetained: number;
+  authUserDeleted: boolean;
+};
+
+type ReferenceCleanupEntry = {
+  ref: admin.firestore.DocumentReference;
+  fields: Set<string>;
+};
+
+const ACCOUNT_DELETION_RETENTION_POLICY =
+  'retained_for_moderation_safety_and_legal_review';
+const ACCOUNT_DELETION_BATCH_SIZE = 400;
+const ACCOUNT_DELETION_ARRAY_FIELDS = [
+  'matchParts.matches',
+  'matchParts.possMatches',
+  'matchParts.liked',
+  'matchParts.notLiked',
+  'matchParts.superLiked',
+  'blockedUsers',
+  'reportedUsers',
+];
+
+const getRequestedDeletionUid = (req: AuthenticatedRequest) => {
+  const requestedUid =
+    typeof req.body?.uid === 'string' && req.body.uid.trim()
+      ? req.body.uid.trim()
+      : req.user?.uid;
+
+  return requestedUid ? getRequestedActionUid(req, requestedUid) : null;
+};
+
+const commitInChunks = async <T>(
+  db: admin.firestore.Firestore,
+  items: T[],
+  addWrite: (batch: admin.firestore.WriteBatch, item: T) => void
+) => {
+  for (let index = 0; index < items.length; index += ACCOUNT_DELETION_BATCH_SIZE) {
+    const batch = db.batch();
+    const chunk = items.slice(index, index + ACCOUNT_DELETION_BATCH_SIZE);
+
+    chunk.forEach((item) => addWrite(batch, item));
+    await batch.commit();
+  }
+};
+
+const deleteStoragePrefix = async (prefix: string): Promise<number> => {
+  const bucket = admin.storage().bucket();
+  const [files] = await bucket.getFiles({ prefix });
+
+  await Promise.all(
+    files.map((file) =>
+      file.delete().catch((error: unknown) => {
+        const code = (error as { code?: unknown }).code;
+
+        if (code !== 404 && code !== '404') {
+          throw error;
+        }
+      })
+    )
+  );
+
+  return files.length;
+};
+
+const deleteDocumentTree = async (
+  db: admin.firestore.Firestore,
+  ref: admin.firestore.DocumentReference
+) => {
+  const snapshot = await ref.get();
+
+  await db.recursiveDelete(ref);
+
+  return snapshot.exists;
+};
+
+const deleteUserConversations = async (
+  db: admin.firestore.Firestore,
+  uid: string
+) => {
+  const conversationsSnapshot = await db
+    .collection('conversations')
+    .where('participants', 'array-contains', uid)
+    .get();
+
+  for (const conversationSnapshot of conversationsSnapshot.docs) {
+    await db.recursiveDelete(conversationSnapshot.ref);
+  }
+
+  return conversationsSnapshot.size;
+};
+
+const cleanupUserReferences = async (
+  db: admin.firestore.Firestore,
+  uid: string
+) => {
+  const cleanupEntries = new Map<string, ReferenceCleanupEntry>();
+
+  await Promise.all(
+    ACCOUNT_DELETION_ARRAY_FIELDS.map(async (fieldPath) => {
+      const snapshot = await db
+        .collection('users')
+        .where(fieldPath, 'array-contains', uid)
+        .get();
+
+      snapshot.docs.forEach((documentSnapshot) => {
+        const existingEntry = cleanupEntries.get(documentSnapshot.ref.path);
+
+        if (existingEntry) {
+          existingEntry.fields.add(fieldPath);
+          return;
+        }
+
+        cleanupEntries.set(documentSnapshot.ref.path, {
+          ref: documentSnapshot.ref,
+          fields: new Set([fieldPath]),
+        });
+      });
+    })
+  );
+
+  const entries = Array.from(cleanupEntries.values());
+
+  await commitInChunks(db, entries, (batch, entry) => {
+    const updates: admin.firestore.UpdateData<admin.firestore.DocumentData> = {
+      updatedAt: admin.firestore.FieldValue.serverTimestamp(),
+    };
+
+    Array.from(entry.fields).forEach((fieldPath) => {
+      updates[fieldPath] = admin.firestore.FieldValue.arrayRemove(uid);
+    });
+
+    batch.update(entry.ref, updates);
+  });
+
+  return entries.length;
+};
+
+const markAccountDeletionRetention = async (
+  db: admin.firestore.Firestore,
+  uid: string
+) => {
+  const reportEntries = new Map<
+    string,
+    {
+      ref: admin.firestore.DocumentReference;
+      reporterDeleted: boolean;
+      reportedDeleted: boolean;
+    }
+  >();
+  const auditEntries = new Map<
+    string,
+    {
+      ref: admin.firestore.DocumentReference;
+      actorDeleted: boolean;
+      targetDeleted: boolean;
+    }
+  >();
+
+  const [reportedBySnapshot, reportedUserSnapshot, actorAuditSnapshot, targetAuditSnapshot] =
+    await Promise.all([
+      db.collection('reports').where('reporterUid', '==', uid).get(),
+      db.collection('reports').where('reportedUid', '==', uid).get(),
+      db.collection('moderationAudit').where('actorUid', '==', uid).get(),
+      db.collection('moderationAudit').where('targetUid', '==', uid).get(),
+    ]);
+
+  reportedBySnapshot.docs.forEach((documentSnapshot) => {
+    reportEntries.set(documentSnapshot.ref.path, {
+      ref: documentSnapshot.ref,
+      reporterDeleted: true,
+      reportedDeleted: false,
+    });
+  });
+  reportedUserSnapshot.docs.forEach((documentSnapshot) => {
+    const existingEntry = reportEntries.get(documentSnapshot.ref.path);
+
+    if (existingEntry) {
+      existingEntry.reportedDeleted = true;
+      return;
+    }
+
+    reportEntries.set(documentSnapshot.ref.path, {
+      ref: documentSnapshot.ref,
+      reporterDeleted: false,
+      reportedDeleted: true,
+    });
+  });
+  actorAuditSnapshot.docs.forEach((documentSnapshot) => {
+    auditEntries.set(documentSnapshot.ref.path, {
+      ref: documentSnapshot.ref,
+      actorDeleted: true,
+      targetDeleted: false,
+    });
+  });
+  targetAuditSnapshot.docs.forEach((documentSnapshot) => {
+    const existingEntry = auditEntries.get(documentSnapshot.ref.path);
+
+    if (existingEntry) {
+      existingEntry.targetDeleted = true;
+      return;
+    }
+
+    auditEntries.set(documentSnapshot.ref.path, {
+      ref: documentSnapshot.ref,
+      actorDeleted: false,
+      targetDeleted: true,
+    });
+  });
+
+  const retentionMetadata = {
+    accountDeletionRetentionPolicy: ACCOUNT_DELETION_RETENTION_POLICY,
+    accountDeletedAt: admin.firestore.FieldValue.serverTimestamp(),
+  };
+  const reports = Array.from(reportEntries.values());
+  const auditEvents = Array.from(auditEntries.values());
+
+  await commitInChunks(db, reports, (batch, entry) => {
+    batch.set(
+      entry.ref,
+      {
+        ...retentionMetadata,
+        ...(entry.reporterDeleted ? { reporterAccountDeleted: true } : {}),
+        ...(entry.reportedDeleted ? { reportedAccountDeleted: true } : {}),
+        updatedAt: admin.firestore.FieldValue.serverTimestamp(),
+      },
+      { merge: true }
+    );
+  });
+  await commitInChunks(db, auditEvents, (batch, entry) => {
+    batch.set(
+      entry.ref,
+      {
+        ...retentionMetadata,
+        ...(entry.actorDeleted ? { actorAccountDeleted: true } : {}),
+        ...(entry.targetDeleted ? { targetAccountDeleted: true } : {}),
+      },
+      { merge: true }
+    );
+  });
+
+  return {
+    reportsRetained: reports.length,
+    auditEventsRetained: auditEvents.length,
+  };
+};
+
+const isAuthUserNotFoundError = (error: unknown) =>
+  (error as { code?: unknown }).code === 'auth/user-not-found';
+
+const deleteAccountData = async (uid: string): Promise<AccountDeletionResult> => {
+  const db = admin.firestore();
+  const userRef = db.collection('users').doc(uid);
+  const matchIndexRef = db.collection('matchIndex').doc(uid);
+
+  const [
+    retentionResult,
+    userReferencesCleaned,
+    conversationsDeleted,
+    storageFilesDeleted,
+  ] = await Promise.all([
+    markAccountDeletionRetention(db, uid),
+    cleanupUserReferences(db, uid),
+    deleteUserConversations(db, uid),
+    deleteStoragePrefix(`pictures/${uid}/`),
+  ]);
+
+  const [userDocumentDeleted, matchIndexSnapshot] = await Promise.all([
+    deleteDocumentTree(db, userRef),
+    matchIndexRef.get(),
+  ]);
+
+  if (matchIndexSnapshot.exists) {
+    await matchIndexRef.delete();
+  }
+
+  let authUserDeleted = true;
+
+  try {
+    await admin.auth().deleteUser(uid);
+  } catch (error) {
+    if (!isAuthUserNotFoundError(error)) {
+      throw error;
+    }
+
+    authUserDeleted = false;
+  }
+
+  return {
+    uid,
+    userDocumentDeleted,
+    matchIndexDeleted: matchIndexSnapshot.exists,
+    storageFilesDeleted,
+    conversationsDeleted,
+    userReferencesCleaned,
+    reportsRetained: retentionResult.reportsRetained,
+    auditEventsRetained: retentionResult.auditEventsRetained,
+    authUserDeleted,
+  };
+};
+
+const handleDeleteAccountRequest = async (
+  req: AuthenticatedRequest,
+  res: express.Response
+) => {
+  const uid = getRequestedDeletionUid(req);
+
+  if (!uid) {
+    res.sendStatus(403);
+    return;
+  }
+
+  try {
+    const result = await deleteAccountData(uid);
+
+    res.json({
+      message: 'OK',
+      ...result,
+    });
+  } catch (error) {
+    console.error('Account deletion failed:', error);
+    res.sendStatus(500);
+  }
+};
 
 const createMatchActionHandler =
   (action: ServerMatchAction) =>
@@ -1314,6 +1794,39 @@ app.post('/discoverCandidates', verifyToken, async (req: AuthenticatedRequest, r
   }
 });
 
+app.post('/syncProfileIndex', verifyToken, async (req: AuthenticatedRequest, res: express.Response) => {
+  const { uid } = req.body;
+  const myUid = getRequestedActionUid(req, uid);
+
+  if (!myUid) {
+    res.sendStatus(403);
+    return;
+  }
+
+  try {
+    const db = admin.firestore();
+    const profileSnapshot = await db.collection('users').doc(myUid).get();
+
+    if (!profileSnapshot.exists) {
+      res.sendStatus(404);
+      return;
+    }
+
+    const profile = profileSnapshot.data() ?? {};
+    const indexEntry = buildMatchIndexEntry(myUid, profile);
+
+    await db.collection('matchIndex').doc(myUid).set(indexEntry, { merge: true });
+
+    res.json({
+      message: 'OK',
+      index: indexEntry,
+    });
+  } catch (error) {
+    console.error('Profile index sync failed:', error);
+    res.sendStatus(500);
+  }
+});
+
 app.post('/setCustomClaims', verifyToken, async (req: AuthenticatedRequest, res: express.Response) => {
   const { uid, claims } = req.body;
 
@@ -1374,23 +1887,9 @@ app.post('/setUserProfile', verifyToken, (req: AuthenticatedRequest, res: expres
     });
 });
 
-app.post('/deleteUser', verifyToken, (req: AuthenticatedRequest, res: express.Response) => {
-  const { uid } = req.body;
+app.post('/deleteAccount', verifyToken, handleDeleteAccountRequest);
 
-  if (!uid || !canAccessUser(req, uid)) {
-    res.sendStatus(403);
-    return;
-  }
-
-  admin
-    .auth()
-    .deleteUser(uid)
-    .then(() => res.json({ message: 'Felhasználó sikeresen törölve!' }))
-    .catch((error: unknown) => {
-      console.error('Hiba tortent a felhasznalo torlesekor:', error);
-      res.sendStatus(500);
-    });
-});
+app.post('/deleteUser', verifyToken, handleDeleteAccountRequest);
 
 app.post('/likeUser', verifyToken, createMatchActionHandler('like'));
 

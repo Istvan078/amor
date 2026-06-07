@@ -487,9 +487,12 @@ export class SettingsPage implements OnInit {
     }
 
     await this.onlinePresenceService.setOffline(uid);
-    await this.profileStore.deleteProfile(uid);
-    this.profileStore.clearProfile();
-    await this.authStore.deleteUser();
+    const wasDeleted = await this.profileStore.deleteProfile(uid);
+
+    if (!wasDeleted) {
+      return;
+    }
+
     this.authStore.setAutoFillEmail(undefined);
     this.authStore.clearUsers();
     this.discoverStore.clearDiscoverData();

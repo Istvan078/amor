@@ -46,7 +46,12 @@ function sanitizeFirestoreValue(value: unknown): unknown {
 }
 
 function sanitizeProfileForFirestore(profile: Partial<UserClass>): FirestoreData {
-    return sanitizeFirestoreValue(profile) as FirestoreData;
+    const sanitizedProfile = sanitizeFirestoreValue(profile) as FirestoreData;
+
+    delete sanitizedProfile['isBanned'];
+    delete sanitizedProfile['matchParts'];
+
+    return sanitizedProfile;
 }
 
 @Injectable({

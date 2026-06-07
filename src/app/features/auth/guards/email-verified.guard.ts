@@ -1,4 +1,4 @@
-import { inject } from '@angular/core';
+import { inject, isDevMode } from '@angular/core';
 import { CanMatchFn, Router } from '@angular/router';
 
 import { AuthStore } from '../store/auth.store';

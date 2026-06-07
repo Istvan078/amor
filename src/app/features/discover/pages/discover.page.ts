@@ -280,6 +280,50 @@ export class DiscoverPage implements OnInit, OnDestroy {
     this.setUProfLabels();
   }
 
+  private buildEditableProfilePayload(
+    profile: UserClass,
+    uid: string
+  ): Partial<UserClass> & { uid: string } {
+    return {
+      uid,
+
+      firstName: profile.firstName,
+      lastName: profile.lastName,
+      birthDate: profile.birthDate,
+      age: profile.age,
+      gender: profile.gender,
+
+      aboutMe: profile.aboutMe,
+      lookingForType: profile.lookingForType,
+      lookingForGender: profile.lookingForGender,
+      lookingForAge: profile.lookingForAge,
+      lookingForDistance: profile.lookingForDistance,
+
+      job: profile.job,
+      currStudy: profile.currStudy,
+      studies: profile.studies,
+      highestSchool: profile.highestSchool,
+      freeTimeAct: profile.freeTimeAct,
+      interests: profile.interests,
+      zodiacSign: profile.zodiacSign,
+
+      currentPlace: profile.currentPlace,
+      currentLocCoords: profile.currentLocCoords,
+
+      profilePicture: profile.profilePicture,
+      pictures: profile.pictures,
+
+      isVisible: profile.isVisible,
+      showOnlineStatus: profile.showOnlineStatus,
+      distanceVisibility: profile.distanceVisibility,
+      readReceiptsEnabled: profile.readReceiptsEnabled,
+
+      notificationPreferences: profile.notificationPreferences,
+      notificationDelivery: profile.notificationDelivery,
+      notificationQuietHours: profile.notificationQuietHours,
+    };
+  }
+
   private async ensureDiscoverData(uid?: string | null) {
     if (!uid || this.loadedDiscoverUid === uid || this.loadingDiscoverUid === uid) {
       return;
@@ -1313,10 +1357,7 @@ export class DiscoverPage implements OnInit, OnDestroy {
       return;
     }
 
-    const userProf = {
-      ...this.userProf,
-      uid,
-    } as Partial<UserClass> & { uid: string };
+    const userProf = this.buildEditableProfilePayload(this.userProf, uid);
 
     const profileSaved = await this.profileStore.updateProfile(uid, userProf);
 

@@ -298,8 +298,29 @@ export const AuthStore = signalStore(
                 });
             },
 
-            deleteUser() {
-                return repository.deleteUser();
+            async deleteUser(uid?: string) {
+                patchState(store, {
+                    loading: true,
+                    error: null,
+                });
+
+                try {
+                    await repository.deleteUser(uid);
+                    patchState(store, {
+                        user: null,
+                        claims: null,
+                        users: [],
+                        loading: false,
+                        error: null,
+                    });
+                } catch (error) {
+                    console.error(error);
+                    patchState(store, {
+                        loading: false,
+                        error: 'Account deletion failed.',
+                    });
+                    throw error;
+                }
             },
 
             clearUsers() {

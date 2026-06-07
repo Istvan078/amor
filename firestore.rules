@@ -93,10 +93,19 @@ service cloud.firestore {
     }
 
     function protectedMatchIndexUpdateFieldsAreSafe() {
-      return !request.resource.data.diff(resource.data).affectedKeys().hasAny([
-        'boostedUntil',
-        'isBanned'
-      ]);
+      let affectedKeys = request.resource.data.diff(resource.data).affectedKeys();
+
+      return !affectedKeys.hasAny(['boostedUntil'])
+        && (
+          !affectedKeys.hasAny(['isBanned'])
+          || (
+            (
+              !resource.data.keys().hasAny(['isBanned'])
+              || resource.data.isBanned == false
+            )
+            && request.resource.data.isBanned == false
+          )
+        );
     }
 
     function isConversationParticipant() {
@@ -107,6 +116,11 @@ service cloud.firestore {
       return signedIn()
         && request.auth.uid in request.resource.data.participants
         && request.resource.data.participants.size() == 2;
+    }
+
+    function isMissingConversationRead(conversationId) {
+      return signedIn()
+        && !exists(/databases/$(database)/documents/conversations/$(conversationId));
     }
 
     function validReportReason(reason) {
@@ -328,7 +342,9 @@ service cloud.firestore {
 
     match /conversations/{conversationId} {
       allow create: if isConversationParticipantOnCreate();
-      allow read: if isConversationParticipant() || isAdminOrModerator();
+      allow read: if isConversationParticipant()
+        || isAdminOrModerator()
+        || isMissingConversationRead(conversationId);
       allow update: if isConversationParticipant();
       allow delete: if isAdminOrModerator();
 

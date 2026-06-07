@@ -92,6 +92,28 @@
       "confirm": "Sign out"
     }
   },
+  "accountDeletion": {
+    "link": "Delete account",
+    "eyebrow": "Account deletion",
+    "title": "Delete your Amor account",
+    "subtitle": "Use this page to permanently remove your Amor account and the personal data tied to it.",
+    "formTitle": "Permanent deletion",
+    "formCopy": "Sign in to the account you want to delete. This action removes account access and profile data.",
+    "signedInAs": "Signed in as {{email}}",
+    "effects": {
+      "profile": "Your dating profile and discovery index are deleted.",
+      "photos": "Profile photos stored for your account are deleted.",
+      "matches": "Matches and conversations involving your account are removed.",
+      "notifications": "Push tokens, notifications, usage and billing cache data are deleted.",
+      "retention": "Moderation reports and audit records may be retained only for safety, legal or abuse-prevention review."
+    },
+    "submit": "Delete account permanently",
+    "deleting": "Deleting account...",
+    "successTitle": "Account deleted",
+    "successCopy": "Your Amor account deletion request completed. You can close this page.",
+    "error": "Account deletion failed. Please sign in again and retry.",
+    "backToLogin": "Back to sign in"
+  },
   "discover": {
     "title": "Discover",
     "empty": "No profiles found yet.",

@@ -92,6 +92,13 @@ export const routes: Routes = [
             import('./features/admin/admin.page').then((m) => m.AdminPage),
     },
     {
+        path: 'account-deletion',
+        loadComponent: () =>
+            import('./features/account-deletion/account-deletion.page').then(
+                (m) => m.AccountDeletionPage
+            ),
+    },
+    {
         path: '**',
         redirectTo: 'amor/register',
     },

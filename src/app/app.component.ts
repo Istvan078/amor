@@ -4,7 +4,7 @@ import { SwUpdate } from '@angular/service-worker';
 import { IonApp, IonIcon, IonRouterOutlet } from '@ionic/angular/standalone';
 import { TranslocoService } from '@jsverse/transloco';
 import { addIcons } from 'ionicons';
-import { notificationsOutline } from 'ionicons/icons';
+import { chevronForwardOutline, notificationsOutline } from 'ionicons/icons';
 
 import { UpdateService } from './core/update/update.service';
 import { AuthStore } from './features/auth/store/auth.store';
@@ -30,7 +30,7 @@ export class AppComponent implements OnInit {
   readonly notificationsStore = inject(NotificationsStore);
 
   constructor() {
-    addIcons({ notificationsOutline });
+    addIcons({ chevronForwardOutline, notificationsOutline });
 
     effect(() => {
       const uid = this.authStore.uid();

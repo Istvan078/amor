@@ -336,7 +336,7 @@
 .match-profile-hero::before {
   position: absolute;
   inset: 0;
-  content: "";
+  content: '';
   background:
     linear-gradient(180deg, rgba(8, 10, 18, 0.18), rgba(8, 10, 18, 0.16) 38%, rgba(8, 10, 18, 0.9)),
     radial-gradient(circle at 18% 16%, rgba(255, 93, 143, 0.28), transparent 34%);
@@ -552,19 +552,23 @@
 
 .match-photo-viewer-frame {
   display: grid;
-  width: 100%;
+  max-width: 23vw;
   height: 100%;
   place-items: center;
   overflow: hidden;
   border-radius: 8px;
   background: rgba(4, 8, 18, 0.76);
+
+  @media screen and (max-width: 900px) {
+    max-width: 100%;
+  }
 }
 
 .match-photo-viewer-frame img {
   display: block;
   width: 100%;
   height: 100%;
-  object-fit: contain;
+  object-fit: cover;
   user-select: none;
 }
 

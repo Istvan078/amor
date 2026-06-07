@@ -5,19 +5,12 @@ import {
   deleteDoc,
   doc,
   getDoc,
-  serverTimestamp,
-  setDoc,
 } from '@angular/fire/firestore';
 import { firstValueFrom } from 'rxjs';
 
 import { environment } from '../../../../environments/environment';
 import { UserClass } from '../../../shared/models/user.model';
 import { AuthStore } from '../../auth/store/auth.store';
-import {
-  getProfileCompleteness,
-  hasProfilePhoto,
-  isProfileCompleteForDiscovery,
-} from '../../profile/utils/profile-completeness';
 
 export type MatchIndexEntry = {
   uid: string;
@@ -48,79 +41,6 @@ export type DiscoverCandidatesResponse = {
   nextCursor: string | null;
 };
 
-function profilePhotoUrl(profile: Partial<UserClass>) {
-  return profile.profilePicture ?? profile.pictures?.[0]?.url ?? '';
-}
-
-function normalizeAge(profile: Partial<UserClass>) {
-  const storedAge = Number(profile.age);
-
-  if (Number.isFinite(storedAge) && storedAge > 0) {
-    return storedAge;
-  }
-
-  if (!profile.birthDate) {
-    return undefined;
-  }
-
-  const birthDate = new Date(profile.birthDate);
-
-  if (Number.isNaN(birthDate.getTime())) {
-    return undefined;
-  }
-
-  const today = new Date();
-  let age = today.getFullYear() - birthDate.getFullYear();
-  const birthdayPassed =
-    today.getMonth() > birthDate.getMonth() ||
-    (today.getMonth() === birthDate.getMonth() &&
-      today.getDate() >= birthDate.getDate());
-
-  if (!birthdayPassed) {
-    age--;
-  }
-
-  return age;
-}
-
-function toMatchIndexEntry(profile: Partial<UserClass> & { uid: string }) {
-  const profileCompleteness = getProfileCompleteness(profile);
-  const profileCompleted = isProfileCompleteForDiscovery(profile);
-  const hasPhoto = hasProfilePhoto(profile);
-  const isBanned = profile.isBanned === true;
-  const isVisible =
-    profile.isVisible !== false && !isBanned && profileCompleted && hasPhoto;
-  const geohash = createApproximateGeoHash(profile.currentLocCoords);
-
-  const entry: MatchIndexEntry = {
-    uid: profile.uid,
-    gender: profile.gender,
-    lookingForGender: profile.lookingForGender,
-    age: normalizeAge(profile),
-    currentLocCoords: profile.currentLocCoords,
-    geohash,
-    currentPlace: profile.currentPlace,
-    isVisible,
-    isBanned,
-    profileCompleted,
-    profileCompleteness,
-    hasPhoto,
-    lastActiveAt: serverTimestamp(),
-    photoUrl: profilePhotoUrl(profile),
-  };
-
-  return Object.entries(entry).reduce<Record<string, unknown>>(
-    (result, [key, value]) => {
-      if (value !== undefined) {
-        result[key] = value;
-      }
-
-      return result;
-    },
-    {}
-  );
-}
-
 @Injectable({
   providedIn: 'root',
 })
@@ -131,11 +51,23 @@ export class MatchIndexRepository {
   private authStore = inject(AuthStore);
 
   async upsertProfileIndex(profile: Partial<UserClass> & { uid: string }) {
-    await this.runInFirebaseContext(() => {
-      const indexRef = doc(this.firestore, `matchIndex/${profile.uid}`);
+    const idToken = await this.getIdToken();
 
-      return setDoc(indexRef, toMatchIndexEntry(profile), { merge: true });
-    });
+    if (!profile.uid || !idToken) {
+      throw new Error('profile_index.errors.authRequired');
+    }
+
+    await firstValueFrom(
+      this.http.post(
+        `${environment.API_URL}syncProfileIndex`,
+        {
+          uid: profile.uid,
+        },
+        {
+          headers: new HttpHeaders().set('Authorization', idToken),
+        }
+      )
+    );
   }
 
   async deleteProfileIndex(uid: string) {
@@ -235,17 +167,4 @@ export class MatchIndexRepository {
 
     return user?.idToken;
   }
-}
-
-function createApproximateGeoHash(
-  coords: Partial<UserClass>['currentLocCoords']
-) {
-  const lat = Number(coords?.lat);
-  const lon = Number(coords?.lon);
-
-  if (!Number.isFinite(lat) || !Number.isFinite(lon)) {
-    return undefined;
-  }
-
-  return `${lat.toFixed(2)}:${lon.toFixed(2)}`;
 }

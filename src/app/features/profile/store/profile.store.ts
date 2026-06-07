@@ -8,6 +8,7 @@ import {
 } from '@ngrx/signals';
 
 import { UserClass } from '../../../shared/models/user.model';
+import { AuthStore } from '../../auth/store/auth.store';
 import { MatchIndexRepository } from '../../matching/data-access/match-index.repository';
 import { ProfileRepository } from '../data-access/profile.repository';
 
@@ -51,11 +52,22 @@ export const ProfileStore = signalStore(
     withMethods((
         store,
         repository = inject(ProfileRepository),
-        matchIndexRepository = inject(MatchIndexRepository)
-    ) => ({
+        matchIndexRepository = inject(MatchIndexRepository),
+        authStore = inject(AuthStore)
+    ) => {
+        async function syncProfileIndex(profile: Partial<UserClass> & { uid: string }) {
+            try {
+                await matchIndexRepository.upsertProfileIndex(profile);
+            } catch (error) {
+                console.warn('Profile was saved, but index sync failed.', error);
+            }
+        }
+
+        return {
         setProfile(profile: UserClass | null) {
             patchState(store, {
                 profile: toUserClass(profile),
+                ...(profile ? { profileDeleted: false } : {}),
             });
         },
 
@@ -87,6 +99,7 @@ export const ProfileStore = signalStore(
                 patchState(store, {
                     profile: toUserClass(profile ?? null),
                     profileCreated: !!profile,
+                    profileDeleted: false,
                     loading: false,
                 });
             } catch (error) {
@@ -107,7 +120,7 @@ export const ProfileStore = signalStore(
 
             try {
                 await repository.createProfile(uid, profile);
-                await matchIndexRepository.upsertProfileIndex({
+                await syncProfileIndex({
                     uid,
                     ...profile,
                 });
@@ -120,6 +133,7 @@ export const ProfileStore = signalStore(
                 patchState(store, {
                     profile: createdProfile,
                     profileCreated: true,
+                    profileDeleted: false,
                     loading: false,
                 });
             } catch (error) {
@@ -140,7 +154,7 @@ export const ProfileStore = signalStore(
 
             try {
                 await repository.updateProfile(uid, profile);
-                await matchIndexRepository.upsertProfileIndex({
+                await syncProfileIndex({
                     ...(store.profile() ?? {}),
                     ...profile,
                     uid,
@@ -154,6 +168,7 @@ export const ProfileStore = signalStore(
                 patchState(store, {
                     profile: updatedProfile,
                     profileCreated: true,
+                    profileDeleted: false,
                     loading: false,
                 });
 
@@ -177,19 +192,30 @@ export const ProfileStore = signalStore(
             });
 
             try {
-                await repository.deleteProfile(uid);
-                await matchIndexRepository.deleteProfileIndex(uid);
+                await authStore.deleteUser(uid);
+                patchState(store, {
+                    profile: null,
+                    profileCreated: false,
+                    profileDeleted: true,
+                    loading: false,
+                    error: null,
+                });
+
+                return true;
             } catch (error) {
                 console.error(error)
                 patchState(store, {
                     loading: false,
                     error: "Failed to delete profile"
                 })
+
+                return false;
             }
         },
 
         clearProfile() {
             patchState(store, initialState);
         },
-    }))
+        };
+    })
 );
