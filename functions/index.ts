@@ -681,6 +681,176 @@ const buildMatchIndexEntry = (
   );
 };
 
+const normalizePublicProfilePictures = (profile: Record<string, unknown>) => {
+  const pictures = Array.isArray(profile.pictures) ? profile.pictures : [];
+
+  return pictures
+    .map((value) => {
+      if (!value || typeof value !== 'object') {
+        return null;
+      }
+
+      const picture = value as Record<string, unknown>;
+      const url = typeof picture.url === 'string' ? picture.url : '';
+      const name = typeof picture.name === 'string' ? picture.name : '';
+
+      if (!url) {
+        return null;
+      }
+
+      return {
+        url,
+        ...(name ? { name } : {}),
+      };
+    })
+    .filter((picture): picture is { url: string; name?: string } => !!picture)
+    .slice(0, 6);
+};
+
+const setPublicStringField = (
+  target: Record<string, unknown>,
+  source: Record<string, unknown>,
+  key: string,
+  maxLength = 200
+) => {
+  const value = source[key];
+
+  if (typeof value !== 'string') {
+    return;
+  }
+
+  const trimmedValue = value.trim();
+
+  if (trimmedValue) {
+    target[key] = trimmedValue.slice(0, maxLength);
+  }
+};
+
+const setPublicStringListField = (
+  target: Record<string, unknown>,
+  source: Record<string, unknown>,
+  key: string
+) => {
+  const values = normalizeStringListValue(source[key]).slice(0, 12);
+
+  if (values.length) {
+    target[key] = values;
+  }
+};
+
+const buildPublicProfileEntry = (
+  uid: string,
+  profile: Record<string, unknown>,
+  indexEntry = buildMatchIndexEntry(uid, profile)
+) => {
+  const isVisible = indexEntry.isVisible === true;
+  const isBanned = indexEntry.isBanned === true;
+
+  if (!isVisible || isBanned) {
+    return null;
+  }
+
+  const publicProfile: Record<string, unknown> = {
+    uid,
+    profileCompleted: indexEntry.profileCompleted === true,
+    profileCompleteness: Number(indexEntry.profileCompleteness ?? 0),
+    profileVerified: indexEntry.profileVerified === true,
+    profileVerificationStatus: normalizeProfileVerificationStatus(
+      profile.profileVerificationStatus
+    ),
+    distanceVisibility: profile.distanceVisibility !== false,
+    showOnlineStatus: profile.showOnlineStatus !== false,
+    updatedAt: admin.firestore.FieldValue.serverTimestamp(),
+  };
+  const pictures = normalizePublicProfilePictures(profile);
+  const age = normalizeProfileAge(profile);
+
+  setPublicStringField(publicProfile, profile, 'firstName', 80);
+  setPublicStringField(publicProfile, profile, 'gender', 30);
+  setPublicStringField(publicProfile, profile, 'aboutMe', 1000);
+  setPublicStringField(publicProfile, profile, 'lookingForType', 500);
+  setPublicStringField(publicProfile, profile, 'lookingForGender', 30);
+  setPublicStringField(publicProfile, profile, 'job', 160);
+  setPublicStringField(publicProfile, profile, 'currStudy', 160);
+  setPublicStringField(publicProfile, profile, 'highestSchool', 160);
+  setPublicStringField(publicProfile, profile, 'zodiacSign', 80);
+  setPublicStringListField(publicProfile, profile, 'freeTimeAct');
+  setPublicStringListField(publicProfile, profile, 'interests');
+
+  if (Number.isFinite(Number(age))) {
+    publicProfile.age = age;
+  }
+
+  if (
+    profile.lookingForAge &&
+    typeof profile.lookingForAge === 'object'
+  ) {
+    const lookingForAge = profile.lookingForAge as Record<string, unknown>;
+    const lower = Number(lookingForAge.lower);
+    const upper = Number(lookingForAge.upper);
+
+    if (Number.isFinite(lower) && Number.isFinite(upper)) {
+      publicProfile.lookingForAge = {
+        lower,
+        upper,
+      };
+    }
+  }
+
+  if (profile.distanceVisibility !== false) {
+    setPublicStringField(publicProfile, profile, 'currentPlace', 160);
+  }
+
+  if (pictures.length) {
+    publicProfile.pictures = pictures;
+    publicProfile.profilePicture =
+      typeof profile.profilePicture === 'string' &&
+      pictures.some((picture) => picture.url === profile.profilePicture)
+        ? profile.profilePicture
+        : pictures[0].url;
+  }
+
+  if (profile.createdAt) {
+    publicProfile.createdAt = profile.createdAt;
+  }
+
+  return publicProfile;
+};
+
+const syncProfileSearchDocuments = async (
+  db: admin.firestore.Firestore,
+  uid: string,
+  profile: Record<string, unknown>
+) => {
+  const indexEntry = buildMatchIndexEntry(uid, profile);
+  const publicProfile = buildPublicProfileEntry(uid, profile, indexEntry);
+  const publicProfileRef = db.collection('publicProfiles').doc(uid);
+
+  await Promise.all([
+    db.collection('matchIndex').doc(uid).set(indexEntry, { merge: true }),
+    publicProfile
+      ? publicProfileRef.set(publicProfile)
+      : publicProfileRef.delete().catch((error: unknown) => {
+          const code = (error as { code?: unknown }).code;
+
+          if (code !== 5 && code !== 'not-found') {
+            throw error;
+          }
+        }),
+    db.collection('users').doc(uid).set(
+      {
+        profileQualityScore: indexEntry.profileQualityScore,
+      },
+      { merge: true }
+    ),
+  ]);
+
+  return {
+    indexEntry,
+    publicProfile,
+  };
+};
+
 const buildLikeMatchParts = (
   matchParts: ServerMatchParts,
   otherUid: string,
@@ -1388,22 +1558,26 @@ const deleteAccountData = async (uid: string): Promise<AccountDeletionResult> =>
   const db = admin.firestore();
   const userRef = db.collection('users').doc(uid);
   const matchIndexRef = db.collection('matchIndex').doc(uid);
+  const publicProfileRef = db.collection('publicProfiles').doc(uid);
 
   const [
     retentionResult,
     userReferencesCleaned,
     conversationsDeleted,
     storageFilesDeleted,
+    publicStorageFilesDeleted,
   ] = await Promise.all([
     markAccountDeletionRetention(db, uid),
     cleanupUserReferences(db, uid),
     deleteUserConversations(db, uid),
     deleteStoragePrefix(`pictures/${uid}/`),
+    deleteStoragePrefix(`publicPictures/${uid}/`),
   ]);
 
   const [userDocumentDeleted, matchIndexSnapshot] = await Promise.all([
     deleteDocumentTree(db, userRef),
     matchIndexRef.get(),
+    publicProfileRef.delete(),
   ]);
 
   if (matchIndexSnapshot.exists) {
@@ -1426,7 +1600,7 @@ const deleteAccountData = async (uid: string): Promise<AccountDeletionResult> =>
     uid,
     userDocumentDeleted,
     matchIndexDeleted: matchIndexSnapshot.exists,
-    storageFilesDeleted,
+    storageFilesDeleted: storageFilesDeleted + publicStorageFilesDeleted,
     conversationsDeleted,
     userReferencesCleaned,
     reportsRetained: retentionResult.reportsRetained,
@@ -2195,6 +2369,33 @@ const getRiskRelevantProfileSignature = (profile: Record<string, unknown>) =>
     isBanned: profile.isBanned ?? false,
   });
 
+const getPublicProfileSignature = (profile: Record<string, unknown>) =>
+  JSON.stringify({
+    firstName: profile.firstName ?? '',
+    birthDate: profile.birthDate ?? '',
+    age: profile.age ?? null,
+    gender: profile.gender ?? '',
+    aboutMe: profile.aboutMe ?? '',
+    lookingForType: profile.lookingForType ?? '',
+    lookingForGender: profile.lookingForGender ?? '',
+    lookingForAge: profile.lookingForAge ?? null,
+    job: profile.job ?? '',
+    currStudy: profile.currStudy ?? '',
+    highestSchool: profile.highestSchool ?? '',
+    freeTimeAct: profile.freeTimeAct ?? [],
+    interests: profile.interests ?? [],
+    zodiacSign: profile.zodiacSign ?? '',
+    currentPlace: profile.currentPlace ?? '',
+    profilePicture: profile.profilePicture ?? '',
+    pictures: profile.pictures ?? [],
+    isVisible: profile.isVisible ?? true,
+    isBanned: profile.isBanned ?? false,
+    distanceVisibility: profile.distanceVisibility ?? true,
+    showOnlineStatus: profile.showOnlineStatus ?? true,
+    profileVerified: profile.profileVerified ?? false,
+    profileVerificationStatus: profile.profileVerificationStatus ?? 'none',
+  });
+
 app.post('/revenueCatWebhook', async (req: express.Request, res: express.Response) => {
   if (!isRevenueCatWebhookAuthorized(req)) {
     res.sendStatus(403);
@@ -2407,12 +2608,8 @@ app.post('/discoverCandidates', verifyToken, async (req: AuthenticatedRequest, r
       })
       .map((candidate) => ({
         uid: candidate.uid,
-        claims: {
-          ...candidate.claims,
-          distanceKm: candidate.distanceKm,
-          sharedInterestCount: candidate.sharedInterestCount,
-          rankScore: Math.round(candidate.rankScore),
-        },
+        distanceKm: candidate.distanceKm,
+        sharedInterestCount: candidate.sharedInterestCount,
       }))
       .slice(0, resultLimit);
     const nextCursor =
@@ -2426,6 +2623,57 @@ app.post('/discoverCandidates', verifyToken, async (req: AuthenticatedRequest, r
     });
   } catch (error) {
     console.error('Discovery candidate lookup failed:', error);
+    res.sendStatus(500);
+  }
+});
+
+app.post('/likedByProfiles', verifyToken, async (req: AuthenticatedRequest, res: express.Response) => {
+  const { uid } = req.body;
+  const myUid = getRequestedActionUid(req, uid);
+  const resultLimit = Math.min(Math.max(Number(req.body.limit ?? 12), 1), 24);
+
+  if (!myUid) {
+    res.sendStatus(403);
+    return;
+  }
+
+  try {
+    const db = admin.firestore();
+    const usersCollection = db.collection('users');
+    const [likedSnapshot, superLikedSnapshot] = await Promise.all([
+      usersCollection
+        .where('matchParts.liked', 'array-contains', myUid)
+        .limit(resultLimit)
+        .get(),
+      usersCollection
+        .where('matchParts.superLiked', 'array-contains', myUid)
+        .limit(resultLimit)
+        .get(),
+    ]);
+    const likedByUids = Array.from(
+      new Set(
+        [...likedSnapshot.docs, ...superLikedSnapshot.docs]
+          .map((snapshot) => snapshot.id)
+          .filter((likedByUid) => likedByUid !== myUid)
+      )
+    ).slice(0, resultLimit);
+    const publicProfileSnapshots = await Promise.all(
+      likedByUids.map((likedByUid) =>
+        db.collection('publicProfiles').doc(likedByUid).get()
+      )
+    );
+    const profiles = publicProfileSnapshots
+      .filter((snapshot) => snapshot.exists)
+      .map((snapshot) => ({
+        uid: snapshot.id,
+        ...snapshot.data(),
+      }));
+
+    res.json({
+      profiles,
+    });
+  } catch (error) {
+    console.error('Liked-by profile lookup failed:', error);
     res.sendStatus(500);
   }
 });
@@ -2459,22 +2707,17 @@ app.post('/syncProfileIndex', verifyToken, async (req: AuthenticatedRequest, res
         new Date().toISOString(),
       emailVerified: authUser?.emailVerified === true,
     };
-    const indexEntry = buildMatchIndexEntry(myUid, profile);
-
-    await Promise.all([
-      db.collection('matchIndex').doc(myUid).set(indexEntry, { merge: true }),
-      db.collection('users').doc(myUid).set(
-        {
-          profileQualityScore: indexEntry.profileQualityScore,
-        },
-        { merge: true }
-      ),
-    ]);
+    const { indexEntry, publicProfile } = await syncProfileSearchDocuments(
+      db,
+      myUid,
+      profile
+    );
     await evaluateAndFlagProfileRisk(db, myUid, profile, 'profile_index_sync');
 
     res.json({
       message: 'OK',
       index: indexEntry,
+      publicProfile,
     });
   } catch (error) {
     console.error('Profile index sync failed:', error);
@@ -3150,17 +3393,7 @@ export const onUserProfileCreated = onDocumentCreated(
     }
 
     const db = admin.firestore();
-    const indexEntry = buildMatchIndexEntry(uid, data);
-
-    await Promise.all([
-      db.collection('matchIndex').doc(uid).set(indexEntry, { merge: true }),
-      db.collection('users').doc(uid).set(
-        {
-          profileQualityScore: indexEntry.profileQualityScore,
-        },
-        { merge: true }
-      ),
-    ]);
+    await syncProfileSearchDocuments(db, uid, data);
     await evaluateAndFlagProfileRisk(db, uid, data, 'profile_created');
   }
 );
@@ -3176,26 +3409,23 @@ export const onUserProfileUpdatedForTrust = onDocumentUpdated(
       return;
     }
 
-    if (
-      getRiskRelevantProfileSignature(beforeData) ===
-      getRiskRelevantProfileSignature(afterData)
-    ) {
+    const riskRelevantProfileChanged =
+      getRiskRelevantProfileSignature(beforeData) !==
+      getRiskRelevantProfileSignature(afterData);
+    const publicProfileChanged =
+      getPublicProfileSignature(beforeData) !==
+      getPublicProfileSignature(afterData);
+
+    if (!riskRelevantProfileChanged && !publicProfileChanged) {
       return;
     }
 
     const db = admin.firestore();
-    const indexEntry = buildMatchIndexEntry(uid, afterData);
+    await syncProfileSearchDocuments(db, uid, afterData);
 
-    await Promise.all([
-      db.collection('matchIndex').doc(uid).set(indexEntry, { merge: true }),
-      db.collection('users').doc(uid).set(
-        {
-          profileQualityScore: indexEntry.profileQualityScore,
-        },
-        { merge: true }
-      ),
-    ]);
-    await evaluateAndFlagProfileRisk(db, uid, afterData, 'profile_updated');
+    if (riskRelevantProfileChanged) {
+      await evaluateAndFlagProfileRisk(db, uid, afterData, 'profile_updated');
+    }
   }
 );
 

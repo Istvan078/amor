@@ -65,7 +65,8 @@ export type DiscoveryCandidateRequestOptions = {
 export type DiscoverCandidatesResponse = {
   candidates: Array<{
     uid: string;
-    claims: MatchIndexEntry & { uid: string };
+    distanceKm?: number | null;
+    sharedInterestCount?: number;
   }>;
   nextCursor: string | null;
 };

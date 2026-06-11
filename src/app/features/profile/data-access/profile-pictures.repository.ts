@@ -40,7 +40,7 @@ export class ProfilePicturesRepository {
                 continue;
             }
 
-            const picturePath = `pictures/${uid}/${file.name}`;
+            const picturePath = `publicPictures/${uid}/${file.name}`;
             const storageRef = this.runInFirebaseContext(() =>
                 ref(this.storage, picturePath)
             );
@@ -78,7 +78,7 @@ export class ProfilePicturesRepository {
     }
 
     async getFileFromStorage(uid: string, fileName: string) {
-        const filePath = `pictures/${uid}/${fileName}`;
+        const filePath = `publicPictures/${uid}/${fileName}`;
         const pictureRef = this.runInFirebaseContext(() =>
             ref(this.storage, filePath)
         );

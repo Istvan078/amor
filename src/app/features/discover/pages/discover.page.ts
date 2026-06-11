@@ -488,7 +488,7 @@ export class DiscoverPage implements OnInit, OnDestroy {
       let match = this.matches.find((matchProfile) => matchProfile.uid === matchUid);
 
       if (!match) {
-        match = await this.discoverRepository.getUserProfile(matchUid);
+        match = await this.discoverRepository.getPossibleMatchProfile(matchUid);
 
         if (!match?.uid) {
           return;
@@ -521,7 +521,8 @@ export class DiscoverPage implements OnInit, OnDestroy {
     this.resolvingTargetProfileDeepLink = true;
 
     try {
-      const targetProfile = await this.discoverRepository.getUserProfile(targetUid);
+      const targetProfile =
+        await this.discoverRepository.getPossibleMatchProfile(targetUid);
 
       if (!targetProfile?.uid) {
         return;
@@ -1859,7 +1860,7 @@ export class DiscoverPage implements OnInit, OnDestroy {
 
     try {
       await this.profilePicturesRepository.deleteFilesFromStorage(
-        `pictures/${this.userProf.uid}`,
+        `publicPictures/${this.userProf.uid}`,
         removedPicture.name
       );
     } catch (error) {

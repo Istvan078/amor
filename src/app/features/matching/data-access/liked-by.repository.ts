@@ -1,57 +1,55 @@
-import { Injectable, Injector, inject, runInInjectionContext } from '@angular/core';
-import {
-  Firestore,
-  collection,
-  getDocs,
-  limit,
-  query,
-  where,
-} from '@angular/fire/firestore';
+import { HttpClient, HttpHeaders } from '@angular/common/http';
+import { Injectable, inject } from '@angular/core';
+import { firstValueFrom } from 'rxjs';
 
+import { environment } from '../../../../environments/environment';
 import { UserClass } from '../../../shared/models/user.model';
+import { AuthStore } from '../../auth/store/auth.store';
+
+type LikedByProfilesResponse = {
+  profiles: UserClass[];
+};
 
 @Injectable({
   providedIn: 'root',
 })
 export class LikedByRepository {
-  private injector = inject(Injector);
-  private firestore = inject(Firestore);
+  private http = inject(HttpClient);
+  private authStore = inject(AuthStore);
 
   async getProfilesWhoLikedUser(uid: string, resultLimit = 12) {
-    const snapshots = await this.runInFirebaseContext(async () => {
-      const usersCollection = collection(this.firestore, 'users');
+    const idToken = await this.getIdToken();
 
-      return Promise.all([
-        getDocs(
-          query(
-            usersCollection,
-            where('matchParts.liked', 'array-contains', uid),
-            limit(resultLimit)
-          )
-        ),
-        getDocs(
-          query(
-            usersCollection,
-            where('matchParts.superLiked', 'array-contains', uid),
-            limit(resultLimit)
-          )
-        ),
-      ]);
-    });
-
-    const profilesByUid = new Map<string, UserClass>();
-
-    for (const snapshot of snapshots.flatMap((querySnapshot) => querySnapshot.docs)) {
-      profilesByUid.set(snapshot.id, {
-        uid: snapshot.id,
-        ...snapshot.data(),
-      } as UserClass);
+    if (!uid || !idToken) {
+      return [];
     }
 
-    return Array.from(profilesByUid.values()).slice(0, resultLimit);
+    const response = await firstValueFrom(
+      this.http.post<LikedByProfilesResponse>(
+        `${environment.API_URL}likedByProfiles`,
+        {
+          uid,
+          limit: resultLimit,
+        },
+        {
+          headers: new HttpHeaders().set('Authorization', idToken),
+        }
+      )
+    );
+
+    return response.profiles ?? [];
   }
 
-  private runInFirebaseContext<T>(callback: () => T): T {
-    return runInInjectionContext(this.injector, callback);
+  private async getIdToken() {
+    const user = this.authStore.user();
+    const rawUser = user?.raw as
+      | { getIdToken?: (forceRefresh?: boolean) => Promise<string> }
+      | undefined;
+
+    if (rawUser?.getIdToken) {
+      return rawUser.getIdToken();
+    }
+
+    return user?.idToken;
   }
 }

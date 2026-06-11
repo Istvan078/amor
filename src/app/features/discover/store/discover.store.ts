@@ -143,83 +143,53 @@ export const DiscoverStore = signalStore(
             }
 
             for (const likedUid of userProfile.matchParts.liked) {
-                const likedProfile = await repository.getUserProfile(likedUid);
-
-                if (!likedProfile?.matchParts) {
-                    continue;
-                }
-
-                const likedBack = likedProfile.matchParts.liked?.includes(
-                    userProfile.uid
-                );
-
                 const alreadyMatched =
                     userProfile.matchParts.matches?.includes(likedUid);
 
-                if (likedBack && !alreadyMatched) {
-                    const matchResult =
-                        await repository.createMutualMatch(likedUid);
+                if (!alreadyMatched) {
+                    try {
+                        const matchResult =
+                            await repository.createMutualMatch(likedUid);
 
-                    if (matchResult.matchParts) {
-                        userProfile.matchParts = matchResult.matchParts;
-                        profileStore.setProfile(userProfile);
+                        if (matchResult.matchParts) {
+                            userProfile.matchParts = matchResult.matchParts;
+                            profileStore.setProfile(userProfile);
+                        }
+                    } catch (error) {
+                        console.warn('Mutual match sync failed.', error);
                     }
                 }
             }
         }
 
         async function buildPossibleMatches(
-            users: any[],
-            loggedUser: any,
+            candidates: DiscoverCandidatesResponse['candidates'],
             userProfile: UserClass,
             currentCity: string,
-            userPosition: any,
             resetPossibleMatches = true
         ) {
             const possibleMatchIds: string[] = [];
-            const checkedUsers: string[] = [];
+            const checkedCandidateIds: string[] = [];
 
             if (resetPossibleMatches) {
                 userProfile.matchParts!.possMatches = [];
             }
 
-            const lookingForGender =
-                loggedUser?.claims?.lookingForGender ?? userProfile.lookingForGender;
-
-            const lookingForDistance =
-                Number(
-                    loggedUser?.claims?.lookingForDistance ??
-                    userProfile.lookingForDistance ??
-                    50
-                );
-
-            const preferredAge = userProfile.lookingForAge;
-
-            const filteredUsers = users.filter((user: any) => {
-                if (!user?.uid || user.uid === userProfile.uid) {
+            const filteredCandidates = candidates.filter((candidate) => {
+                if (!candidate?.uid || candidate.uid === userProfile.uid) {
                     return false;
                 }
 
-                const candidateAge = Number(user?.claims?.age);
-                const matchesAgeRange =
-                    !preferredAge ||
-                    !Number.isFinite(candidateAge) ||
-                    (candidateAge >= Number(preferredAge.lower ?? 18) &&
-                        candidateAge <= Number(preferredAge.upper ?? 100));
-
                 return (
-                    user?.claims?.gender === lookingForGender &&
-                    (user?.claims?.currentPlace || user?.claims?.currentLocCoords) &&
-                    matchesAgeRange &&
-                    !userProfile.matchParts?.liked?.includes(user.uid) &&
-                    !userProfile.matchParts?.notLiked?.includes(user.uid) &&
-                    !userProfile.matchParts?.matches?.includes(user.uid) &&
-                    !userProfile.blockedUsers?.includes(user.uid) &&
-                    !userProfile.reportedUsers?.includes(user.uid)
+                    !userProfile.matchParts?.liked?.includes(candidate.uid) &&
+                    !userProfile.matchParts?.notLiked?.includes(candidate.uid) &&
+                    !userProfile.matchParts?.matches?.includes(candidate.uid) &&
+                    !userProfile.blockedUsers?.includes(candidate.uid) &&
+                    !userProfile.reportedUsers?.includes(candidate.uid)
                 );
             });
 
-            if (!filteredUsers.length) {
+            if (!filteredCandidates.length) {
                 patchState(store, {
                     progress: 100,
                 });
@@ -227,58 +197,18 @@ export const DiscoverStore = signalStore(
                 return possibleMatchIds;
             }
 
-            for (const user of filteredUsers) {
-                let matchLat = Number(user.claims.currentLocCoords?.lat);
-                let matchLon = Number(user.claims.currentLocCoords?.lon);
+            for (const candidate of filteredCandidates) {
+                possibleMatchIds.push(candidate.uid);
 
-                if (!Number.isFinite(matchLat) || !Number.isFinite(matchLon)) {
-                    let matchLocation: any = await locationService.getCoordsGeocodeXYZ(
-                        user.claims.currentPlace
-                    );
-
-                    if (matchLocation?.message) {
-                        matchLocation = await locationService.getCoordinatesOSM(
-                            user.claims.currentPlace
-                        );
-                    }
-
-                    matchLat = Number(matchLocation?.lat ?? matchLocation?.latt);
-                    matchLon = Number(matchLocation?.lon ?? matchLocation?.longt);
+                if (!userProfile.matchParts!.possMatches.includes(candidate.uid)) {
+                    userProfile.matchParts!.possMatches.push(candidate.uid);
                 }
 
-                if (!Number.isFinite(matchLat) || !Number.isFinite(matchLon)) {
-                    checkedUsers.push(user.uid);
-
-                    patchState(store, {
-                        progress: Math.round(
-                            (checkedUsers.length / filteredUsers.length) * 100
-                        ),
-                    });
-
-                    continue;
-                }
-
-                const distanceBetweenUsers =
-                    locationService.getDistanceBetweenPoints(
-                        userPosition.coords.latitude,
-                        userPosition.coords.longitude,
-                        matchLat,
-                        matchLon
-                    );
-
-                if (distanceBetweenUsers <= lookingForDistance) {
-                    possibleMatchIds.push(user.uid);
-
-                    if (!userProfile.matchParts!.possMatches.includes(user.uid)) {
-                        userProfile.matchParts!.possMatches.push(user.uid);
-                    }
-                }
-
-                checkedUsers.push(user.uid);
+                checkedCandidateIds.push(candidate.uid);
 
                 patchState(store, {
                     progress: Math.round(
-                        (checkedUsers.length / filteredUsers.length) * 100
+                        (checkedCandidateIds.length / filteredCandidates.length) * 100
                     ),
                 });
             }
@@ -331,20 +261,9 @@ export const DiscoverStore = signalStore(
             return mergedIds;
         }
 
-        function createPositionFromCoords(coords: { lat: number; lon: number }) {
-            return {
-                coords: {
-                    latitude: coords.lat,
-                    longitude: coords.lon,
-                },
-            };
-        }
-
         async function loadCandidateIdsFromPages(
             userProfile: UserClass,
-            loggedUser: AuthUser,
             currentCity: string,
-            userPosition: any,
             startAfter: string | null,
             resetPossibleMatches: boolean
         ) {
@@ -359,10 +278,8 @@ export const DiscoverStore = signalStore(
 
                 const pageIds = await buildPossibleMatches(
                     candidatePage.candidates,
-                    loggedUser,
                     userProfile,
                     currentCity,
-                    userPosition,
                     resetPossibleMatches && attempt === 0
                 );
 
@@ -532,9 +449,7 @@ export const DiscoverStore = signalStore(
                     if (shouldRebuildPossibleMatches) {
                         const candidateResult = await loadCandidateIdsFromPages(
                             userProfile,
-                            loggedUser,
                             currentCity,
-                            userPosition,
                             null,
                             true
                         );
@@ -611,9 +526,7 @@ export const DiscoverStore = signalStore(
                 try {
                     const candidateResult = await loadCandidateIdsFromPages(
                         userProfile,
-                        loggedUser,
                         store.currentCity(),
-                        createPositionFromCoords(currentLocCoords),
                         store.candidateCursor(),
                         false
                     );

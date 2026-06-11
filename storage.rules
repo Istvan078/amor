@@ -6,9 +6,34 @@ service firebase.storage {
       return request.auth != null;
     }
 
+    function isOwner(uid) {
+      return signedIn() && request.auth.uid == uid;
+    }
+
+    function isAdminOrModerator() {
+      return signedIn()
+        && (
+          request.auth.token.admin == true
+          || request.auth.token.moderator == true
+        );
+    }
+
+    function isValidProfileImage() {
+      return request.resource.size < 10 * 1024 * 1024
+        && request.resource.contentType.matches('image/.*');
+    }
+
     match /pictures/{uid}/{fileName=**} {
-      allow read: if signedIn();
-      allow write, delete: if signedIn() && request.auth.uid == uid;
+      allow read: if isOwner(uid) || isAdminOrModerator();
+      allow create, update: if isOwner(uid) && isValidProfileImage();
+      allow delete: if isOwner(uid) || isAdminOrModerator();
+    }
+
+    match /publicPictures/{uid}/{fileName=**} {
+      allow get: if signedIn();
+      allow list: if false;
+      allow create, update: if isOwner(uid) && isValidProfileImage();
+      allow delete: if isOwner(uid) || isAdminOrModerator();
     }
 
     match /verificationSelfies/{uid}/{fileName=**} {
@@ -18,7 +43,7 @@ service firebase.storage {
           || request.auth.token.admin == true
           || request.auth.token.moderator == true
         );
-      allow write: if signedIn()
+      allow create, update: if signedIn()
         && request.auth.uid == uid
         && request.resource.size < 10 * 1024 * 1024
         && request.resource.contentType.matches('image/.*');
@@ -31,7 +56,7 @@ service firebase.storage {
     }
 
     match /{allPaths=**} {
-      allow read: if signedIn();
+      allow read: if false;
       allow write: if false;
     }
   }

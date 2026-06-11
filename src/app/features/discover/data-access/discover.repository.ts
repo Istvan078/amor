@@ -54,15 +54,32 @@ export class DiscoverRepository {
         } as UserClass;
     }
 
+    async getPublicProfile(uid: string): Promise<UserClass | undefined> {
+        const snapshot = await this.runInFirebaseContext(() => {
+            const profileRef = doc(this.firestore, `publicProfiles/${uid}`);
+
+            return getDoc(profileRef);
+        });
+
+        if (!snapshot.exists()) {
+            return undefined;
+        }
+
+        return {
+            uid: snapshot.id,
+            ...snapshot.data(),
+        } as UserClass;
+    }
+
     async getPossibleMatchProfile(uid: string): Promise<UserClass | undefined> {
-        return this.getUserProfile(uid);
+        return this.getPublicProfile(uid);
     }
 
     async getMatchProfiles(matchUids: string[]): Promise<UserClass[]> {
         const profiles: UserClass[] = [];
 
         for (const uid of matchUids) {
-            const profile = await this.getUserProfile(uid);
+            const profile = await this.getPublicProfile(uid);
 
             if (profile) {
                 profiles.push(profile);
