@@ -2,6 +2,7 @@ import { inject } from '@angular/core';
 import { signalStore, withMethods, withState } from '@ngrx/signals';
 
 import { Promotions } from '../../../shared/models/promotions.model';
+import { PublicProfile } from '../../../shared/models/public-profile.model';
 import { UserClass } from '../../../shared/models/user.model';
 import { BillingStore } from '../../billing/store/billing.store';
 import {
@@ -18,7 +19,7 @@ type PromoDecisionInput = {
     alreadyShownForUid?: string | null;
     userProfile?: UserClass;
     possibleMatchIds: string[];
-    matches: UserClass[];
+    matches: PublicProfile[];
     incomingLikeCount: number;
     isMatchPlaceHolder: boolean;
 };

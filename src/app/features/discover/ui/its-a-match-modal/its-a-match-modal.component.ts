@@ -14,6 +14,7 @@ import {
   sparklesOutline,
 } from 'ionicons/icons';
 
+import { PublicProfile } from '../../../../shared/models/public-profile.model';
 import { UserClass } from '../../../../shared/models/user.model';
 
 @Component({
@@ -25,7 +26,7 @@ import { UserClass } from '../../../../shared/models/user.model';
 })
 export class ItsAMatchModalComponent {
   @Input() userProfile?: UserClass;
-  @Input() matchProfile?: UserClass;
+  @Input() matchProfile?: PublicProfile;
 
   private modalCtrl = inject(ModalController);
 
@@ -47,11 +48,7 @@ export class ItsAMatchModalComponent {
   }
 
   get matchName() {
-    return (
-      [this.matchProfile?.firstName, this.matchProfile?.lastName]
-        .filter(Boolean)
-        .join(' ') || 'your match'
-    );
+    return this.matchProfile?.firstName || 'your match';
   }
 
   keepDiscovering() {
@@ -62,7 +59,7 @@ export class ItsAMatchModalComponent {
     return this.modalCtrl.dismiss({ action: 'message' });
   }
 
-  private getPhotoUrl(profile?: UserClass) {
+  private getPhotoUrl(profile?: UserClass | PublicProfile) {
     return (
       profile?.pictures?.[0]?.url ||
       profile?.profilePicture ||

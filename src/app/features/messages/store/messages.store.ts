@@ -7,6 +7,7 @@ import {
 } from '@ngrx/signals';
 
 import { Message } from '../../../shared/models/message.model';
+import { PublicProfile } from '../../../shared/models/public-profile.model';
 import { UserClass } from '../../../shared/models/user.model';
 import { AnalyticsService } from '../../analytics/data-access/analytics.service';
 import {
@@ -135,7 +136,7 @@ export const MessagesStore = signalStore(
         };
 
         return {
-            async loadMessages(userProfile: UserClass, matchProfile: UserClass) {
+            async loadMessages(userProfile: UserClass, matchProfile: PublicProfile) {
                 if (!userProfile.uid || !matchProfile.uid) {
                     stopListening();
                     patchState(store, {
@@ -239,7 +240,7 @@ export const MessagesStore = signalStore(
 
             async loadOlderMessages(
                 userProfile: UserClass,
-                matchProfile: UserClass
+                matchProfile: PublicProfile
             ) {
                 if (
                     !userProfile.uid ||
@@ -288,7 +289,7 @@ export const MessagesStore = signalStore(
 
             async sendMessage(
                 userProfile: UserClass,
-                matchProfile: UserClass,
+                matchProfile: PublicProfile,
                 message: Message
             ) {
                 if (!userProfile.uid || !matchProfile.uid) {
@@ -316,7 +317,7 @@ export const MessagesStore = signalStore(
 
             async toggleMessageReaction(
                 userProfile: UserClass,
-                matchProfile: UserClass,
+                matchProfile: PublicProfile,
                 message: Message,
                 emoji: string
             ) {
@@ -345,7 +346,7 @@ export const MessagesStore = signalStore(
 
             async setTypingStatus(
                 userProfile: UserClass,
-                matchProfile: UserClass,
+                matchProfile: PublicProfile,
                 isTyping: boolean
             ) {
                 if (!userProfile.uid || !matchProfile.uid) {

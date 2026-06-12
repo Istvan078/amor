@@ -12,18 +12,7 @@ export type AuthUser = {
 export type UserClaims = {
     admin?: boolean;
     moderator?: boolean;
-    gender?: 'No' | 'Ferfi' | 'Egyeb' | string;
-    lookingForGender?: 'No' | 'Ferfi' | 'Egyeb' | string;
-    lookingForDistance?: number;
-    currentPlace?: string;
-    currentLocCoords?: {
-        lat: number;
-        lon: number;
-    };
-    lookingForAge?: {
-        lower: number;
-        upper: number;
-    };
+    premiumAccess?: boolean;
 };
 
 type AuthState = {

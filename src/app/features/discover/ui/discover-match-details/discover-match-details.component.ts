@@ -12,8 +12,8 @@ import {
   translatedFieldLabel,
   translatedProfileValue,
 } from '../../../../shared/i18n/profile-value-labels';
+import { PublicProfile } from '../../../../shared/models/public-profile.model';
 import { UserClass } from '../../../../shared/models/user.model';
-import { getProfileCompleteness } from '../../../profile/utils/profile-completeness';
 
 @Component({
   selector: 'app-discover-match-details',
@@ -27,7 +27,7 @@ export class DiscoverMatchDetailsComponent {
 
   @Input() labels: any = {};
   @Input() userProfile?: UserClass;
-  @Input() matchProfile?: UserClass;
+  @Input() matchProfile?: PublicProfile;
   @Input() possibleDetailLists: number[] = [];
 
   @Output() closed = new EventEmitter<void>();
@@ -61,7 +61,7 @@ export class DiscoverMatchDetailsComponent {
       reasons.push({ key: 'recentlyActive' });
     }
 
-    if (getProfileCompleteness(this.matchProfile) >= 70) {
+    if (this.isPublicProfileComplete()) {
       reasons.push({ key: 'completeProfile' });
     }
 
@@ -87,26 +87,23 @@ export class DiscoverMatchDetailsComponent {
   }
 
   private isNearby() {
-    const myCoords = this.userProfile?.currentLocCoords;
-    const matchCoords = this.matchProfile?.currentLocCoords;
+    const distanceKm = Number(this.matchProfile?.distanceKm);
 
-    if (
-      !Number.isFinite(Number(myCoords?.lat)) ||
-      !Number.isFinite(Number(myCoords?.lon)) ||
-      !Number.isFinite(Number(matchCoords?.lat)) ||
-      !Number.isFinite(Number(matchCoords?.lon))
-    ) {
+    if (!Number.isFinite(distanceKm)) {
       return false;
     }
 
-    const distanceKm = this.getDistanceKm(
-      Number(myCoords?.lat),
-      Number(myCoords?.lon),
-      Number(matchCoords?.lat),
-      Number(matchCoords?.lon)
-    );
-
     return distanceKm <= Number(this.userProfile?.lookingForDistance ?? 50);
+  }
+
+  getDetailValue(key?: string) {
+    return key && this.matchProfile ? this.matchProfile[key] : undefined;
+  }
+
+  getDetailListValue(key?: string) {
+    const value = this.getDetailValue(key);
+
+    return Array.isArray(value) ? value : [];
   }
 
   isDetailVisible(label: { key?: string }) {
@@ -132,6 +129,14 @@ export class DiscoverMatchDetailsComponent {
     return Date.now() - timestamp <= 1000 * 60 * 60 * 24 * 7;
   }
 
+  private isPublicProfileComplete() {
+    if (this.matchProfile?.profileCompleted === true) {
+      return true;
+    }
+
+    return Number(this.matchProfile?.profileCompleteness ?? 0) >= 70;
+  }
+
   private getTimestampValue(value: unknown) {
     if (!value) {
       return 0;
@@ -150,19 +155,4 @@ export class DiscoverMatchDetailsComponent {
     return 0;
   }
 
-  private getDistanceKm(lat1: number, lon1: number, lat2: number, lon2: number) {
-    const earthRadiusKm = 6371;
-    const toRad = (value: number) => value * Math.PI / 180;
-    const deltaLat = toRad(lat2 - lat1);
-    const deltaLon = toRad(lon2 - lon1);
-    const a =
-      Math.sin(deltaLat / 2) * Math.sin(deltaLat / 2) +
-      Math.cos(toRad(lat1)) *
-      Math.cos(toRad(lat2)) *
-      Math.sin(deltaLon / 2) *
-      Math.sin(deltaLon / 2);
-    const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
-
-    return earthRadiusKm * c;
-  }
 }

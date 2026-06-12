@@ -9,9 +9,10 @@ import {
 import { AuthStore } from '../../auth/store/auth.store';
 import { ProfileStore } from '../../profile/store/profile.store';
 import { LocationService } from '../../../services/location.service';
+import { PublicProfile } from '../../../shared/models/public-profile.model';
 import { MatchParts, UserClass } from '../../../shared/models/user.model';
 import { DiscoverRepository } from '../data-access/discover.repository';
-import { AuthUser, UserClaims } from '../../auth/store/auth.slice';
+import { AuthUser } from '../../auth/store/auth.slice';
 import {
     DiscoverCandidatesResponse,
     DiscoveryFeedMode,
@@ -24,7 +25,14 @@ type DiscoverState = {
     loggedUser: any | null;
     userProfile: UserClass | null;
     possibleMatchIds: string[];
-    matches: UserClass[];
+    candidateSummaries: Record<
+        string,
+        {
+            distanceKm?: number | null;
+            sharedInterestCount?: number;
+        }
+    >;
+    matches: PublicProfile[];
     progress: number;
     buffer: number;
     candidateCursor: string | null;
@@ -42,6 +50,7 @@ const initialState: DiscoverState = {
     loggedUser: null,
     userProfile: null,
     possibleMatchIds: [],
+    candidateSummaries: {},
     matches: [],
     progress: 0,
     buffer: 0,
@@ -170,6 +179,7 @@ export const DiscoverStore = signalStore(
         ) {
             const possibleMatchIds: string[] = [];
             const checkedCandidateIds: string[] = [];
+            const candidateSummaries: DiscoverState['candidateSummaries'] = {};
 
             if (resetPossibleMatches) {
                 userProfile.matchParts!.possMatches = [];
@@ -199,6 +209,10 @@ export const DiscoverStore = signalStore(
 
             for (const candidate of filteredCandidates) {
                 possibleMatchIds.push(candidate.uid);
+                candidateSummaries[candidate.uid] = {
+                    distanceKm: candidate.distanceKm ?? null,
+                    sharedInterestCount: candidate.sharedInterestCount ?? 0,
+                };
 
                 if (!userProfile.matchParts!.possMatches.includes(candidate.uid)) {
                     userProfile.matchParts!.possMatches.push(candidate.uid);
@@ -223,6 +237,12 @@ export const DiscoverStore = signalStore(
             }
 
             patchState(store, {
+                candidateSummaries: resetPossibleMatches
+                    ? candidateSummaries
+                    : {
+                        ...store.candidateSummaries(),
+                        ...candidateSummaries,
+                    },
                 progress: 100,
             });
 
@@ -310,6 +330,7 @@ export const DiscoverStore = signalStore(
                     loadingMoreCandidates: false,
                     currentCity: '',
                     currentLocCoords: null,
+                    candidateSummaries: {},
                 });
 
                 startProgressBuffer();
@@ -413,29 +434,6 @@ export const DiscoverStore = signalStore(
                         currentCity,
                         currentLocCoords: userCoords,
                     });
-
-                    const claims: UserClaims = {
-                        gender: userProfile.gender!,
-                        lookingForGender: userProfile.lookingForGender as any,
-                        lookingForDistance: userProfile.lookingForDistance as number,
-                        lookingForAge: userProfile.lookingForAge,
-                        currentLocCoords: userCoords,
-                        currentPlace: currentCity || userProfile.currentPlace || '',
-                    };
-
-                    if (!loggedUser.claims) {
-                        await authStore.setCustomClaims(loggedUser.uid, claims);
-                    }
-
-                    if (currentCity && currentCity !== userProfile.currentPlace) {
-                        const nextClaims = {
-                            ...(loggedUser.claims ?? {}),
-                            currentPlace: currentCity,
-                            currentLocCoords: userCoords,
-                        };
-
-                        await authStore.setCustomClaims(loggedUser.uid, nextClaims);
-                    }
 
                     patchState(store, {
                         progress: 55,
@@ -570,7 +568,7 @@ export const DiscoverStore = signalStore(
                 });
             },
 
-            addMatch(matchProfile: UserClass) {
+            addMatch(matchProfile: PublicProfile) {
                 if (!matchProfile.uid) {
                     return;
                 }

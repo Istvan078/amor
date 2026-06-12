@@ -1,6 +1,7 @@
 import { inject } from '@angular/core';
 import { signalStore, withMethods, withState } from '@ngrx/signals';
 
+import { PublicProfile } from '../../../shared/models/public-profile.model';
 import { UserClass } from '../../../shared/models/user.model';
 import { AnalyticsService } from '../../analytics/data-access/analytics.service';
 import { BillingStore } from '../../billing/store/billing.store';
@@ -146,7 +147,7 @@ export const MatchActionsStore = signalStore(
 
         async likeOrDontUser(
             userProfile: UserClass | undefined,
-            matchProfile: UserClass | undefined,
+            matchProfile: PublicProfile | undefined,
             isLike?: boolean,
             isDontLike?: boolean
         ) {
@@ -170,7 +171,7 @@ export const MatchActionsStore = signalStore(
 
         async restoreRewindCandidate(
             userProfile: UserClass | undefined,
-            previousMatch: UserClass | undefined
+            previousMatch: PublicProfile | undefined
         ) {
             if (!userProfile?.uid || !previousMatch?.uid) {
                 return false;
@@ -188,7 +189,7 @@ export const MatchActionsStore = signalStore(
 
         async superLikeUser(
             userProfile: UserClass | undefined,
-            matchProfile: UserClass | undefined
+            matchProfile: PublicProfile | undefined
         ) {
             if (!userProfile?.uid || !matchProfile?.uid) {
                 return false;

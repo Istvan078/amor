@@ -7,6 +7,7 @@ import {
     withState,
 } from '@ngrx/signals';
 
+import { PublicProfile } from '../../../shared/models/public-profile.model';
 import { UserClass } from '../../../shared/models/user.model';
 import { MessagesRepository } from '../data-access/messages.repository';
 
@@ -58,9 +59,9 @@ export const MatchConversationPreviewsStore = signalStore(
         }
 
         return {
-            start(userProfile: UserClass | undefined, matches: UserClass[]) {
+            start(userProfile: UserClass | undefined, matches: PublicProfile[]) {
                 const matchProfiles = matches.filter(
-                    (match): match is UserClass & { uid: string } => !!match.uid
+                    (match): match is PublicProfile & { uid: string } => !!match.uid
                 );
 
                 if (!userProfile?.uid || !matchProfiles.length) {

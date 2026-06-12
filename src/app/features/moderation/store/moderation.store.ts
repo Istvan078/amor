@@ -7,6 +7,7 @@ import {
 } from '@ngrx/signals';
 
 import { Message } from '../../../shared/models/message.model';
+import { PublicProfile } from '../../../shared/models/public-profile.model';
 import { MatchParts, UserClass } from '../../../shared/models/user.model';
 import { ProfileStore } from '../../profile/store/profile.store';
 import {
@@ -59,7 +60,7 @@ export const ModerationStore = signalStore(
         repository = inject(ModerationRepository),
         profileStore = inject(ProfileStore)
     ) => ({
-        async blockUser(userProfile: UserClass, matchProfile: UserClass) {
+        async blockUser(userProfile: UserClass, matchProfile: PublicProfile) {
             if (!userProfile.uid || !matchProfile.uid) {
                 return undefined;
             }
@@ -82,7 +83,7 @@ export const ModerationStore = signalStore(
             }
         },
 
-        async unblockUser(userProfile: UserClass, matchProfile: UserClass) {
+        async unblockUser(userProfile: UserClass, matchProfile: PublicProfile) {
             if (!userProfile.uid || !matchProfile.uid) {
                 return undefined;
             }
@@ -104,7 +105,7 @@ export const ModerationStore = signalStore(
             }
         },
 
-        async removeMatch(userProfile: UserClass, matchProfile: UserClass) {
+        async removeMatch(userProfile: UserClass, matchProfile: PublicProfile) {
             if (!userProfile.uid || !matchProfile.uid) {
                 return undefined;
             }
@@ -133,7 +134,7 @@ export const ModerationStore = signalStore(
 
         async reportUser(
             userProfile: UserClass,
-            matchProfile: UserClass,
+            matchProfile: PublicProfile,
             reason = 'conversation_report',
             description?: string
         ) {
@@ -147,12 +148,7 @@ export const ModerationStore = signalStore(
             );
             const reportDescription =
                 description ??
-                `Reported from conversation with ${[
-                    matchProfile.firstName,
-                    matchProfile.lastName,
-                ]
-                    .filter(Boolean)
-                    .join(' ') || matchProfile.uid}`;
+                `Reported from conversation with ${matchProfile.firstName || matchProfile.uid}`;
 
             patchState(store, setModerationLoading());
 
@@ -180,7 +176,7 @@ export const ModerationStore = signalStore(
 
         async reportMessage(
             userProfile: UserClass,
-            matchProfile: UserClass,
+            matchProfile: PublicProfile,
             message: Message,
             reason = 'conversation_report',
             reasonLabel?: string,

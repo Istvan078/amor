@@ -256,7 +256,7 @@ export const AuthStore = signalStore(
                 return loadUsersForUser(user);
             },
 
-            async setCustomClaims(uid: string, claims: UserClaims) {
+            async setCustomClaims(uid: string) {
                 const user = store.user();
 
                 if (!user?.idToken) {
@@ -264,14 +264,16 @@ export const AuthStore = signalStore(
                 }
 
                 await firstValueFrom(
-                    repository.setCustomClaims(uid, claims, user.idToken)
+                    repository.setCustomClaims(uid, user.idToken)
                 );
 
                 const currentClaims = store.claims() ?? user.claims ?? {};
-                const nextClaims = {
-                    ...claims,
+                const nextClaims: UserClaims = {
                     ...(currentClaims.admin === true ? { admin: true } : {}),
                     ...(currentClaims.moderator === true ? { moderator: true } : {}),
+                    ...(currentClaims.premiumAccess === true
+                        ? { premiumAccess: true }
+                        : {}),
                 };
 
                 const nextUser = {

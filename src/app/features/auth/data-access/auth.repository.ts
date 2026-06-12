@@ -110,11 +110,7 @@ export class AuthRepository {
         });
     }
 
-    setCustomClaims(
-        uid: string,
-        claims: UserClaims,
-        idToken: string | undefined
-    ) {
+    setCustomClaims(uid: string, idToken: string | undefined) {
         if (!idToken) {
             return of(null);
         }
@@ -123,7 +119,6 @@ export class AuthRepository {
             this.usersApiUrl + 'setCustomClaims',
             {
                 uid,
-                claims,
             },
             {
                 headers: this.createAuthHeaders(idToken),

@@ -59,6 +59,7 @@ import {
   MessageType,
 } from '../../../../shared/models/message.model';
 import { Options } from '../../../../shared/models/options.model';
+import { PublicProfile } from '../../../../shared/models/public-profile.model';
 import { UserClass } from '../../../../shared/models/user.model';
 import { translatedProfileValue } from '../../../../shared/i18n/profile-value-labels';
 import { ModerationStore } from '../../../moderation/store/moderation.store';
@@ -104,8 +105,8 @@ export class MessageComponent implements AfterViewChecked, OnChanges, OnDestroy 
   @ViewChild('reportOtherTextarea')
   private reportOtherTextarea?: ElementRef<HTMLTextAreaElement>;
 
-  @Input() matches: UserClass[] = [];
-  @Input() matchProfile?: UserClass;
+  @Input() matches: PublicProfile[] = [];
+  @Input() matchProfile?: PublicProfile;
   @Input() options?: Options;
   @Input() hasPremiumAccess = false;
   @Input() conversationPreviews: Record<
@@ -118,10 +119,10 @@ export class MessageComponent implements AfterViewChecked, OnChanges, OnDestroy 
     }
   > = {};
   @Output() messageSent = new EventEmitter<{
-    matchProfile: UserClass;
+    matchProfile: PublicProfile;
     message: Message;
   }>();
-  @Output() matchRemoved = new EventEmitter<UserClass>();
+  @Output() matchRemoved = new EventEmitter<PublicProfile>();
   @Output() readReceiptsPremiumRequested = new EventEmitter<void>();
 
   readonly messagesStore = inject(MessagesStore);
@@ -285,7 +286,7 @@ export class MessageComponent implements AfterViewChecked, OnChanges, OnDestroy 
   ngOnChanges(changes: SimpleChanges) {
     if (changes['matchProfile']) {
       this.clearLocalTypingStatus(
-        changes['matchProfile'].previousValue as UserClass | undefined
+        changes['matchProfile'].previousValue as PublicProfile | undefined
       );
       this.isConversationMenuOpen = false;
       this.isMatchProfileOpen = false;
@@ -346,12 +347,12 @@ export class MessageComponent implements AfterViewChecked, OnChanges, OnDestroy 
     }
   }
 
-  getProfileImage(profile?: UserClass) {
+  getProfileImage(profile?: PublicProfile) {
     return profile?.pictures?.[0]?.url || this.fallbackAvatar;
   }
 
-  getDisplayName(profile?: UserClass) {
-    return [profile?.firstName, profile?.lastName].filter(Boolean).join(' ');
+  getDisplayName(profile?: PublicProfile) {
+    return profile?.firstName ?? '';
   }
 
   isOwnMessage(message: Message) {
@@ -566,7 +567,7 @@ export class MessageComponent implements AfterViewChecked, OnChanges, OnDestroy 
     );
   }
 
-  isMatchBlocked(match?: UserClass) {
+  isMatchBlocked(match?: PublicProfile) {
     return !!(
       this.userProfile?.blockedUsers?.length &&
       match?.uid &&
@@ -574,7 +575,7 @@ export class MessageComponent implements AfterViewChecked, OnChanges, OnDestroy 
     );
   }
 
-  getConversationPreview(match: UserClass) {
+  getConversationPreview(match: PublicProfile) {
     if (!match.uid) {
       return {
         hasMessages: false,
@@ -598,7 +599,7 @@ export class MessageComponent implements AfterViewChecked, OnChanges, OnDestroy 
     return unreadCount > 99 ? '99+' : String(unreadCount);
   }
 
-  isMatchOnline(match: UserClass) {
+  isMatchOnline(match: PublicProfile) {
     if (match.showOnlineStatus === false) {
       return false;
     }
@@ -618,7 +619,7 @@ export class MessageComponent implements AfterViewChecked, OnChanges, OnDestroy 
     return Date.now() - lastSeenAt.getTime() < 2 * 60 * 1000;
   }
 
-  selectMatch(match: UserClass) {
+  selectMatch(match: PublicProfile) {
     this.clearLocalTypingStatus(this.matchProfile);
     this.matchProfile = match;
     this.isConversationMenuOpen = false;
@@ -1033,7 +1034,7 @@ export class MessageComponent implements AfterViewChecked, OnChanges, OnDestroy 
     );
   }
 
-  private async confirmRemoveMatch(match: UserClass) {
+  private async confirmRemoveMatch(match: PublicProfile) {
     let confirmed = false;
     const matchName = this.getDisplayName(match) || match.firstName || '';
     const alert = await this.alertCtrl.create({

@@ -39,6 +39,7 @@ import {
 } from 'ionicons/icons';
 
 import { Promotions } from '../../../../shared/models/promotions.model';
+import { PublicProfile } from '../../../../shared/models/public-profile.model';
 import { UserClass } from '../../../../shared/models/user.model';
 import { BillingCurrent } from '../../../billing/data-access/billing.repository';
 import { MatchConversationPreview } from '../../../messages/store/match-conversation-previews.store';
@@ -87,8 +88,8 @@ export class DiscoverSidebarComponent implements AfterViewInit, OnChanges {
 
   @Input() userProfile?: UserClass;
   @Input() promotions: Promotions[] = [];
-  @Input() matches: UserClass[] = [];
-  @Input() likedByProfiles: UserClass[] = [];
+  @Input() matches: PublicProfile[] = [];
+  @Input() likedByProfiles: PublicProfile[] = [];
   @Input() conversationPreviews: Record<string, MatchConversationPreview> = {};
   @Input() selectedMatchUid?: string;
   @Input() billingCurrent: BillingCurrent | null = null;
@@ -100,9 +101,9 @@ export class DiscoverSidebarComponent implements AfterViewInit, OnChanges {
   @Input() profileBoostMinutesLeft = 0;
 
   @Output() profileOpened = new EventEmitter<void>();
-  @Output() messageOpened = new EventEmitter<UserClass>();
+  @Output() messageOpened = new EventEmitter<PublicProfile>();
   @Output() likedByUnlockRequested = new EventEmitter<void>();
-  @Output() likedByProfileSelected = new EventEmitter<UserClass>();
+  @Output() likedByProfileSelected = new EventEmitter<PublicProfile>();
   @Output() matchesOpened = new EventEmitter<void>();
   @Output() messagesOpened = new EventEmitter<void>();
   @Output() promotionSelected = new EventEmitter<Promotions>();
@@ -139,19 +140,19 @@ export class DiscoverSidebarComponent implements AfterViewInit, OnChanges {
     }
   }
 
-  getMatchName(match?: UserClass) {
-    return [match?.firstName, match?.lastName].filter(Boolean).join(' ');
+  getMatchName(match?: PublicProfile) {
+    return match?.firstName ?? '';
   }
 
-  getMatchImage(match?: UserClass) {
+  getMatchImage(match?: PublicProfile) {
     return match?.pictures?.[0]?.url || this.fallbackAvatar;
   }
 
-  isSelectedMatch(match: UserClass) {
+  isSelectedMatch(match: PublicProfile) {
     return !!match.uid && match.uid === this.selectedMatchUid;
   }
 
-  isBlockedMatch(match: UserClass) {
+  isBlockedMatch(match: PublicProfile) {
     return !!(
       this.userProfile?.blockedUsers?.length &&
       match.uid &&
@@ -159,7 +160,7 @@ export class DiscoverSidebarComponent implements AfterViewInit, OnChanges {
     );
   }
 
-  getConversationPreview(match: UserClass): MatchConversationPreview {
+  getConversationPreview(match: PublicProfile): MatchConversationPreview {
     if (!match.uid) {
       return this.emptyPreview();
     }
@@ -185,11 +186,11 @@ export class DiscoverSidebarComponent implements AfterViewInit, OnChanges {
     return this.likedByProfiles.length;
   }
 
-  getLikedByPreviewProfiles(): UserClass[] {
+  getLikedByPreviewProfiles(): PublicProfile[] {
     return this.likedByProfiles.slice(0, 3);
   }
 
-  getLikedByPreviewSlots(): Array<UserClass | undefined> {
+  getLikedByPreviewSlots(): Array<PublicProfile | undefined> {
     const previews = this.getLikedByPreviewProfiles();
 
     return previews.length ? previews : [undefined, undefined, undefined];
@@ -201,7 +202,7 @@ export class DiscoverSidebarComponent implements AfterViewInit, OnChanges {
       : 'discover.likesYou.hiddenLikes';
   }
 
-  openLikedByProfile(profile?: UserClass) {
+  openLikedByProfile(profile?: PublicProfile) {
     if (!profile?.uid) {
       return;
     }
@@ -214,7 +215,7 @@ export class DiscoverSidebarComponent implements AfterViewInit, OnChanges {
     this.likedByProfileSelected.emit(profile);
   }
 
-  isMatchOnline(match: UserClass) {
+  isMatchOnline(match: PublicProfile) {
     if (match.showOnlineStatus === false) {
       return false;
     }

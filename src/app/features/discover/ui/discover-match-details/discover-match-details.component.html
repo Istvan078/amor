@@ -44,13 +44,13 @@
     @for(listNum of possibleDetailLists;track $index){
     <ion-list style="margin-top: 10px">
       @for(lab of labels.userProfLabels; track $index) {
-      @if(matchProfile && lab?.inMatch && lab.listNum === listNum && matchProfile[lab.key] && isDetailVisible(lab)) {
+      @if(matchProfile && lab?.inMatch && lab.listNum === listNum && getDetailValue(lab.key) && isDetailVisible(lab)) {
       <ion-item>
         <ion-label>
           <h2>{{ fieldLabel(t, lab) }}</h2>
           @if(lab.type === "checkbox") {
           <div class="d-flex">
-            @for(ch of matchProfile[lab.key]; track $index;) {
+            @for(ch of getDetailListValue(lab.key); track $index;) {
             <p class="m-r-1 m-t-1 border-rounded user-choices-style">
               {{ profileValueText(t, ch) }}
             </p>
@@ -59,7 +59,7 @@
           }
 
           @if(lab.type !== "checkbox") {
-          <p>{{ profileValueText(t, matchProfile[lab.key]) }}</p>
+          <p>{{ profileValueText(t, getDetailValue(lab.key)) }}</p>
           }
         </ion-label>
       </ion-item>

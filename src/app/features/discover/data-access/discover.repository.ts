@@ -9,23 +9,17 @@ import {
 import { firstValueFrom } from 'rxjs';
 
 import { environment } from '../../../../environments/environment';
+import { PublicProfile } from '../../../shared/models/public-profile.model';
 import { UserClass } from '../../../shared/models/user.model';
 import { AuthStore } from '../../auth/store/auth.store';
 import { MatchIndexRepository } from '../../matching/data-access/match-index.repository';
+import { sanitizeProfileForFirestore } from '../../profile/data-access/profile-firestore-sanitizer';
 
 export type CreateMutualMatchResponse = {
     matched: boolean;
     created: boolean;
     matchParts?: UserClass['matchParts'];
 };
-
-function sanitizeDiscoverProfileUpdate(profile: Partial<UserClass>) {
-    const nextProfile = { ...profile } as Record<string, any>;
-
-    delete nextProfile['isBanned'];
-
-    return nextProfile;
-}
 
 @Injectable({
     providedIn: 'root',
@@ -54,7 +48,7 @@ export class DiscoverRepository {
         } as UserClass;
     }
 
-    async getPublicProfile(uid: string): Promise<UserClass | undefined> {
+    async getPublicProfile(uid: string): Promise<PublicProfile | undefined> {
         const snapshot = await this.runInFirebaseContext(() => {
             const profileRef = doc(this.firestore, `publicProfiles/${uid}`);
 
@@ -68,15 +62,15 @@ export class DiscoverRepository {
         return {
             uid: snapshot.id,
             ...snapshot.data(),
-        } as UserClass;
+        } as PublicProfile;
     }
 
-    async getPossibleMatchProfile(uid: string): Promise<UserClass | undefined> {
+    async getPossibleMatchProfile(uid: string): Promise<PublicProfile | undefined> {
         return this.getPublicProfile(uid);
     }
 
-    async getMatchProfiles(matchUids: string[]): Promise<UserClass[]> {
-        const profiles: UserClass[] = [];
+    async getMatchProfiles(matchUids: string[]): Promise<PublicProfile[]> {
+        const profiles: PublicProfile[] = [];
 
         for (const uid of matchUids) {
             const profile = await this.getPublicProfile(uid);
@@ -90,7 +84,7 @@ export class DiscoverRepository {
     }
 
     async updateUserProfile(uid: string, profile: Partial<UserClass>) {
-        const profileUpdate = sanitizeDiscoverProfileUpdate(profile);
+        const profileUpdate = sanitizeProfileForFirestore(profile);
 
         await this.runInFirebaseContext(() => {
             const profileRef = doc(this.firestore, `users/${uid}`);

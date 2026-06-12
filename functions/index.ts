@@ -146,42 +146,16 @@ const canAccessUser = (req: AuthenticatedRequest, uid: string) =>
 const sanitizeUserClaims = (claims: any): Record<string, unknown> => {
   const safeClaims: Record<string, unknown> = {};
 
-  if (typeof claims?.gender === 'string') {
-    safeClaims.gender = claims.gender;
+  if (claims?.admin === true) {
+    safeClaims.admin = true;
   }
 
-  if (typeof claims?.lookingForGender === 'string') {
-    safeClaims.lookingForGender = claims.lookingForGender;
+  if (claims?.moderator === true) {
+    safeClaims.moderator = true;
   }
 
-  if (typeof claims?.lookingForDistance === 'number') {
-    safeClaims.lookingForDistance = claims.lookingForDistance;
-  }
-
-  if (typeof claims?.currentPlace === 'string') {
-    safeClaims.currentPlace = claims.currentPlace;
-  }
-
-  if (
-    claims?.currentLocCoords &&
-    typeof claims.currentLocCoords.lat === 'number' &&
-    typeof claims.currentLocCoords.lon === 'number'
-  ) {
-    safeClaims.currentLocCoords = {
-      lat: claims.currentLocCoords.lat,
-      lon: claims.currentLocCoords.lon,
-    };
-  }
-
-  if (
-    claims?.lookingForAge &&
-    typeof claims.lookingForAge.lower === 'number' &&
-    typeof claims.lookingForAge.upper === 'number'
-  ) {
-    safeClaims.lookingForAge = {
-      lower: claims.lookingForAge.lower,
-      upper: claims.lookingForAge.upper,
-    };
+  if (claims?.premiumAccess === true) {
+    safeClaims.premiumAccess = true;
   }
 
   return safeClaims;
@@ -2640,7 +2614,8 @@ app.post('/likedByProfiles', verifyToken, async (req: AuthenticatedRequest, res:
   try {
     const db = admin.firestore();
     const usersCollection = db.collection('users');
-    const [likedSnapshot, superLikedSnapshot] = await Promise.all([
+    const [myProfileSnapshot, likedSnapshot, superLikedSnapshot] = await Promise.all([
+      usersCollection.doc(myUid).get(),
       usersCollection
         .where('matchParts.liked', 'array-contains', myUid)
         .limit(resultLimit)
@@ -2650,13 +2625,41 @@ app.post('/likedByProfiles', verifyToken, async (req: AuthenticatedRequest, res:
         .limit(resultLimit)
         .get(),
     ]);
-    const likedByUids = Array.from(
-      new Set(
-        [...likedSnapshot.docs, ...superLikedSnapshot.docs]
-          .map((snapshot) => snapshot.id)
-          .filter((likedByUid) => likedByUid !== myUid)
-      )
-    ).slice(0, resultLimit);
+
+    if (!myProfileSnapshot.exists) {
+      res.sendStatus(404);
+      return;
+    }
+
+    const myProfile = myProfileSnapshot.data() ?? {};
+    const excludedUids = new Set([
+      myUid,
+      ...normalizeUidList(myProfile.blockedUsers),
+      ...normalizeUidList(myProfile.reportedUsers),
+    ]);
+    const likedByProfiles = new Map<string, Record<string, unknown>>();
+
+    [...likedSnapshot.docs, ...superLikedSnapshot.docs].forEach((snapshot) => {
+      likedByProfiles.set(snapshot.id, snapshot.data() as Record<string, unknown>);
+    });
+
+    const likedByUids = Array.from(likedByProfiles.entries())
+      .filter(([likedByUid, likedByProfile]) => {
+        if (excludedUids.has(likedByUid)) {
+          return false;
+        }
+
+        if (
+          likedByProfile.isBanned === true ||
+          likedByProfile.isVisible === false
+        ) {
+          return false;
+        }
+
+        return !normalizeUidList(likedByProfile.blockedUsers).includes(myUid);
+      })
+      .map(([likedByUid]) => likedByUid)
+      .slice(0, resultLimit);
     const publicProfileSnapshots = await Promise.all(
       likedByUids.map((likedByUid) =>
         db.collection('publicProfiles').doc(likedByUid).get()
@@ -2726,7 +2729,7 @@ app.post('/syncProfileIndex', verifyToken, async (req: AuthenticatedRequest, res
 });
 
 app.post('/setCustomClaims', verifyToken, async (req: AuthenticatedRequest, res: express.Response) => {
-  const { uid, claims } = req.body;
+  const { uid } = req.body;
 
   if (!uid || !canAccessUser(req, uid)) {
     res.sendStatus(403);
@@ -2736,21 +2739,10 @@ app.post('/setCustomClaims', verifyToken, async (req: AuthenticatedRequest, res:
   try {
     const userRecord = await admin.auth().getUser(uid);
     const existingClaims = userRecord.customClaims ?? {};
-    const safeProfileClaims = sanitizeUserClaims(claims);
-
-    const preservedRoleClaims: Record<string, unknown> = {};
-
-    if (existingClaims.admin === true) {
-      preservedRoleClaims.admin = true;
-    }
-
-    if (existingClaims.moderator === true) {
-      preservedRoleClaims.moderator = true;
-    }
+    const preservedAccessClaims = sanitizeUserClaims(existingClaims);
 
     await admin.auth().setCustomUserClaims(uid, {
-      ...safeProfileClaims,
-      ...preservedRoleClaims,
+      ...preservedAccessClaims,
     });
 
     res.json({ message: 'OK' });

@@ -3,11 +3,11 @@ import { Injectable, inject } from '@angular/core';
 import { firstValueFrom } from 'rxjs';
 
 import { environment } from '../../../../environments/environment';
-import { UserClass } from '../../../shared/models/user.model';
+import { PublicProfile } from '../../../shared/models/public-profile.model';
 import { AuthStore } from '../../auth/store/auth.store';
 
 type LikedByProfilesResponse = {
-  profiles: UserClass[];
+  profiles: PublicProfile[];
 };
 
 @Injectable({

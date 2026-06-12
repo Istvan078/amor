@@ -29,7 +29,7 @@ import {
 } from 'ionicons/icons';
 
 import { translatedProfileValue } from '../../../../shared/i18n/profile-value-labels';
-import { UserClass } from '../../../../shared/models/user.model';
+import { PublicProfile } from '../../../../shared/models/public-profile.model';
 
 @Component({
   selector: 'app-discover-match-card',
@@ -52,7 +52,7 @@ export class DiscoverMatchCardComponent implements OnChanges {
 
   @Input() progress = 0;
   @Input() buffer = 0;
-  @Input() matchProfile?: UserClass;
+  @Input() matchProfile?: PublicProfile;
   @Input() isMatchPlaceHolder = false;
   @Input() hasRewindCandidate = false;
   @Input() isRewindLocked = true;

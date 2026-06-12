@@ -7,14 +7,14 @@ import {
     withState,
 } from '@ngrx/signals';
 
-import { UserClass } from '../../../shared/models/user.model';
+import { PublicProfile } from '../../../shared/models/public-profile.model';
 
 type DiscoverViewMode = 'discover' | 'profile' | 'messages';
 
 type DiscoverUiState = {
     mode: DiscoverViewMode;
     phoneView: boolean;
-    selectedMessageProfile: UserClass | null;
+    selectedMessageProfile: PublicProfile | null;
 };
 
 const initialState: DiscoverUiState = {
@@ -49,7 +49,7 @@ export const DiscoverUiStore = signalStore(
             });
         },
 
-        showMessages(selectedMessageProfile?: UserClass | null) {
+        showMessages(selectedMessageProfile?: PublicProfile | null) {
             patchState(store, {
                 mode: 'messages',
                 selectedMessageProfile: selectedMessageProfile ?? null,

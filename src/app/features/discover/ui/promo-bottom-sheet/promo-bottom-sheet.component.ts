@@ -25,7 +25,7 @@ import {
 } from 'ionicons/icons';
 
 import { Promotions } from '../../../../shared/models/promotions.model';
-import { UserClass } from '../../../../shared/models/user.model';
+import { PublicProfile } from '../../../../shared/models/public-profile.model';
 
 export type PromoBottomSheetDismissReason = 'close' | 'maybeLater' | 'cta';
 export type PromoBottomSheetDismissEvent = {
@@ -44,7 +44,7 @@ export class PromoBottomSheetComponent implements OnChanges {
   @Input() isOpen = false;
   @Input() promotions: Promotions[] = [];
   @Input() activeIndex = 0;
-  @Input() likedByProfiles: UserClass[] = [];
+  @Input() likedByProfiles: PublicProfile[] = [];
 
   @Output() dismissed = new EventEmitter<PromoBottomSheetDismissEvent>();
 
@@ -109,7 +109,7 @@ export class PromoBottomSheetComponent implements OnChanges {
     return this.likedByProfiles.slice(0, 3);
   }
 
-  getLikedByProfileImage(profile?: UserClass) {
+  getLikedByProfileImage(profile?: PublicProfile) {
     return profile?.pictures?.[0]?.url || this.fallbackAvatar;
   }
 

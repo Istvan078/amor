@@ -8,7 +8,6 @@ import {
   inject,
 } from '@angular/core';
 import { DOCUMENT } from '@angular/common';
-import { ActivatedRoute, Router } from '@angular/router';
 import { Auth } from '@angular/fire/auth';
 import {
   IonCard,
@@ -23,13 +22,9 @@ import { Subscription } from 'rxjs';
 
 import { IonModalPage } from '../../../modals/ion-modal/ion-modal.page';
 import { ConfigService } from '../../../services/config.service';
-import { LocationService } from '../../../services/location.service';
 import { MessageComponent } from '../../messages/ui/message/message.component';
 import { AuthStore } from '../../auth/store/auth.store';
 import { AnalyticsService } from '../../analytics/data-access/analytics.service';
-import { DiscoverRepository } from '../data-access/discover.repository';
-import { DiscoverStore } from '../store/discover.store';
-import { DiscoverUiStore } from '../store/discover-ui.store';
 import { DiscoverMatchCardComponent } from '../ui/discover-match-card/discover-match-card.component';
 import { DiscoverMatchDetailsComponent } from '../ui/discover-match-details/discover-match-details.component';
 import {
@@ -41,11 +36,9 @@ import {
   PromoBottomSheetComponent,
   type PromoBottomSheetDismissEvent,
 } from '../ui/promo-bottom-sheet/promo-bottom-sheet.component';
-import { ProfilePicturesRepository } from '../../profile/data-access/profile-pictures.repository';
-import { ProfileVerificationRepository } from '../../profile/data-access/profile-verification.repository';
-import { ProfileStore } from '../../profile/store/profile.store';
 import { Options } from '../../../shared/models/options.model';
 import { Promotions } from '../../../shared/models/promotions.model';
+import { PublicProfile } from '../../../shared/models/public-profile.model';
 import { UserClass } from '../../../shared/models/user.model';
 import { Message } from '../../../shared/models/message.model';
 import { MatchConversationPreviewsStore } from '../../messages/store/match-conversation-previews.store';
@@ -54,25 +47,14 @@ import { type MatchActionResponse } from '../../matching/data-access/match-actio
 import {
   DiscoveryFeedMode,
   DiscoveryPremiumFilters,
-  MatchIndexRepository,
 } from '../../matching/data-access/match-index.repository';
-import { LikedByRepository } from '../../matching/data-access/liked-by.repository';
-import { OnlinePresenceService } from '../../presence/data-access/online-presence.service';
 import { PromoStore } from '../../promotions/store/promo.store';
-import { DailyUsageStore } from '../../usage/store/daily-usage.store';
-import { PaywallComponent } from '../../billing/ui/paywall/paywall.component';
-import { BillingStore } from '../../billing/store/billing.store';
-import { UserClaims } from '../../auth/store/auth.slice';
-import {
-  getProfileCompleteness,
-  isProfileCompleteForDiscovery,
-} from '../../profile/utils/profile-completeness';
 import { ItsAMatchModalComponent } from '../ui/its-a-match-modal/its-a-match-modal.component';
-
-type ProfilePicture = NonNullable<UserClass['pictures']>[number];
-const FREE_DAILY_LIKE_LIMIT = 30;
-const FIRST_MONTH_DAILY_LIKE_LIMIT = 60;
-const FIRST_MONTH_PRODUCT_ID = 'amorino_gold_first_month';
+import { BillingFacade } from '../facades/billing.facade';
+import { ChatFacade } from '../facades/chat.facade';
+import { DiscoverFacade } from '../facades/discover.facade';
+import { PresenceFacade } from '../facades/presence.facade';
+import { ProfileEditorFacade } from '../facades/profile-editor.facade';
 
 @Component({
   selector: 'app-discover',
@@ -97,16 +79,16 @@ const FIRST_MONTH_PRODUCT_ID = 'amorino_gold_first_month';
 })
 export class DiscoverPage implements OnInit, OnDestroy {
   possibleMatchIds: string[] = [];
-  matchProfiles: UserClass[] = [];
+  matchProfiles: PublicProfile[] = [];
   progress = 0;
   buffer = 0;
-  matches: UserClass[] = [];
+  matches: PublicProfile[] = [];
   isShowMessages = false;
   isUserCardOpen = false;
 
   labels: any = {};
   possMatchDetLists: number[] = [];
-  matchProf?: UserClass;
+  matchProf?: PublicProfile;
   user: any;
   promotions: Promotions[] = [];
   startUpdUserProf = false;
@@ -114,13 +96,13 @@ export class DiscoverPage implements OnInit, OnDestroy {
   isMatchPlaceHolder = false;
   userProf?: UserClass;
   selectedFiles: File[] = [];
-  selectedMessProf?: UserClass;
+  selectedMessProf?: PublicProfile;
   options: Options = new Options();
   promoBottomSheetOpen = false;
   promoBottomSheetPromotions: Promotions[] = [];
   promoBottomSheetActiveIndex = 0;
-  rewindStack: UserClass[] = [];
-  likedByProfiles: UserClass[] = [];
+  rewindStack: PublicProfile[] = [];
+  likedByProfiles: PublicProfile[] = [];
   discoveryFeedMode: DiscoveryFeedMode = 'recommended';
   premiumDiscoveryFilters: DiscoveryPremiumFilters = {};
   isLoadingMoreCandidates = false;
@@ -163,8 +145,6 @@ export class DiscoverPage implements OnInit, OnDestroy {
     },
   ];
 
-  private readonly maxProfilePictures = 6;
-
   hasPremiumAccess = false;
   hasRewindCandidate = false;
   freeRewindsRemaining = 0;
@@ -191,25 +171,19 @@ export class DiscoverPage implements OnInit, OnDestroy {
   private authStore = inject(AuthStore);
   private firebaseAuth = inject(Auth);
   private analytics = inject(AnalyticsService);
-  private profileStore = inject(ProfileStore);
-  readonly discoverStore = inject(DiscoverStore);
-  private discoverUiStore = inject(DiscoverUiStore);
+  private billingFacade = inject(BillingFacade);
+  private chatFacade = inject(ChatFacade);
+  private discoverFacade = inject(DiscoverFacade);
+  private presenceFacade = inject(PresenceFacade);
+  private profileEditorFacade = inject(ProfileEditorFacade);
+  readonly billingStore = this.billingFacade.store;
+  readonly discoverStore = this.discoverFacade.store;
+  private discoverUiStore = this.chatFacade.uiStore;
   readonly matchConversationPreviewsStore = inject(MatchConversationPreviewsStore);
   private matchActionsStore = inject(MatchActionsStore);
-  private matchIndexRepository = inject(MatchIndexRepository);
-  private likedByRepository = inject(LikedByRepository);
-  private onlinePresenceService = inject(OnlinePresenceService);
   private promoStore = inject(PromoStore);
-  private dailyUsageStore = inject(DailyUsageStore);
-  readonly billingStore = inject(BillingStore);
   private modalCtrl = inject(ModalController);
   private config = inject(ConfigService);
-  private router = inject(Router);
-  private route = inject(ActivatedRoute);
-  private locationService = inject(LocationService);
-  private discoverRepository = inject(DiscoverRepository);
-  private profilePicturesRepository = inject(ProfilePicturesRepository);
-  private profileVerificationRepository = inject(ProfileVerificationRepository);
   private document = inject(DOCUMENT);
 
   constructor() {
@@ -221,8 +195,8 @@ export class DiscoverPage implements OnInit, OnDestroy {
       const uid = this.user?.uid ?? null;
 
       if (!uid) {
-        void this.onlinePresenceService.setOffline();
-        this.dailyUsageStore.clearDailyUsage();
+        void this.presenceFacade.setOffline();
+        this.billingFacade.clearDailyUsage();
         this.loadedDiscoverUid = null;
         this.loadingDiscoverUid = null;
         this.promoBottomSheetShownForUid = null;
@@ -240,22 +214,22 @@ export class DiscoverPage implements OnInit, OnDestroy {
 
       queueMicrotask(() => {
         if (this.authStore.user()?.uid === uid) {
-          void this.onlinePresenceService.setOnline(uid);
-          void this.dailyUsageStore.loadDailyUsage(uid);
+          void this.presenceFacade.setOnline(uid);
+          void this.billingFacade.loadDailyUsage(uid);
           void this.ensureDiscoverData(uid);
         }
       });
     });
 
     effect(() => {
-      this.userProf = this.profileStore.profile() ?? undefined;
+      this.userProf = this.profileEditorFacade.profile() ?? undefined;
       this.matchConversationPreviewsStore.start(this.userProf, this.matches);
       this.schedulePromoBottomSheetCheck();
       this.syncMatchActionState();
     });
 
     effect(() => {
-      this.selectedFiles = this.config.selectedFiles();
+      this.selectedFiles = this.profileEditorFacade.selectedFiles();
     });
 
     effect(() => {
@@ -298,7 +272,7 @@ export class DiscoverPage implements OnInit, OnDestroy {
 
   @HostListener('window:pagehide')
   handlePageHide() {
-    void this.onlinePresenceService.setOffline(this.user?.uid ?? this.authStore.user()?.uid);
+    void this.presenceFacade.setOffline(this.user?.uid ?? this.authStore.user()?.uid);
   }
 
   async ngOnInit() {
@@ -312,64 +286,20 @@ export class DiscoverPage implements OnInit, OnDestroy {
   ngOnDestroy() {
     this.routeQueryParamSubscription?.unsubscribe();
     this.matchConversationPreviewsStore.stop();
-    this.dailyUsageStore.clearDailyUsage();
+    this.billingFacade.clearDailyUsage();
     this.stopBoostCountdownTimer();
     this.document.body.classList.remove('is-mobile-promo-sheet-open');
-    void this.onlinePresenceService.setOffline(this.user?.uid ?? this.authStore.user()?.uid);
+    void this.presenceFacade.setOffline(this.user?.uid ?? this.authStore.user()?.uid);
   }
 
   private updatePhoneView() {
-    this.discoverUiStore.setPhoneView(window.innerWidth <= 768);
+    this.chatFacade.setPhoneView(window.innerWidth <= 768);
   }
 
   private async initMainView() {
     await this.setMatchProfiles(this.possibleMatchIds);
     this.setPromotion();
     this.setUProfLabels();
-  }
-
-  private buildEditableProfilePayload(
-    profile: UserClass,
-    uid: string
-  ): Partial<UserClass> & { uid: string } {
-    return {
-      uid,
-
-      firstName: profile.firstName,
-      lastName: profile.lastName,
-      birthDate: profile.birthDate,
-      age: profile.age,
-      gender: profile.gender,
-
-      aboutMe: profile.aboutMe,
-      lookingForType: profile.lookingForType,
-      lookingForGender: profile.lookingForGender,
-      lookingForAge: profile.lookingForAge,
-      lookingForDistance: profile.lookingForDistance,
-
-      job: profile.job,
-      currStudy: profile.currStudy,
-      studies: profile.studies,
-      highestSchool: profile.highestSchool,
-      freeTimeAct: profile.freeTimeAct,
-      interests: profile.interests,
-      zodiacSign: profile.zodiacSign,
-
-      currentPlace: profile.currentPlace,
-      currentLocCoords: profile.currentLocCoords,
-
-      profilePicture: profile.profilePicture,
-      pictures: profile.pictures,
-
-      isVisible: profile.isVisible,
-      showOnlineStatus: profile.showOnlineStatus,
-      distanceVisibility: profile.distanceVisibility,
-      readReceiptsEnabled: profile.readReceiptsEnabled,
-
-      notificationPreferences: profile.notificationPreferences,
-      notificationDelivery: profile.notificationDelivery,
-      notificationQuietHours: profile.notificationQuietHours,
-    };
   }
 
   private async ensureDiscoverData(uid?: string | null) {
@@ -381,7 +311,7 @@ export class DiscoverPage implements OnInit, OnDestroy {
     this.resetActiveDiscoverView();
 
     try {
-      await this.discoverStore.loadDiscoverData();
+      await this.discoverFacade.loadDiscoverData();
 
       if (this.authStore.user()?.uid !== uid) {
         return;
@@ -439,24 +369,16 @@ export class DiscoverPage implements OnInit, OnDestroy {
 
   private subscribeToDeepLinkQueryParams() {
     this.routeQueryParamSubscription?.unsubscribe();
-    this.routeQueryParamSubscription = this.route.queryParamMap.subscribe(
-      (params) => {
-        const view = params.get('view');
-        const matchUid = params.get('matchUid');
-        const targetUid = params.get('targetUid');
-
-        if (view === 'messages' && matchUid) {
+    this.routeQueryParamSubscription = this.chatFacade.listenForDeepLinks({
+      messageMatchUid: (matchUid) => {
           this.pendingMessageMatchUid = matchUid;
           void this.resolvePendingMessageDeepLink();
-          return;
-        }
-
-        if (targetUid) {
-          this.pendingTargetProfileUid = targetUid;
-          void this.resolvePendingTargetProfileDeepLink();
-        }
-      }
-    );
+      },
+      targetProfileUid: (targetUid) => {
+        this.pendingTargetProfileUid = targetUid;
+        void this.resolvePendingTargetProfileDeepLink();
+      },
+    });
   }
 
   private async resolvePendingMessageDeepLink() {
@@ -481,27 +403,27 @@ export class DiscoverPage implements OnInit, OnDestroy {
 
       if (!isKnownMatch) {
         this.pendingMessageMatchUid = null;
-        await this.router.navigate(['/amor/discover'], { replaceUrl: true });
+        await this.chatFacade.clearDiscoverDeepLink();
         return;
       }
 
       let match = this.matches.find((matchProfile) => matchProfile.uid === matchUid);
 
       if (!match) {
-        match = await this.discoverRepository.getPossibleMatchProfile(matchUid);
+        match = await this.discoverFacade.getPossibleMatchProfile(matchUid);
 
         if (!match?.uid) {
           return;
         }
 
         this.matches = this.addMatchLocally(this.matches, match);
-        this.discoverStore.addMatch(match);
+        this.discoverFacade.addMatch(match);
       }
 
       this.matchConversationPreviewsStore.start(this.userProf, this.matches);
       this.openMessWithMatch(match);
       this.pendingMessageMatchUid = null;
-      await this.router.navigate(['/amor/discover'], { replaceUrl: true });
+      await this.chatFacade.clearDiscoverDeepLink();
     } finally {
       this.resolvingMessageDeepLink = false;
     }
@@ -522,21 +444,21 @@ export class DiscoverPage implements OnInit, OnDestroy {
 
     try {
       const targetProfile =
-        await this.discoverRepository.getPossibleMatchProfile(targetUid);
+        await this.discoverFacade.getPossibleMatchProfile(targetUid);
 
       if (!targetProfile?.uid) {
         return;
       }
 
       this.options.isSelectedMatch = false;
-      this.discoverUiStore.showMatchesCard();
+      this.chatFacade.showMatchesCard();
       this.matchProf = targetProfile;
       this.matchProf['index'] = -1;
       this.isMatchPlaceHolder = false;
       this.isMatchDetailsOpen = false;
       this.setUProfLabels();
       this.pendingTargetProfileUid = null;
-      await this.router.navigate(['/amor/discover'], { replaceUrl: true });
+      await this.chatFacade.clearDiscoverDeepLink();
     } finally {
       this.resolvingTargetProfileDeepLink = false;
     }
@@ -552,7 +474,7 @@ export class DiscoverPage implements OnInit, OnDestroy {
       return true;
     }
 
-    const latestProfile = await this.discoverRepository.getUserProfile(myUid);
+    const latestProfile = await this.discoverFacade.getUserProfile(myUid);
     const latestMatchUids = latestProfile?.matchParts?.matches ?? [];
 
     if (!latestProfile?.uid || !latestMatchUids.includes(matchUid)) {
@@ -560,7 +482,7 @@ export class DiscoverPage implements OnInit, OnDestroy {
     }
 
     this.userProf = latestProfile;
-    this.profileStore.setProfile(latestProfile);
+    this.profileEditorFacade.setProfile(latestProfile);
     return true;
   }
 
@@ -612,45 +534,32 @@ export class DiscoverPage implements OnInit, OnDestroy {
   }
 
   private async loadLikedByProfiles(uid: string) {
-    try {
-      const profiles = await this.likedByRepository.getProfilesWhoLikedUser(uid);
+    const profiles = await this.discoverFacade.getProfilesWhoLikedUser(uid);
 
-      this.likedByProfiles = this.filterLikedByProfiles(profiles);
-    } catch (error) {
-      console.warn('Failed to load profiles who liked the user.', error);
-      this.likedByProfiles = [];
-    }
+    this.likedByProfiles = this.filterLikedByProfiles(profiles);
   }
 
   private async loadActiveProfileBoost(uid: string) {
-    try {
-      this.profileBoostedUntil =
-        await this.matchIndexRepository.getProfileBoostedUntil(uid);
-    } catch (error) {
-      console.warn('Failed to load profile boost state.', error);
-      this.profileBoostedUntil = null;
-    }
-
+    this.profileBoostedUntil = await this.billingFacade.loadActiveProfileBoost(uid);
     this.syncBoostCountdownTimer();
   }
 
   isProfileBoostActive() {
-    return this.getProfileBoostExpiresAtMillis() > this.boostCountdownNow;
+    return this.billingFacade.isProfileBoostActive(
+      this.profileBoostedUntil,
+      this.boostCountdownNow
+    );
   }
 
   profileBoostMinutesLeft() {
-    const remainingMs =
-      this.getProfileBoostExpiresAtMillis() - this.boostCountdownNow;
-
-    if (remainingMs <= 0) {
-      return 0;
-    }
-
-    return Math.max(Math.ceil(remainingMs / 60000), 1);
+    return this.billingFacade.profileBoostMinutesLeft(
+      this.profileBoostedUntil,
+      this.boostCountdownNow
+    );
   }
 
-  private filterLikedByProfiles(profiles: UserClass[]) {
-    const profile = this.userProf ?? this.profileStore.profile() ?? undefined;
+  private filterLikedByProfiles(profiles: PublicProfile[]) {
+    const profile = this.userProf ?? this.profileEditorFacade.profile() ?? undefined;
     const excludedUids = new Set(
       [
         profile?.uid,
@@ -668,11 +577,7 @@ export class DiscoverPage implements OnInit, OnDestroy {
         return false;
       }
 
-      return (
-        likedByProfile.isVisible !== false &&
-        likedByProfile.isBanned !== true &&
-        isProfileCompleteForDiscovery(likedByProfile)
-      );
+      return likedByProfile.profileCompleted !== false;
     });
   }
 
@@ -714,10 +619,6 @@ export class DiscoverPage implements OnInit, OnDestroy {
 
     clearInterval(this.boostCountdownInterval);
     this.boostCountdownInterval = null;
-  }
-
-  private getProfileBoostExpiresAtMillis() {
-    return this.toTimestampMillis(this.profileBoostedUntil);
   }
 
   private syncMatchActionState() {
@@ -872,24 +773,10 @@ export class DiscoverPage implements OnInit, OnDestroy {
   }
 
   async openPaywall(promotion?: Promotions) {
-    void this.analytics.track(this.userProf?.uid ?? this.user?.uid, 'paywall_opened', {
-      promotionId: promotion?.['id'] ?? null,
-    });
-
-    const modal = await this.modalCtrl.create({
-      component: PaywallComponent,
-      componentProps: {
-        promotionId: promotion?.['id'],
-      },
-      cssClass: 'paywall-modal',
-    });
-
-    await modal.present();
-
-    const { data } = await modal.onDidDismiss<{
-      purchased?: boolean;
-      restored?: boolean;
-    }>();
+    const data = await this.billingFacade.openPaywall(
+      this.userProf?.uid ?? this.user?.uid,
+      promotion
+    );
 
     if (
       promotion?.['id'] === 'profileBoost' &&
@@ -919,44 +806,23 @@ export class DiscoverPage implements OnInit, OnDestroy {
       return false;
     }
 
-    try {
-      const boostedUntil = await this.matchIndexRepository.activateProfileBoost(uid);
-      this.profileBoostedUntil = boostedUntil.toISOString();
-      this.syncBoostCountdownTimer();
-      await this.billingStore.refreshCustomerInfo(uid);
-      await this.dailyUsageStore.incrementDailyUsage(uid, 'boost');
-      void this.analytics.track(uid, 'boost_started', {
-        boostedUntil: boostedUntil.toISOString(),
-        durationMinutes: 30,
-      });
+    const boostedUntil = await this.billingFacade.activateProfileBoost(uid);
 
-      return true;
-    } catch (error) {
-      console.warn('Failed to activate profile boost.', error);
+    if (!boostedUntil) {
       return false;
     }
+
+    this.profileBoostedUntil = boostedUntil.toISOString();
+    this.syncBoostCountdownTimer();
+    return true;
   }
 
   private async canUseDailyLike(uid: string, likeLimit: number) {
-    if (!Number.isFinite(likeLimit)) {
-      return true;
-    }
-
-    await this.dailyUsageStore.loadDailyUsage(uid);
-
-    return this.dailyUsageStore.getActionCount(uid, 'like') < likeLimit;
+    return this.billingFacade.canUseDailyLike(uid, likeLimit);
   }
 
   private getDailyLikeLimit() {
-    if (this.isFirstMonthPremiumActive()) {
-      return FIRST_MONTH_DAILY_LIKE_LIMIT;
-    }
-
-    if (this.billingStore.isPremium()) {
-      return Number.POSITIVE_INFINITY;
-    }
-
-    return FREE_DAILY_LIKE_LIMIT;
+    return this.billingFacade.getDailyLikeLimit();
   }
 
   private openDailyLikeLimitPromotion() {
@@ -973,17 +839,7 @@ export class DiscoverPage implements OnInit, OnDestroy {
   }
 
   private isFirstMonthPremiumActive() {
-    const billing = this.billingStore.current();
-    const productIds = [
-      billing?.productId,
-      ...(billing?.activeSubscriptions ?? []),
-    ].filter((productId): productId is string => !!productId);
-
-    return productIds.some(
-      (productId) =>
-        productId === FIRST_MONTH_PRODUCT_ID ||
-        productId.includes('first_month')
-    );
+    return this.billingFacade.isFirstMonthPremiumActive();
   }
 
   setUProfLabels() {
@@ -1032,8 +888,9 @@ export class DiscoverPage implements OnInit, OnDestroy {
       return;
     }
 
-    const matchProfiles =
-      await this.discoverRepository.getMatchProfiles(possibleMatchIds);
+    const matchProfiles = this.withCandidateSummaries(
+      await this.discoverFacade.getMatchProfiles(possibleMatchIds)
+    );
 
     if (matchProfiles.length) {
       this.matchProfiles = matchProfiles;
@@ -1127,7 +984,7 @@ export class DiscoverPage implements OnInit, OnDestroy {
       let newMatchIds: string[] = [];
 
       for (let attempt = 0; attempt < 3; attempt++) {
-        hasNewCandidates = await this.discoverStore.loadMoreCandidates();
+        hasNewCandidates = await this.discoverFacade.loadMoreCandidates();
         this.syncDiscoverState();
 
         newMatchIds = this.discoverStore
@@ -1147,8 +1004,9 @@ export class DiscoverPage implements OnInit, OnDestroy {
         return false;
       }
 
-      const newProfiles =
-        await this.discoverRepository.getMatchProfiles(newMatchIds);
+      const newProfiles = this.withCandidateSummaries(
+        await this.discoverFacade.getMatchProfiles(newMatchIds)
+      );
 
       newProfiles.forEach((profile) => {
         if (profile.uid) {
@@ -1171,14 +1029,24 @@ export class DiscoverPage implements OnInit, OnDestroy {
     }
   }
 
-  openLikedByProfile(profile: UserClass) {
+  private withCandidateSummaries(profiles: PublicProfile[]) {
+    const summaries = this.discoverStore.candidateSummaries();
+
+    return profiles.map((profile) => {
+      const summary = summaries[profile.uid];
+
+      return summary ? { ...profile, ...summary } : profile;
+    });
+  }
+
+  openLikedByProfile(profile: PublicProfile) {
     if (!this.billingStore.isPremium()) {
       this.openSeeLikesPaywall();
       return;
     }
 
     this.options.isSelectedMatch = false;
-    this.discoverUiStore.showMatchesCard();
+    this.chatFacade.showMatchesCard();
     this.matchProf = profile;
     this.matchProf['index'] = -1;
     this.isMatchPlaceHolder = false;
@@ -1222,7 +1090,7 @@ export class DiscoverPage implements OnInit, OnDestroy {
   }
 
   async likeOrDontUser(
-    usr: UserClass | undefined,
+    usr: PublicProfile | undefined,
     isLike?: boolean,
     isDontLike?: boolean
   ) {
@@ -1236,17 +1104,17 @@ export class DiscoverPage implements OnInit, OnDestroy {
 
   openUserCard() {
     this.options.isSelectedMatch = false;
-    this.discoverUiStore.openUserCard();
+    this.chatFacade.openUserCard();
   }
 
   showMatchesCard() {
     this.options.isSelectedMatch = false;
-    this.discoverUiStore.showMatchesCard();
+    this.chatFacade.showMatchesCard();
   }
 
   showMessages() {
     this.options.isSelectedMatch = false;
-    this.discoverUiStore.showMessages(
+    this.chatFacade.showMessages(
       this.selectedMessProf ?? this.matches[0] ?? null
     );
   }
@@ -1281,7 +1149,7 @@ export class DiscoverPage implements OnInit, OnDestroy {
     }
 
     if (Number.isFinite(likeLimit)) {
-      await this.dailyUsageStore.incrementDailyUsage(uid, 'like');
+      await this.billingFacade.incrementDailyUsage(uid, 'like');
     }
 
     const newMatch = this.completeMutualMatchFromAction(
@@ -1354,7 +1222,7 @@ export class DiscoverPage implements OnInit, OnDestroy {
     const uid = this.userProf?.uid ?? this.user?.uid;
 
     if (uid) {
-      await this.dailyUsageStore.loadDailyUsage(uid, true);
+      await this.billingFacade.loadDailyUsage(uid, true);
     }
 
     this.matchProf = previousMatch;
@@ -1390,7 +1258,7 @@ export class DiscoverPage implements OnInit, OnDestroy {
 
     if (uid) {
       await Promise.all([
-        this.dailyUsageStore.loadDailyUsage(uid, true),
+        this.billingFacade.loadDailyUsage(uid, true),
         this.billingStore.refreshCustomerInfo(uid),
       ]);
     }
@@ -1409,7 +1277,7 @@ export class DiscoverPage implements OnInit, OnDestroy {
   }
 
   private completeMutualMatchFromAction(
-    matchProfile: UserClass,
+    matchProfile: PublicProfile,
     actionResult: MatchActionResponse
   ) {
     if (!this.userProf?.uid || !matchProfile.uid || !actionResult.created) {
@@ -1420,8 +1288,8 @@ export class DiscoverPage implements OnInit, OnDestroy {
       this.userProf.matchParts = actionResult.matchParts;
     }
 
-    this.profileStore.setProfile(this.userProf);
-    this.discoverStore.addMatch(matchProfile);
+    this.profileEditorFacade.setProfile(this.userProf);
+    this.discoverFacade.addMatch(matchProfile);
     this.matches = this.addMatchLocally(this.matches, matchProfile);
 
     void this.analytics.track(this.userProf.uid, 'match_created', {
@@ -1431,7 +1299,7 @@ export class DiscoverPage implements OnInit, OnDestroy {
     return matchProfile;
   }
 
-  private async openItsAMatchModal(matchProfile: UserClass) {
+  private async openItsAMatchModal(matchProfile: PublicProfile) {
     const modal = await this.modalCtrl.create({
       component: ItsAMatchModalComponent,
       componentProps: {
@@ -1450,7 +1318,10 @@ export class DiscoverPage implements OnInit, OnDestroy {
     }
   }
 
-  private addMatchLocally(matches: UserClass[], matchProfile: UserClass) {
+  private addMatchLocally(
+    matches: PublicProfile[],
+    matchProfile: PublicProfile
+  ) {
     if (!matchProfile.uid) {
       return matches;
     }
@@ -1469,13 +1340,13 @@ export class DiscoverPage implements OnInit, OnDestroy {
     await modal.present();
   }
 
-  openMessWithMatch(match: UserClass) {
+  openMessWithMatch(match: PublicProfile) {
     this.selectedMessProf = match;
     this.options.isSelectedMatch = true;
-    this.discoverUiStore.showMessages(match);
+    this.chatFacade.showMessages(match);
   }
 
-  handleMessageSent(event: { matchProfile: UserClass; message: Message }) {
+  handleMessageSent(event: { matchProfile: PublicProfile; message: Message }) {
     const matchUid = event.matchProfile.uid;
 
     if (!matchUid) {
@@ -1507,7 +1378,7 @@ export class DiscoverPage implements OnInit, OnDestroy {
     return '';
   }
 
-  handleMatchRemoved(matchProfile: UserClass) {
+  handleMatchRemoved(matchProfile: PublicProfile) {
     const matchUid = matchProfile.uid;
 
     if (!matchUid) {
@@ -1519,7 +1390,7 @@ export class DiscoverPage implements OnInit, OnDestroy {
     );
 
     this.matches = remainingMatches;
-    this.discoverStore.removeMatch(matchUid);
+    this.discoverFacade.removeMatch(matchUid);
 
     this.matchConversationPreviewsStore.removePreview(matchUid);
 
@@ -1531,14 +1402,14 @@ export class DiscoverPage implements OnInit, OnDestroy {
 
     if (nextSelectedMatch) {
       this.selectedMessProf = nextSelectedMatch;
-      this.discoverUiStore.showMessages(nextSelectedMatch);
+      this.chatFacade.showMessages(nextSelectedMatch);
       this.options.isSelectedMatch = !this.options.phoneView;
       return;
     }
 
     this.selectedMessProf = undefined;
     this.options.isSelectedMatch = false;
-    this.discoverUiStore.showMessages(null);
+    this.chatFacade.showMessages(null);
   }
 
   startUpdateUserProf() {
@@ -1548,13 +1419,20 @@ export class DiscoverPage implements OnInit, OnDestroy {
   async updateUserProf() {
     const uid = this.userProf?.uid ?? this.user?.uid;
 
-    if (!uid || !this.userProf || !this.hasRequiredProfilePictures()) {
+    if (
+      !uid ||
+      !this.userProf ||
+      !this.profileEditorFacade.hasRequiredProfilePictures(this.userProf)
+    ) {
       return;
     }
 
-    const userProf = this.buildEditableProfilePayload(this.userProf, uid);
+    const userProf = this.profileEditorFacade.buildEditableProfilePayload(
+      this.userProf,
+      uid
+    );
 
-    const profileSaved = await this.profileStore.updateProfile(uid, userProf);
+    const profileSaved = await this.profileEditorFacade.updateProfile(uid, userProf);
 
     if (!profileSaved) {
       return;
@@ -1571,58 +1449,25 @@ export class DiscoverPage implements OnInit, OnDestroy {
     }
 
     this.startUpdUserProf = false;
-    this.discoverUiStore.showMatchesCard();
+    this.chatFacade.showMatchesCard();
     this.loadedDiscoverUid = null;
-    this.discoverStore.clearDiscoverData();
+    this.discoverFacade.clearDiscoverData();
     this.resetActiveDiscoverView();
-
-    try {
-      const claims = await this.buildClaimsFromProfile(userProf);
-      await this.authStore.setCustomClaims(uid, claims);
-    } catch (error) {
-      console.warn('Profile was saved, but claim refresh failed.', error);
-    }
 
     await this.ensureDiscoverData(uid);
   }
 
   getProfileCompletionPercent(profile: Partial<UserClass>) {
-    return getProfileCompleteness(profile);
+    return this.profileEditorFacade.getProfileCompletionPercent(profile);
   }
 
   isProfileReadyForDiscovery(profile?: Partial<UserClass> | null) {
-    return isProfileCompleteForDiscovery(profile);
+    return this.profileEditorFacade.isProfileReadyForDiscovery(profile);
   }
 
   startProfileOnboarding() {
     this.startUpdUserProf = true;
     this.openUserCard();
-  }
-
-  private async buildClaimsFromProfile(
-    userProf: Partial<UserClass>
-  ): Promise<UserClaims> {
-    let currentLocCoords = userProf.currentLocCoords;
-
-    try {
-      const currentPosition = await this.locationService.getLocation();
-
-      currentLocCoords = {
-        lat: currentPosition.coords.latitude,
-        lon: currentPosition.coords.longitude,
-      };
-    } catch (error) {
-      console.warn('Skipping profile claim location refresh.', error);
-    }
-
-    return {
-      gender: userProf.gender,
-      lookingForGender: userProf.lookingForGender,
-      lookingForAge: userProf.lookingForAge,
-      lookingForDistance: userProf.lookingForDistance,
-      currentLocCoords,
-      currentPlace: userProf.currentPlace ?? '',
-    };
   }
 
   onSelectChoices(eventObj: any, labelKey: any) {
@@ -1651,144 +1496,32 @@ export class DiscoverPage implements OnInit, OnDestroy {
     }
   }
 
-  private toTimestampMillis(value: unknown) {
-    if (!value) {
-      return 0;
-    }
-
-    if (value instanceof Date) {
-      return value.getTime();
-    }
-
-    if (typeof value === 'number') {
-      return value;
-    }
-
-    if (typeof value === 'string') {
-      const date = new Date(value);
-
-      return Number.isNaN(date.getTime()) ? 0 : date.getTime();
-    }
-
-    if (typeof value === 'object') {
-      const maybeTimestamp = value as {
-        toDate?: () => Date;
-        toMillis?: () => number;
-      };
-
-      if (typeof maybeTimestamp.toMillis === 'function') {
-        return maybeTimestamp.toMillis();
-      }
-
-      if (typeof maybeTimestamp.toDate === 'function') {
-        return maybeTimestamp.toDate().getTime();
-      }
-    }
-
-    return 0;
-  }
-
-  private hasRequiredProfilePictures() {
-    return (this.userProf?.pictures?.length ?? 0) >= 1;
-  }
-
-  private normalizeProfilePictures(pictures: ProfilePicture[] = []) {
-    return pictures
-      .filter((picture) => !!picture?.url && !!picture?.name)
-      .slice(0, this.maxProfilePictures);
-  }
-
-  private async persistProfilePictures(
-    pictures: ProfilePicture[],
-    preferredPrimaryUrl?: string
-  ) {
-    const uid = this.userProf?.uid ?? this.user?.uid;
-
-    if (!uid || !this.userProf) {
-      return false;
-    }
-
-    const normalizedPictures = this.normalizeProfilePictures(pictures);
-
-    if (!normalizedPictures.length) {
-      return false;
-    }
-
-    const primaryPicture = normalizedPictures.some(
-      (picture) => picture.url === preferredPrimaryUrl
-    )
-      ? preferredPrimaryUrl
-      : normalizedPictures[0]?.url;
-
-    this.userProf.pictures = normalizedPictures;
-    this.userProf.profilePicture = primaryPicture;
-
-    const profileSaved = await this.profileStore.updateProfile(uid, {
-      pictures: normalizedPictures,
-      profilePicture: primaryPicture,
-    });
-
-    if (!profileSaved) {
-      return false;
-    }
-
-    this.userProf = this.profileStore.profile() ?? this.userProf;
-    return true;
-  }
-
   async savePictures() {
     if (!this.userProf?.uid || !this.selectedFiles.length) {
       return;
     }
 
-    const availableSlots = Math.max(
-      this.maxProfilePictures - (this.userProf.pictures?.length ?? 0),
-      0
-    );
-
-    if (availableSlots <= 0) {
-      this.config.clearSelectedFiles();
-      return;
-    }
-
-    const updatedProfile = await this.profilePicturesRepository.addPictures(
-      this.userProf.uid,
+    this.userProf = await this.profileEditorFacade.savePictures(
       this.userProf,
-      this.selectedFiles.slice(0, availableSlots)
+      this.selectedFiles
     );
-
-    await this.persistProfilePictures(
-      updatedProfile.pictures ?? [],
-      updatedProfile.profilePicture
-    );
-
-    this.config.clearSelectedFiles();
   }
 
   async requestProfileVerification(selfieFile: File) {
     const uid = this.userProf?.uid ?? this.user?.uid;
 
-    if (!uid || !selfieFile || this.verificationSubmitting) {
+    if (!uid || !this.userProf || !selfieFile || this.verificationSubmitting) {
       return;
     }
 
     this.verificationSubmitting = true;
 
     try {
-      const response =
-        await this.profileVerificationRepository.requestProfileVerification(
-          uid,
-          selfieFile
-        );
-      const nextProfile = {
-        ...(this.userProf ?? {}),
-        profileVerificationStatus: response.status,
-        profileVerified: response.status === 'approved',
-        profileVerificationRequestedAt: new Date().toISOString(),
-      } as UserClass;
-
-      this.userProf = nextProfile;
-      this.profileStore.setProfile(nextProfile);
+      this.userProf = await this.profileEditorFacade.requestProfileVerification(
+        this.userProf,
+        selfieFile,
+        uid
+      );
     } catch (error) {
       console.warn('Profile verification request failed.', error);
     } finally {
@@ -1801,73 +1534,32 @@ export class DiscoverPage implements OnInit, OnDestroy {
       return;
     }
 
-    const pictures = this.normalizeProfilePictures(this.userProf.pictures);
-
-    if (
-      event.fromIndex < 0 ||
-      event.toIndex < 0 ||
-      event.fromIndex >= pictures.length ||
-      event.toIndex >= pictures.length ||
-      event.fromIndex === event.toIndex
-    ) {
-      return;
-    }
-
-    const reorderedPictures = [...pictures];
-    const [movedPicture] = reorderedPictures.splice(event.fromIndex, 1);
-
-    if (!movedPicture) {
-      return;
-    }
-
-    reorderedPictures.splice(event.toIndex, 0, movedPicture);
-
-    await this.persistProfilePictures(
-      reorderedPictures,
-      this.userProf.profilePicture
+    this.userProf = await this.profileEditorFacade.reorderProfilePhotos(
+      this.userProf,
+      event
     );
   }
 
   async selectPrimaryProfilePhoto(index: number) {
-    const pictures = this.normalizeProfilePictures(this.userProf?.pictures ?? []);
-    const selectedPicture = pictures[index];
-
-    if (!selectedPicture) {
+    if (!this.userProf) {
       return;
     }
 
-    await this.persistProfilePictures(pictures, selectedPicture.url);
+    this.userProf = await this.profileEditorFacade.selectPrimaryProfilePhoto(
+      this.userProf,
+      index
+    );
   }
 
   async deleteProfilePhoto(index: number) {
-    const pictures = this.normalizeProfilePictures(this.userProf?.pictures ?? []);
-
-    if (!this.userProf?.uid || pictures.length <= 1 || index < 0 || index >= pictures.length) {
+    if (!this.userProf) {
       return;
     }
 
-    const removedPicture = pictures[index];
-
-    if (!removedPicture) {
-      return;
-    }
-
-    const remainingPictures = pictures.filter((_, pictureIndex) => pictureIndex !== index);
-    const nextPrimaryPicture =
-      this.userProf.profilePicture === removedPicture.url
-        ? remainingPictures[0]?.url
-        : this.userProf.profilePicture;
-
-    try {
-      await this.profilePicturesRepository.deleteFilesFromStorage(
-        `publicPictures/${this.userProf.uid}`,
-        removedPicture.name
-      );
-    } catch (error) {
-      console.warn('Failed to delete profile picture from storage', error);
-    }
-
-    await this.persistProfilePictures(remainingPictures, nextPrimaryPicture);
+    this.userProf = await this.profileEditorFacade.deleteProfilePhoto(
+      this.userProf,
+      index
+    );
   }
 
   handleChoiceSelected(choice: ProfileChoiceSelectedEvent) {
