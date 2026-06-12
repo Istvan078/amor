@@ -167,7 +167,7 @@ export class MessagesRepository {
         const conversationId = this.getConversationId(myUid, matchUid);
         const participants = this.getConversationParticipants(myUid, matchUid);
 
-        await this.runInFirebaseContext(async () => {
+        return this.runInFirebaseContext(async () => {
             const conversationRef = doc(
                 this.firestore,
                 `conversations/${conversationId}`
@@ -196,7 +196,7 @@ export class MessagesRepository {
         const participants = this.getConversationParticipants(myUid, matchUid);
         const lastMessage = messages.at(-1);
 
-        await this.runInFirebaseContext(async () => {
+        return this.runInFirebaseContext(async () => {
             const conversationRef = doc(
                 this.firestore,
                 `conversations/${conversationId}`
@@ -244,11 +244,11 @@ export class MessagesRepository {
         myUid: string,
         matchUid: string,
         message: Message
-    ) {
+    ): Promise<string> {
         const conversationId = this.getConversationId(myUid, matchUid);
         const participants = this.getConversationParticipants(myUid, matchUid);
 
-        await this.runInFirebaseContext(async () => {
+        return this.runInFirebaseContext(async () => {
             const conversationRef = doc(
                 this.firestore,
                 `conversations/${conversationId}`
@@ -277,10 +277,12 @@ export class MessagesRepository {
                 { merge: true }
             );
 
-            await addDoc(messagesCollection, {
+            const messageRef = await addDoc(messagesCollection, {
                 ...this.mapMessageForConversation(message),
                 sentAt,
             });
+
+            return messageRef.id;
         });
     }
 
@@ -374,6 +376,125 @@ export class MessagesRepository {
         });
     }
 
+    async editMessage(
+        myUid: string,
+        matchUid: string,
+        message: Message,
+        nextText: string
+    ) {
+        if (!message.id || message.senderUid !== myUid || message.isDeleted) {
+            return;
+        }
+
+        const conversationId = this.getConversationId(myUid, matchUid);
+        const trimmedText = nextText.trim();
+
+        if (!trimmedText) {
+            return;
+        }
+
+        await this.runInFirebaseContext(async () => {
+            const conversationRef = doc(
+                this.firestore,
+                `conversations/${conversationId}`
+            );
+            const messageRef = doc(
+                this.firestore,
+                `conversations/${conversationId}/messages/${message.id}`
+            );
+            const editedAt = serverTimestamp();
+
+            await runTransaction(this.firestore, async (transaction) => {
+                const conversationSnapshot = await transaction.get(conversationRef);
+                const lastMessage = this.toRecord(
+                    conversationSnapshot.data()?.['lastMessage']
+                );
+                const isLastMessage =
+                    String(lastMessage['senderUid'] ?? '') === myUid &&
+                    Number(lastMessage['number'] ?? -1) === message.number;
+
+                transaction.update(messageRef, {
+                    text: trimmedText,
+                    type: 'text',
+                    gif: null,
+                    isEdited: true,
+                    editedAt,
+                });
+
+                if (isLastMessage) {
+                    transaction.set(
+                        conversationRef,
+                        {
+                            lastMessage: {
+                                ...lastMessage,
+                                text: trimmedText,
+                                type: 'text',
+                            },
+                            updatedAt: editedAt,
+                        },
+                        { merge: true }
+                    );
+                }
+            });
+        });
+    }
+
+    async deleteMessage(myUid: string, matchUid: string, message: Message) {
+        if (!message.id || message.senderUid !== myUid || message.isDeleted) {
+            return;
+        }
+
+        const conversationId = this.getConversationId(myUid, matchUid);
+
+        await this.runInFirebaseContext(async () => {
+            const conversationRef = doc(
+                this.firestore,
+                `conversations/${conversationId}`
+            );
+            const messageRef = doc(
+                this.firestore,
+                `conversations/${conversationId}/messages/${message.id}`
+            );
+            const deletedAt = serverTimestamp();
+
+            await runTransaction(this.firestore, async (transaction) => {
+                const conversationSnapshot = await transaction.get(conversationRef);
+                const lastMessage = this.toRecord(
+                    conversationSnapshot.data()?.['lastMessage']
+                );
+                const isLastMessage =
+                    String(lastMessage['senderUid'] ?? '') === myUid &&
+                    Number(lastMessage['number'] ?? -1) === message.number;
+
+                transaction.update(messageRef, {
+                    text: '',
+                    type: 'text',
+                    gif: null,
+                    attachments: [],
+                    reactions: [],
+                    isDeleted: true,
+                    isEdited: false,
+                    deletedAt,
+                });
+
+                if (isLastMessage) {
+                    transaction.set(
+                        conversationRef,
+                        {
+                            lastMessage: {
+                                ...lastMessage,
+                                text: 'Message deleted',
+                                type: 'text',
+                            },
+                            updatedAt: deletedAt,
+                        },
+                        { merge: true }
+                    );
+                }
+            });
+        });
+    }
+
     async loadOlderMessages(myUid: string, matchUid: string, beforeMessage: Message) {
         const conversationId = this.getConversationId(myUid, matchUid);
 
@@ -460,6 +581,8 @@ export class MessagesRepository {
             isDeleted: message.isDeleted ?? false,
             isStarred: message.isStarred ?? false,
             isEdited: message.isEdited ?? false,
+            editedAt: message.editedAt ?? null,
+            deletedAt: message.deletedAt ?? null,
         };
     }
 
@@ -481,6 +604,8 @@ export class MessagesRepository {
         message.isDeleted = data['isDeleted'] === true;
         message.isStarred = data['isStarred'] === true;
         message.isEdited = data['isEdited'] === true;
+        message.editedAt = this.toDate(data['editedAt']);
+        message.deletedAt = this.toDate(data['deletedAt']);
         message.gif = this.mapMessageGif(data['gif']);
         message.reactions = this.mapMessageReactions(data['reactions']);
 
@@ -488,6 +613,10 @@ export class MessagesRepository {
     }
 
     private getMessagePreviewText(message: Message) {
+        if (message.isDeleted) {
+            return 'Message deleted';
+        }
+
         if (message.message.trim()) {
             return message.message.trim();
         }

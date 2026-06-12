@@ -1,12 +1,14 @@
 import { Injectable, inject } from '@angular/core';
 
 import { DiscoverRepository } from '../../discover/data-access/discover.repository';
+import { ProfileStore } from '../../profile/store/profile.store';
 
 @Injectable({
   providedIn: 'root',
 })
 export class OnlinePresenceService {
   private discoverRepository = inject(DiscoverRepository);
+  private profileStore = inject(ProfileStore);
   private activeUid: string | null = null;
   private heartbeatId: ReturnType<typeof setInterval> | null = null;
   private readonly heartbeatMs = 45_000;
@@ -59,7 +61,11 @@ export class OnlinePresenceService {
 
   private async updatePresence(uid: string, isOnline: boolean) {
     try {
-      await this.discoverRepository.updateUserOnlineStatus(uid, isOnline);
+      await this.discoverRepository.updateUserOnlineStatus(
+        uid,
+        isOnline,
+        this.profileStore.profile()?.showOnlineStatus === true
+      );
     } catch (error) {
       console.warn('Online presence update failed.', error);
     }

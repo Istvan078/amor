@@ -27,6 +27,58 @@
       ]
     },
     {
+      "collectionGroup": "matchIndex",
+      "queryScope": "COLLECTION",
+      "fields": [
+        { "fieldPath": "isVisible", "order": "ASCENDING" },
+        { "fieldPath": "isBanned", "order": "ASCENDING" },
+        { "fieldPath": "profileCompleted", "order": "ASCENDING" },
+        { "fieldPath": "hasPhoto", "order": "ASCENDING" },
+        { "fieldPath": "geoBucket", "order": "ASCENDING" },
+        { "fieldPath": "__name__", "order": "ASCENDING" }
+      ]
+    },
+    {
+      "collectionGroup": "matchIndex",
+      "queryScope": "COLLECTION",
+      "fields": [
+        { "fieldPath": "isVisible", "order": "ASCENDING" },
+        { "fieldPath": "isBanned", "order": "ASCENDING" },
+        { "fieldPath": "profileCompleted", "order": "ASCENDING" },
+        { "fieldPath": "hasPhoto", "order": "ASCENDING" },
+        { "fieldPath": "geoBucket", "order": "ASCENDING" },
+        { "fieldPath": "gender", "order": "ASCENDING" },
+        { "fieldPath": "__name__", "order": "ASCENDING" }
+      ]
+    },
+    {
+      "collectionGroup": "matchIndex",
+      "queryScope": "COLLECTION",
+      "fields": [
+        { "fieldPath": "isVisible", "order": "ASCENDING" },
+        { "fieldPath": "isBanned", "order": "ASCENDING" },
+        { "fieldPath": "profileCompleted", "order": "ASCENDING" },
+        { "fieldPath": "hasPhoto", "order": "ASCENDING" },
+        { "fieldPath": "geoBucket", "order": "ASCENDING" },
+        { "fieldPath": "lookingForGender", "order": "ASCENDING" },
+        { "fieldPath": "__name__", "order": "ASCENDING" }
+      ]
+    },
+    {
+      "collectionGroup": "matchIndex",
+      "queryScope": "COLLECTION",
+      "fields": [
+        { "fieldPath": "isVisible", "order": "ASCENDING" },
+        { "fieldPath": "isBanned", "order": "ASCENDING" },
+        { "fieldPath": "profileCompleted", "order": "ASCENDING" },
+        { "fieldPath": "hasPhoto", "order": "ASCENDING" },
+        { "fieldPath": "geoBucket", "order": "ASCENDING" },
+        { "fieldPath": "gender", "order": "ASCENDING" },
+        { "fieldPath": "lookingForGender", "order": "ASCENDING" },
+        { "fieldPath": "__name__", "order": "ASCENDING" }
+      ]
+    },
+    {
       "collectionGroup": "messages",
       "queryScope": "COLLECTION",
       "fields": [

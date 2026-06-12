@@ -21,7 +21,6 @@ import { setModerationError, setModerationLastReport, setModerationLoaded, setMo
 function ensureMatchParts(profile: UserClass) {
     profile.matchParts ??= new MatchParts();
     profile.matchParts.matches ??= [];
-    profile.matchParts.possMatches ??= [];
     profile.matchParts.liked ??= [];
     profile.matchParts.notLiked ??= [];
     profile.matchParts.superLiked ??= [];

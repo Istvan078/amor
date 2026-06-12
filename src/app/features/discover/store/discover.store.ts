@@ -146,31 +146,6 @@ export const DiscoverStore = signalStore(
             return profile;
         }
 
-        async function syncMutualMatches(userProfile: UserClass) {
-            if (!userProfile.uid || !userProfile.matchParts?.liked?.length) {
-                return;
-            }
-
-            for (const likedUid of userProfile.matchParts.liked) {
-                const alreadyMatched =
-                    userProfile.matchParts.matches?.includes(likedUid);
-
-                if (!alreadyMatched) {
-                    try {
-                        const matchResult =
-                            await repository.createMutualMatch(likedUid);
-
-                        if (matchResult.matchParts) {
-                            userProfile.matchParts = matchResult.matchParts;
-                            profileStore.setProfile(userProfile);
-                        }
-                    } catch (error) {
-                        console.warn('Mutual match sync failed.', error);
-                    }
-                }
-            }
-        }
-
         async function buildPossibleMatches(
             candidates: DiscoverCandidatesResponse['candidates'],
             userProfile: UserClass,
@@ -180,10 +155,6 @@ export const DiscoverStore = signalStore(
             const possibleMatchIds: string[] = [];
             const checkedCandidateIds: string[] = [];
             const candidateSummaries: DiscoverState['candidateSummaries'] = {};
-
-            if (resetPossibleMatches) {
-                userProfile.matchParts!.possMatches = [];
-            }
 
             const filteredCandidates = candidates.filter((candidate) => {
                 if (!candidate?.uid || candidate.uid === userProfile.uid) {
@@ -214,10 +185,6 @@ export const DiscoverStore = signalStore(
                     sharedInterestCount: candidate.sharedInterestCount ?? 0,
                 };
 
-                if (!userProfile.matchParts!.possMatches.includes(candidate.uid)) {
-                    userProfile.matchParts!.possMatches.push(candidate.uid);
-                }
-
                 checkedCandidateIds.push(candidate.uid);
 
                 patchState(store, {
@@ -230,10 +197,10 @@ export const DiscoverStore = signalStore(
             if (resetPossibleMatches && userProfile.uid) {
                 userProfile.currentPlace = currentCity;
 
-                await repository.updateUserProfile(
-                    userProfile.uid,
-                    userProfile.setDataForFireStore()
-                );
+                await repository.updateUserProfile(userProfile.uid, {
+                    currentPlace: currentCity,
+                    currentLocCoords: userProfile.currentLocCoords,
+                });
             }
 
             patchState(store, {
@@ -363,13 +330,11 @@ export const DiscoverStore = signalStore(
 
                     profileStore.setProfile(userProfile);
 
-                    await syncMutualMatches(userProfile);
-
                     const matches = await repository.getMatchProfiles(
                         userProfile.matchParts?.matches ?? []
                     );
 
-                    let possibleMatchIds = userProfile.matchParts?.possMatches ?? [];
+                    let possibleMatchIds: string[] = [];
 
                     patchState(store, {
                         loggedUser: authStore.user(),

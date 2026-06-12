@@ -5,6 +5,7 @@ import type {
     AppNotification,
     AppNotificationType,
 } from './notifications.repository';
+import { AuthStore } from '../../auth/store/auth.store';
 
 type NotificationTarget = Pick<
     AppNotification,
@@ -16,9 +17,12 @@ type NotificationTarget = Pick<
 })
 export class NotificationNavigationService {
     private router = inject(Router);
+    private authStore = inject(AuthStore);
 
     async openNotificationTarget(notification: NotificationTarget) {
-        const actorUid = this.toNonEmptyString(notification.actorUid);
+        const actorUid =
+            this.toNonEmptyString(notification.actorUid) ??
+            this.getOtherConversationParticipant(notification.conversationId);
 
         if (
             actorUid &&
@@ -79,5 +83,17 @@ export class NotificationNavigationService {
 
     private toNonEmptyString(value: unknown) {
         return typeof value === 'string' && value.trim() ? value.trim() : undefined;
+    }
+
+    private getOtherConversationParticipant(conversationId?: string) {
+        const uid = this.authStore.user()?.uid;
+
+        if (!uid || !conversationId) {
+            return undefined;
+        }
+
+        return conversationId
+            .split('_')
+            .find((participantUid) => participantUid && participantUid !== uid);
     }
 }

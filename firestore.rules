@@ -348,7 +348,17 @@ service cloud.firestore {
     match /publicProfiles/{uid} {
       allow get: if signedIn();
       allow list: if false;
-      allow write: if false;
+      allow update: if isOwner(uid)
+        && resource.data.showOnlineStatus == true
+        && request.resource.data.diff(resource.data).affectedKeys().hasOnly([
+          'isOnline',
+          'lastSeenAt',
+          'lastActiveAt'
+        ])
+        && request.resource.data.isOnline is bool
+        && request.resource.data.lastSeenAt is string
+        && request.resource.data.lastActiveAt is string;
+      allow create, delete: if false;
     }
 
     match /matchIndex/{uid} {
@@ -422,11 +432,34 @@ service cloud.firestore {
         allow create: if isMessageParticipant()
           && request.resource.data.senderUid == request.auth.uid;
         allow update: if isMessageParticipant()
-          && request.resource.data.diff(resource.data).changedKeys().hasOnly([
-            'reactions',
-            'isRead',
-            'readAt'
-          ]);
+          && (
+            request.resource.data.diff(resource.data).changedKeys().hasOnly([
+              'reactions'
+            ])
+            || (
+              resource.data.sentToUid == request.auth.uid
+              && request.resource.data.diff(resource.data).changedKeys().hasOnly([
+                'isRead',
+                'readAt'
+              ])
+            )
+            || (
+              resource.data.senderUid == request.auth.uid
+              && request.resource.data.senderUid == resource.data.senderUid
+              && request.resource.data.sentToUid == resource.data.sentToUid
+              && request.resource.data.diff(resource.data).changedKeys().hasOnly([
+                'text',
+                'type',
+                'gif',
+                'attachments',
+                'reactions',
+                'isDeleted',
+                'isEdited',
+                'editedAt',
+                'deletedAt'
+              ])
+            )
+          );
         allow delete: if isAdminOrModerator();
       }
     }

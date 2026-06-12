@@ -29,11 +29,14 @@ import {
   banOutline,
   briefcaseOutline,
   calendarOutline,
+  checkmarkOutline,
   chatbubbleEllipsesOutline,
   chevronBackOutline,
   chevronForwardOutline,
   chevronUpOutline,
+  closeCircleOutline,
   closeOutline,
+  createOutline,
   ellipsisHorizontal,
   flagOutline,
   heartOutline,
@@ -42,6 +45,7 @@ import {
   locationOutline,
   lockOpenOutline,
   personCircleOutline,
+  refreshOutline,
   removeCircleOutline,
   schoolOutline,
   sendOutline,
@@ -64,7 +68,7 @@ import { UserClass } from '../../../../shared/models/user.model';
 import { translatedProfileValue } from '../../../../shared/i18n/profile-value-labels';
 import { ModerationStore } from '../../../moderation/store/moderation.store';
 import { ProfileStore } from '../../../profile/store/profile.store';
-import { MessagesStore } from '../../store/messages.store';
+import { MessagesFacade } from '../../facades/messages.facade';
 
 type ReportReason =
   | 'fakeProfile'
@@ -125,7 +129,8 @@ export class MessageComponent implements AfterViewChecked, OnChanges, OnDestroy 
   @Output() matchRemoved = new EventEmitter<PublicProfile>();
   @Output() readReceiptsPremiumRequested = new EventEmitter<void>();
 
-  readonly messagesStore = inject(MessagesStore);
+  private messagesFacade = inject(MessagesFacade);
+  readonly messagesStore = this.messagesFacade.store;
 
   private moderationStore = inject(ModerationStore);
   private profileStore = inject(ProfileStore);
@@ -143,6 +148,7 @@ export class MessageComponent implements AfterViewChecked, OnChanges, OnDestroy 
   private typingStopTimer: ReturnType<typeof setTimeout> | null = null;
   private lastTypingWriteAt = 0;
   private pendingReactionKeys = new Set<string>();
+  private pendingMessageActionIds = new Set<string>();
   private reportingMessageIds = new Set<string>();
   private reportDialogResolver?: (
     selection?: ReportReasonSelection
@@ -152,6 +158,8 @@ export class MessageComponent implements AfterViewChecked, OnChanges, OnDestroy 
   isMatchPhotoViewerOpen = false;
   activeComposerPanel: 'emoji' | 'gif' | null = null;
   activeReactionPickerMessageId?: string;
+  editingMessageId?: string;
+  editingMessageText = '';
   activeMatchPhotoIndex = 0;
   moderationNoticeKey?: string;
   readReceiptsSaving = false;
@@ -218,11 +226,14 @@ export class MessageComponent implements AfterViewChecked, OnChanges, OnDestroy 
       banOutline,
       briefcaseOutline,
       calendarOutline,
+      checkmarkOutline,
       chatbubbleEllipsesOutline,
       chevronBackOutline,
       chevronForwardOutline,
       chevronUpOutline,
+      closeCircleOutline,
       closeOutline,
+      createOutline,
       ellipsisHorizontal,
       flagOutline,
       happyOutline,
@@ -231,6 +242,7 @@ export class MessageComponent implements AfterViewChecked, OnChanges, OnDestroy 
       locationOutline,
       lockOpenOutline,
       personCircleOutline,
+      refreshOutline,
       removeCircleOutline,
       schoolOutline,
       sendOutline,
@@ -253,12 +265,12 @@ export class MessageComponent implements AfterViewChecked, OnChanges, OnDestroy 
     const messageSignature = messages
       .map(
         (message) =>
-          `${message.id ?? message.number}:${message.messageType}:${message.message}:${message.gif?.id ?? ''}`
+          `${message.id ?? message.clientId ?? message.number}:${message.messageType}:${message.message}:${message.gif?.id ?? ''}:${message.deliveryStatus ?? ''}:${message.isDeleted ? 'd' : ''}:${message.isEdited ? 'e' : ''}`
       )
       .join('|');
     const latestMessage = messages.at(-1);
     const latestMessageSignature = latestMessage
-      ? `${latestMessage.id ?? latestMessage.number}:${latestMessage.messageType}:${latestMessage.message}:${latestMessage.gif?.id ?? ''}`
+      ? `${latestMessage.id ?? latestMessage.clientId ?? latestMessage.number}:${latestMessage.messageType}:${latestMessage.message}:${latestMessage.gif?.id ?? ''}:${latestMessage.deliveryStatus ?? ''}:${latestMessage.isDeleted ? 'd' : ''}:${latestMessage.isEdited ? 'e' : ''}`
       : '';
 
     if (messageSignature !== this.lastRenderedMessageSignature) {
@@ -309,11 +321,11 @@ export class MessageComponent implements AfterViewChecked, OnChanges, OnDestroy 
 
   async loadMessages() {
     if (!this.userProfile || !this.matchProfile) {
-      this.messagesStore.clearMessages();
+      this.messagesFacade.clearMessages();
       return;
     }
 
-    await this.messagesStore.loadMessages(this.userProfile, this.matchProfile);
+    await this.messagesFacade.loadMessages(this.userProfile, this.matchProfile);
     this.pendingScrollToBottom = true;
   }
 
@@ -337,7 +349,7 @@ export class MessageComponent implements AfterViewChecked, OnChanges, OnDestroy 
       : undefined;
     const previousMessageCount = this.messagesStore.messages().length;
 
-    await this.messagesStore.loadOlderMessages(
+    await this.messagesFacade.loadOlderMessages(
       this.userProfile,
       this.matchProfile
     );
@@ -363,7 +375,8 @@ export class MessageComponent implements AfterViewChecked, OnChanges, OnDestroy 
     return (
       this.hasReadReceiptsEnabled() &&
       this.isOwnMessage(message) &&
-      message.isRead === true
+      message.isRead === true &&
+      !message.isDeleted
     );
   }
 
@@ -482,7 +495,7 @@ export class MessageComponent implements AfterViewChecked, OnChanges, OnDestroy 
   }
 
   toggleReactionPicker(message: Message) {
-    if (this.isCurrentMatchBlocked || !message.id) {
+    if (this.isCurrentMatchBlocked || !message.id || message.isDeleted) {
       return;
     }
 
@@ -498,7 +511,8 @@ export class MessageComponent implements AfterViewChecked, OnChanges, OnDestroy 
       this.isCurrentMatchBlocked ||
       !this.userProfile ||
       !this.matchProfile ||
-      !message.id
+      !message.id ||
+      message.isDeleted
     ) {
       return;
     }
@@ -512,7 +526,7 @@ export class MessageComponent implements AfterViewChecked, OnChanges, OnDestroy 
     this.pendingReactionKeys.add(reactionKey);
 
     try {
-      await this.messagesStore.toggleMessageReaction(
+      await this.messagesFacade.toggleMessageReaction(
         this.userProfile,
         this.matchProfile,
         message,
@@ -766,7 +780,7 @@ export class MessageComponent implements AfterViewChecked, OnChanges, OnDestroy 
 
     await this.moderationStore.removeMatch(this.userProfile, removedMatch);
     this.moderationNoticeKey = 'messages.matchRemovedNotice';
-    this.messagesStore.clearMessages();
+    this.messagesFacade.clearMessages();
     this.closeConversationMenu();
     this.matchRemoved.emit(removedMatch);
   }
@@ -798,6 +812,7 @@ export class MessageComponent implements AfterViewChecked, OnChanges, OnDestroy 
       this.userProfile?.uid &&
       this.matchProfile?.uid &&
       message.id &&
+      !message.isDeleted &&
       message.senderUid === this.matchProfile.uid &&
       message.sentToUid === this.userProfile.uid
     );
@@ -878,16 +893,158 @@ export class MessageComponent implements AfterViewChecked, OnChanges, OnDestroy 
       sentAt: new Date(),
     };
 
-    await this.messagesStore.sendMessage(
+    const sentMessage = await this.messagesFacade.sendMessage(
       this.userProfile,
       this.matchProfile,
       message
     );
 
-    this.messageSent.emit({
-      matchProfile: this.matchProfile,
-      message,
-    });
+    if (sentMessage) {
+      this.messageSent.emit({
+        matchProfile: this.matchProfile,
+        message: sentMessage,
+      });
+    }
+  }
+
+  isMessageSending(message: Message) {
+    return message.deliveryStatus === 'sending';
+  }
+
+  isMessageFailed(message: Message) {
+    return message.deliveryStatus === 'failed';
+  }
+
+  isEditingMessage(message: Message) {
+    return !!message.id && this.editingMessageId === message.id;
+  }
+
+  isMessageActionPending(message: Message) {
+    return !!message.id && this.pendingMessageActionIds.has(message.id);
+  }
+
+  canEditMessage(message: Message) {
+    return !!(
+      this.isOwnMessage(message) &&
+      message.id &&
+      !message.isDeleted &&
+      message.messageType === 'text' &&
+      !this.isMessageSending(message) &&
+      !this.isMessageFailed(message)
+    );
+  }
+
+  canDeleteMessage(message: Message) {
+    return !!(
+      this.isOwnMessage(message) &&
+      message.id &&
+      !message.isDeleted &&
+      !this.isMessageSending(message) &&
+      !this.isMessageFailed(message)
+    );
+  }
+
+  startEditMessage(message: Message) {
+    if (!this.canEditMessage(message)) {
+      return;
+    }
+
+    this.editingMessageId = message.id;
+    this.editingMessageText = message.message;
+    this.activeReactionPickerMessageId = undefined;
+  }
+
+  cancelEditMessage() {
+    this.editingMessageId = undefined;
+    this.editingMessageText = '';
+  }
+
+  async saveEditedMessage(message: Message) {
+    if (
+      !this.userProfile ||
+      !this.matchProfile ||
+      !message.id ||
+      !this.canEditMessage(message)
+    ) {
+      return;
+    }
+
+    const nextText = this.editingMessageText.trim();
+
+    if (!nextText || nextText === message.message) {
+      this.cancelEditMessage();
+      return;
+    }
+
+    this.pendingMessageActionIds.add(message.id);
+
+    try {
+      const saved = await this.messagesFacade.editMessage(
+        this.userProfile,
+        this.matchProfile,
+        message,
+        nextText
+      );
+
+      if (saved) {
+        this.cancelEditMessage();
+      }
+    } finally {
+      this.pendingMessageActionIds.delete(message.id);
+    }
+  }
+
+  async deleteMessage(message: Message) {
+    if (
+      !this.userProfile ||
+      !this.matchProfile ||
+      !message.id ||
+      !this.canDeleteMessage(message)
+    ) {
+      return;
+    }
+
+    const confirmed = await this.confirmDeleteMessage();
+
+    if (!confirmed) {
+      return;
+    }
+
+    this.pendingMessageActionIds.add(message.id);
+
+    try {
+      await this.messagesFacade.deleteMessage(
+        this.userProfile,
+        this.matchProfile,
+        message
+      );
+    } finally {
+      this.pendingMessageActionIds.delete(message.id);
+    }
+  }
+
+  async retryMessage(message: Message) {
+    if (
+      !this.userProfile ||
+      !this.matchProfile ||
+      !this.isOwnMessage(message) ||
+      !this.isMessageFailed(message)
+    ) {
+      return;
+    }
+
+    const sentMessage = await this.messagesFacade.retryMessage(
+      this.userProfile,
+      this.matchProfile,
+      message
+    );
+
+    if (sentMessage) {
+      this.messageSent.emit({
+        matchProfile: this.matchProfile,
+        message: sentMessage,
+      });
+    }
   }
 
   onMessageInput() {
@@ -899,7 +1056,7 @@ export class MessageComponent implements AfterViewChecked, OnChanges, OnDestroy 
 
     if (now - this.lastTypingWriteAt > 2500) {
       this.lastTypingWriteAt = now;
-      void this.messagesStore.setTypingStatus(
+      void this.messagesFacade.setTypingStatus(
         this.userProfile,
         this.matchProfile,
         true
@@ -981,7 +1138,7 @@ export class MessageComponent implements AfterViewChecked, OnChanges, OnDestroy 
       return;
     }
 
-    void this.messagesStore.setTypingStatus(
+    void this.messagesFacade.setTypingStatus(
       this.userProfile,
       matchProfile,
       false
@@ -1061,6 +1218,35 @@ export class MessageComponent implements AfterViewChecked, OnChanges, OnDestroy 
     });
 
     this.closeConversationMenu();
+    await alert.present();
+    await alert.onDidDismiss();
+
+    return confirmed;
+  }
+
+  private async confirmDeleteMessage() {
+    let confirmed = false;
+    const alert = await this.alertCtrl.create({
+      header: this.transloco.translate('messages.deleteMessageConfirmTitle'),
+      message: this.transloco.translate('messages.deleteMessageConfirmText'),
+      cssClass: 'premium-moderation-alert remove-match-alert',
+      buttons: [
+        {
+          text: this.transloco.translate('common.cancel'),
+          role: 'cancel',
+          cssClass: 'premium-alert-cancel-button',
+        },
+        {
+          text: this.transloco.translate('messages.deleteMessageConfirmButton'),
+          role: 'destructive',
+          cssClass: 'premium-alert-danger-button',
+          handler: () => {
+            confirmed = true;
+          },
+        },
+      ],
+    });
+
     await alert.present();
     await alert.onDidDismiss();
 

@@ -156,14 +156,12 @@ export class UserClass {
 
 export class MatchParts {
   matches: string[];
-  possMatches: string[];
   liked: string[];
   notLiked: string[];
   superLiked: string[];
 
   constructor() {
     this.matches = [];
-    this.possMatches = [];
     this.liked = [];
     this.notLiked = [];
     this.superLiked = [];

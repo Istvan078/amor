@@ -437,10 +437,46 @@
             }
 
             @for (mess of messagesStore.messages(); track getMessageTrackId(mess, $index)) {
-              <div class="message-row" [class.own-message]="isOwnMessage(mess)">
+              <div
+                class="message-row"
+                [class.own-message]="isOwnMessage(mess)"
+                [class.is-sending]="isMessageSending(mess)"
+                [class.is-failed]="isMessageFailed(mess)"
+                [class.is-deleted]="mess.isDeleted"
+              >
                 <div class="message-stack">
                   <span class="message-bubble" [class.has-gif]="isGifMessage(mess)">
-                    @if (isGifMessage(mess)) {
+                    @if (isEditingMessage(mess)) {
+                      <span class="message-edit-form">
+                        <textarea
+                          [(ngModel)]="editingMessageText"
+                          [ngModelOptions]="{ standalone: true }"
+                          [attr.aria-label]="t('messages.editMessage')"
+                          maxlength="1000"
+                          rows="3"
+                        ></textarea>
+                        <span>
+                          <button
+                            type="button"
+                            [disabled]="isMessageActionPending(mess)"
+                            (click)="saveEditedMessage(mess)"
+                          >
+                            <ion-icon name="checkmark-outline" aria-hidden="true"></ion-icon>
+                            {{ t('messages.saveEdit') }}
+                          </button>
+                          <button
+                            type="button"
+                            [disabled]="isMessageActionPending(mess)"
+                            (click)="cancelEditMessage()"
+                          >
+                            <ion-icon name="close-circle-outline" aria-hidden="true"></ion-icon>
+                            {{ t('common.cancel') }}
+                          </button>
+                        </span>
+                      </span>
+                    } @else if (mess.isDeleted) {
+                      <em class="message-deleted-copy">{{ t('messages.deletedMessage') }}</em>
+                    } @else if (isGifMessage(mess)) {
                       <span class="message-gif-card">
                         <img
                           [src]="mess.gif?.url"
@@ -453,12 +489,31 @@
                       {{ mess.message || ' ' }}
                     }
 
+                    @if (mess.isEdited && !mess.isDeleted && !isEditingMessage(mess)) {
+                      <small class="message-edited-state">{{ t('messages.edited') }}</small>
+                    }
+
                     @if (isReadReceiptVisible(mess)) {
                       <small class="message-read-state">
                         {{ t('messages.readAt', { time: formatMessageTime(mess.readAt) }) }}
                       </small>
                     }
                   </span>
+
+                  @if (isMessageSending(mess) || isMessageFailed(mess)) {
+                    <div class="message-delivery-state" [class.is-failed]="isMessageFailed(mess)">
+                      @if (isMessageSending(mess)) {
+                        <span>{{ t('messages.sending') }}</span>
+                      }
+                      @if (isMessageFailed(mess)) {
+                        <span>{{ t('messages.sendFailed') }}</span>
+                        <button type="button" (click)="retryMessage(mess)">
+                          <ion-icon name="refresh-outline" aria-hidden="true"></ion-icon>
+                          {{ t('messages.retryMessage') }}
+                        </button>
+                      }
+                    </div>
+                  }
 
                   <div class="message-actions-row">
                     <div
@@ -469,7 +524,7 @@
                         type="button"
                         class="message-reaction-trigger"
                         [class.has-selected]="hasMessageReactions(mess)"
-                        [disabled]="isCurrentMatchBlocked || !mess.id || isAnyReactionPending(mess)"
+                        [disabled]="isCurrentMatchBlocked || !mess.id || mess.isDeleted || isAnyReactionPending(mess)"
                         (click)="toggleReactionPicker(mess)"
                         [attr.aria-label]="
                           hasMessageReactions(mess)
@@ -493,7 +548,7 @@
                             <button
                               type="button"
                               [class.is-active]="hasReactionFromUser(mess, emoji)"
-                              [disabled]="isCurrentMatchBlocked || !mess.id || isReactionPending(mess, emoji)"
+                              [disabled]="isCurrentMatchBlocked || !mess.id || mess.isDeleted || isReactionPending(mess, emoji)"
                               (click)="toggleMessageReaction(mess, emoji)"
                               [attr.aria-label]="t('messages.reactionAria', { emoji })"
                             >
@@ -503,6 +558,30 @@
                         </div>
                       }
                     </div>
+
+                    @if (canEditMessage(mess)) {
+                      <button
+                        type="button"
+                        class="message-edit-button"
+                        [disabled]="isMessageActionPending(mess)"
+                        (click)="startEditMessage(mess)"
+                        [attr.aria-label]="t('messages.editMessage')"
+                      >
+                        <ion-icon name="create-outline" aria-hidden="true"></ion-icon>
+                      </button>
+                    }
+
+                    @if (canDeleteMessage(mess)) {
+                      <button
+                        type="button"
+                        class="message-delete-button"
+                        [disabled]="isMessageActionPending(mess)"
+                        (click)="deleteMessage(mess)"
+                        [attr.aria-label]="t('messages.deleteMessage')"
+                      >
+                        <ion-icon name="trash-outline" aria-hidden="true"></ion-icon>
+                      </button>
+                    }
 
                     @if (canReportMessage(mess)) {
                       <button

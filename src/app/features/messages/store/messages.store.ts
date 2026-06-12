@@ -14,29 +14,20 @@ import {
     MESSAGE_PAGE_SIZE,
     MessagesRepository,
 } from '../data-access/messages.repository';
-
-type MessagesState = {
-    messages: Message[];
-    loading: boolean;
-    loadingOlderMessages: boolean;
-    hasOlderMessages: boolean;
-    error: string | null;
-    isMatchTyping: boolean;
-};
-
-const initialState: MessagesState = {
-    messages: [],
-    loading: false,
-    loadingOlderMessages: false,
-    hasOlderMessages: false,
-    error: null,
-    isMatchTyping: false,
-};
+import { initialMessagesState } from './messages.slice';
 
 function getMessageKey(message: Message) {
     return (
         message.id ??
+        message.clientId ??
         `${message.senderUid}:${message.sentToUid}:${message.number}:${message.sentAt?.getTime?.() ?? 0}`
+    );
+}
+
+function getClientMessageId() {
+    return (
+        globalThis.crypto?.randomUUID?.() ??
+        `local-${Date.now()}-${Math.random().toString(36).slice(2)}`
     );
 }
 
@@ -84,12 +75,29 @@ function mergeMessages(currentMessages: Message[], nextMessages: Message[]) {
     });
 }
 
+function patchMessage(
+    messages: Message[],
+    targetMessage: Message,
+    patch: Partial<Message>
+) {
+    const targetKey = getMessageKey(targetMessage);
+
+    return messages.map((message) =>
+        getMessageKey(message) === targetKey
+            ? {
+                ...message,
+                ...patch,
+            }
+            : message
+    );
+}
+
 export const MessagesStore = signalStore(
     {
         providedIn: 'root',
     },
 
-    withState(initialState),
+    withState(initialMessagesState),
 
     withMethods((
         store,
@@ -293,26 +301,244 @@ export const MessagesStore = signalStore(
                 message: Message
             ) {
                 if (!userProfile.uid || !matchProfile.uid) {
-                    return;
+                    return null;
                 }
 
+                const optimisticMessage: Message = {
+                    ...message,
+                    clientId: message.clientId ?? getClientMessageId(),
+                    deliveryStatus: 'sending',
+                    isSent: false,
+                    sendError: undefined,
+                };
+
                 patchState(store, {
-                    messages: [...store.messages(), message],
+                    messages: [...store.messages(), optimisticMessage],
                 });
 
-                await repository.sendMessageWithMatch(
-                    userProfile.uid,
-                    matchProfile.uid,
-                    message
-                );
+                try {
+                    const messageId = await repository.sendMessageWithMatch(
+                        userProfile.uid,
+                        matchProfile.uid,
+                        optimisticMessage
+                    );
 
-                void analytics.track(userProfile.uid, 'message_sent', {
-                    matchUid: matchProfile.uid,
-                    characterCount: message.message.trim().length,
-                    hasAttachments: !!message.attachments?.length,
-                    hasGif: message.messageType === 'gif',
-                    messageType: message.messageType ?? 'text',
+                    const sentMessage: Message = {
+                        ...optimisticMessage,
+                        id: messageId,
+                        deliveryStatus: 'sent',
+                        isSent: true,
+                        sendError: undefined,
+                    };
+
+                    patchState(store, {
+                        messages: patchMessage(
+                            store.messages(),
+                            optimisticMessage,
+                            sentMessage
+                        ),
+                    });
+
+                    void analytics.track(userProfile.uid, 'message_sent', {
+                        matchUid: matchProfile.uid,
+                        characterCount: message.message.trim().length,
+                        hasAttachments: !!message.attachments?.length,
+                        hasGif: message.messageType === 'gif',
+                        messageType: message.messageType ?? 'text',
+                    });
+
+                    return sentMessage;
+                } catch (error) {
+                    console.error(error);
+
+                    patchState(store, {
+                        messages: patchMessage(store.messages(), optimisticMessage, {
+                            deliveryStatus: 'failed',
+                            isSent: false,
+                            sendError: 'messages.sendFailed',
+                        }),
+                        error: 'Failed to send message.',
+                    });
+
+                    return null;
+                }
+            },
+
+            async retryMessage(
+                userProfile: UserClass,
+                matchProfile: PublicProfile,
+                message: Message
+            ) {
+                if (!userProfile.uid || !matchProfile.uid) {
+                    return null;
+                }
+
+                const retryMessage: Message = {
+                    ...message,
+                    id: undefined,
+                    clientId: message.clientId ?? getClientMessageId(),
+                    sentAt: new Date(),
+                    deliveryStatus: 'sending',
+                    isSent: false,
+                    sendError: undefined,
+                };
+
+                patchState(store, {
+                    messages: patchMessage(store.messages(), message, retryMessage),
+                    error: null,
                 });
+
+                try {
+                    const messageId = await repository.sendMessageWithMatch(
+                        userProfile.uid,
+                        matchProfile.uid,
+                        retryMessage
+                    );
+
+                    const sentMessage: Message = {
+                        ...retryMessage,
+                        id: messageId,
+                        deliveryStatus: 'sent',
+                        isSent: true,
+                        sendError: undefined,
+                    };
+
+                    patchState(store, {
+                        messages: patchMessage(
+                            store.messages(),
+                            retryMessage,
+                            sentMessage
+                        ),
+                    });
+
+                    void analytics.track(userProfile.uid, 'message_retry_sent', {
+                        matchUid: matchProfile.uid,
+                        messageType: message.messageType ?? 'text',
+                    });
+
+                    return sentMessage;
+                } catch (error) {
+                    console.error(error);
+
+                    patchState(store, {
+                        messages: patchMessage(store.messages(), retryMessage, {
+                            deliveryStatus: 'failed',
+                            isSent: false,
+                            sendError: 'messages.sendFailed',
+                        }),
+                        error: 'Failed to send message.',
+                    });
+
+                    return null;
+                }
+            },
+
+            async editMessage(
+                userProfile: UserClass,
+                matchProfile: PublicProfile,
+                message: Message,
+                nextText: string
+            ) {
+                if (
+                    !userProfile.uid ||
+                    !matchProfile.uid ||
+                    !message.id ||
+                    message.senderUid !== userProfile.uid ||
+                    message.isDeleted
+                ) {
+                    return false;
+                }
+
+                const trimmedText = nextText.trim();
+
+                if (!trimmedText || trimmedText === message.message) {
+                    return false;
+                }
+
+                const previousMessages = store.messages();
+                const editedAt = new Date();
+
+                patchState(store, {
+                    messages: patchMessage(previousMessages, message, {
+                        message: trimmedText,
+                        isEdited: true,
+                        editedAt,
+                    }),
+                    error: null,
+                });
+
+                try {
+                    await repository.editMessage(
+                        userProfile.uid,
+                        matchProfile.uid,
+                        message,
+                        trimmedText
+                    );
+
+                    void analytics.track(userProfile.uid, 'message_edited', {
+                        matchUid: matchProfile.uid,
+                    });
+
+                    return true;
+                } catch (error) {
+                    console.error(error);
+                    patchState(store, {
+                        messages: previousMessages,
+                        error: 'Failed to edit message.',
+                    });
+                    return false;
+                }
+            },
+
+            async deleteMessage(
+                userProfile: UserClass,
+                matchProfile: PublicProfile,
+                message: Message
+            ) {
+                if (
+                    !userProfile.uid ||
+                    !matchProfile.uid ||
+                    !message.id ||
+                    message.senderUid !== userProfile.uid ||
+                    message.isDeleted
+                ) {
+                    return false;
+                }
+
+                const previousMessages = store.messages();
+                const deletedAt = new Date();
+
+                patchState(store, {
+                    messages: patchMessage(previousMessages, message, {
+                        message: '',
+                        isDeleted: true,
+                        isEdited: false,
+                        deletedAt,
+                        reactions: [],
+                    }),
+                    error: null,
+                });
+
+                try {
+                    await repository.deleteMessage(
+                        userProfile.uid,
+                        matchProfile.uid,
+                        message
+                    );
+
+                    void analytics.track(userProfile.uid, 'message_deleted', {
+                        matchUid: matchProfile.uid,
+                    });
+
+                    return true;
+                } catch (error) {
+                    console.error(error);
+                    patchState(store, {
+                        messages: previousMessages,
+                        error: 'Failed to delete message.',
+                    });
+                    return false;
+                }
             },
 
             async toggleMessageReaction(
@@ -362,7 +588,7 @@ export const MessagesStore = signalStore(
 
             clearMessages() {
                 stopListening();
-                patchState(store, initialState);
+                patchState(store, initialMessagesState);
             },
         };
     })

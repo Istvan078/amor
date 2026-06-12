@@ -12,7 +12,6 @@ type AuthenticatedRequest = express.Request & {
 
 type ServerMatchParts = {
   matches: string[];
-  possMatches: string[];
   liked: string[];
   notLiked: string[];
   superLiked: string[];
@@ -191,7 +190,6 @@ const normalizeMatchParts = (value: unknown): ServerMatchParts => {
 
   return {
     matches: normalizeUidList(matchParts.matches),
-    possMatches: normalizeUidList(matchParts.possMatches),
     liked: normalizeUidList(matchParts.liked),
     notLiked: normalizeUidList(matchParts.notLiked),
     superLiked: normalizeUidList(matchParts.superLiked),
@@ -393,7 +391,6 @@ const buildMutualMatchParts = (
 ): ServerMatchParts => ({
   ...matchParts,
   matches: withUniqueUid(matchParts.matches, otherUid),
-  possMatches: withoutUid(matchParts.possMatches, otherUid),
   liked: withoutUid(matchParts.liked, otherUid),
   notLiked: withoutUid(matchParts.notLiked, otherUid),
 });
@@ -501,6 +498,64 @@ const createApproximateGeoHash = (coords: unknown) => {
   }
 
   return `${lat.toFixed(2)}:${lon.toFixed(2)}`;
+};
+
+const createGeoBucket = (coords: unknown) => {
+  const location =
+    coords && typeof coords === 'object'
+      ? (coords as Record<string, unknown>)
+      : {};
+  const lat = Number(location.lat);
+  const lon = Number(location.lon);
+
+  if (!Number.isFinite(lat) || !Number.isFinite(lon)) {
+    return undefined;
+  }
+
+  return `${Math.round(lat)}:${Math.round(lon)}`;
+};
+
+const MAX_DISCOVERY_GEO_BUCKETS = 25;
+
+const getNearbyGeoBuckets = (coords: unknown, radiusKm: number) => {
+  const location =
+    coords && typeof coords === 'object'
+      ? (coords as Record<string, unknown>)
+      : {};
+  const lat = Number(location.lat);
+  const lon = Number(location.lon);
+
+  if (!Number.isFinite(lat) || !Number.isFinite(lon)) {
+    return [];
+  }
+
+  const centerLat = Math.round(lat);
+  const centerLon = Math.round(lon);
+  const radiusBucketSpan = Number.isFinite(radiusKm)
+    ? Math.ceil(Math.max(radiusKm, 1) / 111)
+    : 1;
+  const span = Math.min(Math.max(radiusBucketSpan, 1), 2);
+  const buckets: Array<{
+    value: string;
+    distanceScore: number;
+  }> = [];
+
+  for (let latOffset = -span; latOffset <= span; latOffset++) {
+    for (let lonOffset = -span; lonOffset <= span; lonOffset++) {
+      const bucketLat = centerLat + latOffset;
+      const bucketLon = centerLon + lonOffset;
+
+      buckets.push({
+        value: `${bucketLat}:${bucketLon}`,
+        distanceScore: ((bucketLat - lat) ** 2) + ((bucketLon - lon) ** 2),
+      });
+    }
+  }
+
+  return buckets
+    .sort((bucketA, bucketB) => bucketA.distanceScore - bucketB.distanceScore)
+    .map((bucket) => bucket.value)
+    .slice(0, MAX_DISCOVERY_GEO_BUCKETS);
 };
 
 const getProfilePhotoUrl = (profile: Record<string, unknown>) => {
@@ -623,6 +678,7 @@ const buildMatchIndexEntry = (
     age: normalizeProfileAge(profile),
     currentLocCoords: profile.currentLocCoords,
     geohash: createApproximateGeoHash(profile.currentLocCoords),
+    geoBucket: createGeoBucket(profile.currentLocCoords),
     currentPlace: profile.currentPlace,
     isVisible,
     isBanned,
@@ -724,6 +780,7 @@ const buildPublicProfileEntry = (
     return null;
   }
 
+  const showOnlineStatus = profile.showOnlineStatus === true;
   const publicProfile: Record<string, unknown> = {
     uid,
     profileCompleted: indexEntry.profileCompleted === true,
@@ -733,7 +790,7 @@ const buildPublicProfileEntry = (
       profile.profileVerificationStatus
     ),
     distanceVisibility: profile.distanceVisibility !== false,
-    showOnlineStatus: profile.showOnlineStatus !== false,
+    showOnlineStatus,
     updatedAt: admin.firestore.FieldValue.serverTimestamp(),
   };
   const pictures = normalizePublicProfilePictures(profile);
@@ -788,6 +845,18 @@ const buildPublicProfileEntry = (
     publicProfile.createdAt = profile.createdAt;
   }
 
+  if (showOnlineStatus) {
+    publicProfile.isOnline = profile.isOnline === true;
+
+    if (profile.lastSeenAt) {
+      publicProfile.lastSeenAt = profile.lastSeenAt;
+    }
+
+    if (profile.lastActiveAt) {
+      publicProfile.lastActiveAt = profile.lastActiveAt;
+    }
+  }
+
   return publicProfile;
 };
 
@@ -831,7 +900,6 @@ const buildLikeMatchParts = (
   isSuperLike = false
 ): ServerMatchParts => ({
   ...matchParts,
-  possMatches: withoutUid(matchParts.possMatches, otherUid),
   liked: withUniqueUid(matchParts.liked, otherUid),
   notLiked: withoutUid(matchParts.notLiked, otherUid),
   superLiked: isSuperLike
@@ -844,7 +912,6 @@ const buildPassMatchParts = (
   otherUid: string
 ): ServerMatchParts => ({
   ...matchParts,
-  possMatches: withoutUid(matchParts.possMatches, otherUid),
   liked: withoutUid(matchParts.liked, otherUid),
   notLiked: withUniqueUid(matchParts.notLiked, otherUid),
   superLiked: withoutUid(matchParts.superLiked, otherUid),
@@ -854,21 +921,9 @@ const buildRewindMatchParts = (
   matchParts: ServerMatchParts,
   otherUid: string
 ): ServerMatchParts => {
-  const nextMatchParts: ServerMatchParts = {
+  return {
     ...matchParts,
     notLiked: withoutUid(matchParts.notLiked, otherUid),
-  };
-
-  const shouldRestorePossibleMatch =
-    !nextMatchParts.matches.includes(otherUid) &&
-    !nextMatchParts.liked.includes(otherUid) &&
-    !nextMatchParts.superLiked.includes(otherUid);
-
-  return {
-    ...nextMatchParts,
-    possMatches: shouldRestorePossibleMatch
-      ? withUniqueUid(nextMatchParts.possMatches, otherUid)
-      : nextMatchParts.possMatches,
   };
 };
 
@@ -2461,36 +2516,67 @@ app.post('/discoverCandidates', verifyToken, async (req: AuthenticatedRequest, r
       ? Number(premiumFilters.maxDistanceKm)
       : profileDistanceKm;
     const activeThresholdMillis = Date.now() - 1000 * 60 * 60 * 24 * 7;
-    const scanLimit = Math.min(resultLimit * 5, 100);
-    let queryRef: admin.firestore.Query = db
-      .collection('matchIndex')
-      .where('isVisible', '==', true)
-      .where('isBanned', '==', false)
-      .where('profileCompleted', '==', true)
-      .where('hasPhoto', '==', true);
+    const geoBuckets = getNearbyGeoBuckets(currentLocCoords, maxDistanceKm);
+    const useGeoBucketQuery = geoBuckets.length > 0;
+    const scanLimit = Math.min(
+      resultLimit * (useGeoBucketQuery ? 3 : 5),
+      useGeoBucketQuery ? 60 : 100
+    );
+    const legacyFallbackScanLimit = Math.min(resultLimit * 5, 100);
+    const buildCandidateQuery = (
+      limitCount: number,
+      geoBucketFilter: string[] = []
+    ) => {
+      let queryRef: admin.firestore.Query = db
+        .collection('matchIndex')
+        .where('isVisible', '==', true)
+        .where('isBanned', '==', false)
+        .where('profileCompleted', '==', true)
+        .where('hasPhoto', '==', true);
 
-    if (lookingForGender) {
-      queryRef = queryRef.where('gender', '==', lookingForGender);
+      if (geoBucketFilter.length) {
+        queryRef = queryRef.where('geoBucket', 'in', geoBucketFilter);
+      }
+
+      if (lookingForGender) {
+        queryRef = queryRef.where('gender', '==', lookingForGender);
+      }
+
+      if (profileGender) {
+        queryRef = queryRef.where('lookingForGender', '==', profileGender);
+      }
+
+      queryRef = queryRef
+        .orderBy(admin.firestore.FieldPath.documentId())
+        .limit(limitCount);
+
+      if (cursor) {
+        queryRef = queryRef.startAfter(cursor);
+      }
+
+      return queryRef;
+    };
+
+    let activeScanLimit = scanLimit;
+    let snapshotDocs = (
+      await buildCandidateQuery(
+        scanLimit,
+        useGeoBucketQuery ? geoBuckets : []
+      ).get()
+    ).docs;
+
+    if (useGeoBucketQuery && snapshotDocs.length === 0) {
+      activeScanLimit = legacyFallbackScanLimit;
+      snapshotDocs = (
+        await buildCandidateQuery(legacyFallbackScanLimit).get()
+      ).docs;
     }
 
-    if (profileGender) {
-      queryRef = queryRef.where('lookingForGender', '==', profileGender);
-    }
-
-    queryRef = queryRef
-      .orderBy(admin.firestore.FieldPath.documentId())
-      .limit(scanLimit);
-
-    if (cursor) {
-      queryRef = queryRef.startAfter(cursor);
-    }
-
-    const snapshot = await queryRef.get();
     const scannedCandidates: Array<{
         uid: string;
         claims: Record<string, unknown>;
         createdAtMillis: number;
-      }> = snapshot.docs.map((candidateSnapshot) => {
+      }> = snapshotDocs.map((candidateSnapshot) => {
         const claims = candidateSnapshot.data() as Record<string, unknown>;
         const createdAtMillis =
           toTimestampMillis(claims.createdAt) ||
@@ -2587,8 +2673,8 @@ app.post('/discoverCandidates', verifyToken, async (req: AuthenticatedRequest, r
       }))
       .slice(0, resultLimit);
     const nextCursor =
-      snapshot.docs.length === scanLimit
-        ? snapshot.docs[snapshot.docs.length - 1]?.id ?? null
+      snapshotDocs.length === activeScanLimit
+        ? snapshotDocs[snapshotDocs.length - 1]?.id ?? null
         : null;
 
     res.json({

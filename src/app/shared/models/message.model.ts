@@ -1,4 +1,5 @@
 export type MessageType = 'text' | 'gif';
+export type MessageDeliveryStatus = 'sending' | 'sent' | 'failed';
 
 export type MessageGif = {
     id: string;
@@ -17,6 +18,7 @@ export type MessageReaction = {
 
 export class Message {
     id?: string;
+    clientId?: string;
     senderUid: string = "";
     sentToUid: string = "";
     message: string = "";
@@ -34,6 +36,10 @@ export class Message {
     isEdited?: boolean;
     isTyping?: boolean;
     readAt?: Date;
+    editedAt?: Date;
+    deletedAt?: Date;
+    deliveryStatus?: MessageDeliveryStatus;
+    sendError?: string;
 
 }
 export class Messages {

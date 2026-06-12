@@ -28,19 +28,13 @@ export class ProfilePicturesRepository {
             userProfile.pictures = [];
         }
 
-        const uploadedFileNames = new Set(
-            userProfile.pictures.map((picture) => picture.name)
-        );
-
         for (const file of files) {
-            if (
-                userProfile.pictures.length >= this.maxPictures ||
-                uploadedFileNames.has(file.name)
-            ) {
+            if (userProfile.pictures.length >= this.maxPictures) {
                 continue;
             }
 
-            const picturePath = `publicPictures/${uid}/${file.name}`;
+            const storageFileName = this.createStorageFileName(file);
+            const picturePath = `publicPictures/${uid}/${storageFileName}`;
             const storageRef = this.runInFirebaseContext(() =>
                 ref(this.storage, picturePath)
             );
@@ -53,9 +47,8 @@ export class ProfilePicturesRepository {
 
             userProfile.pictures.push({
                 url,
-                name: file.name,
+                name: storageFileName,
             });
-            uploadedFileNames.add(file.name);
         }
 
         if (!userProfile.profilePicture && userProfile.pictures[0]?.url) {
@@ -98,5 +91,29 @@ export class ProfilePicturesRepository {
 
     private runInFirebaseContext<T>(callback: () => T): T {
         return runInInjectionContext(this.injector, callback);
+    }
+
+    private createStorageFileName(file: File) {
+        const extension = this.getFileExtension(file);
+
+        return `${crypto.randomUUID()}.${extension}`;
+    }
+
+    private getFileExtension(file: File) {
+        const fileNameExtension = file.name.includes('.')
+            ? file.name.split('.').pop()
+            : '';
+        const mimeExtension = file.type.startsWith('image/')
+            ? file.type.slice('image/'.length)
+            : '';
+        const extension = String(fileNameExtension || mimeExtension || 'jpg')
+            .toLowerCase()
+            .replace(/[^a-z0-9]/g, '');
+
+        if (!extension || extension.length > 8) {
+            return 'jpg';
+        }
+
+        return extension === 'jpeg' ? 'jpg' : extension;
     }
 }

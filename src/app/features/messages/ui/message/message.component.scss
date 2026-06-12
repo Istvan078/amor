@@ -826,6 +826,91 @@
   overflow: hidden;
 }
 
+.message-row.is-sending .message-bubble {
+  opacity: 0.78;
+}
+
+.message-row.is-failed .message-bubble {
+  border-color: rgba(255, 93, 93, 0.42);
+  background:
+    linear-gradient(135deg, rgba(255, 93, 93, 0.18), rgba(255, 122, 89, 0.1)),
+    rgba(255, 255, 255, 0.08);
+}
+
+.message-row.is-deleted .message-bubble {
+  color: rgba(248, 245, 239, 0.72);
+  font-style: italic;
+}
+
+.message-edit-form {
+  display: grid;
+  gap: 8px;
+  min-width: min(300px, 70vw);
+}
+
+.message-edit-form textarea {
+  width: 100%;
+  min-height: 84px;
+  resize: vertical;
+  padding: 10px;
+  color: #ffffff;
+  background: rgba(8, 12, 22, 0.36);
+  border: 1px solid rgba(255, 255, 255, 0.22);
+  border-radius: 6px;
+  outline: none;
+  font: inherit;
+}
+
+.message-edit-form span {
+  display: flex;
+  gap: 8px;
+  justify-content: flex-end;
+}
+
+.message-edit-form button,
+.message-delivery-state button {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  min-height: 30px;
+  padding: 0 10px;
+  color: #ffffff;
+  background: rgba(12, 16, 30, 0.62);
+  border: 1px solid rgba(255, 255, 255, 0.14);
+  border-radius: 999px;
+  font-size: 0.75rem;
+  font-weight: 900;
+}
+
+.message-edit-form button:disabled,
+.message-delivery-state button:disabled {
+  cursor: default;
+  opacity: 0.58;
+}
+
+.message-edited-state,
+.message-read-state {
+  display: block;
+  margin-top: 5px;
+}
+
+.message-deleted-copy {
+  color: inherit;
+}
+
+.message-delivery-state {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  color: rgba(248, 245, 239, 0.58);
+  font-size: 0.72rem;
+  font-weight: 800;
+}
+
+.message-delivery-state.is-failed {
+  color: #ffb3b3;
+}
+
 .message-gif-card {
   display: grid;
   gap: 7px;
@@ -885,6 +970,8 @@
 .message-reaction-trigger,
 .message-reaction-picker button,
 .message-report-button,
+.message-edit-button,
+.message-delete-button,
 .composer-tool-button,
 .emoji-panel button,
 .gif-panel button {
@@ -1035,6 +1122,8 @@
 .message-reaction-trigger:disabled,
 .message-reaction-picker button:disabled,
 .message-report-button:disabled,
+.message-edit-button:disabled,
+.message-delete-button:disabled,
 .composer-tool-button:disabled,
 .emoji-panel button:disabled,
 .gif-panel button:disabled {
@@ -1042,7 +1131,9 @@
   opacity: 0.56;
 }
 
-.message-report-button {
+.message-report-button,
+.message-edit-button,
+.message-delete-button {
   display: grid;
   width: 34px;
   height: 30px;
@@ -1061,16 +1152,24 @@
     transform 160ms ease;
 }
 
-.message-report-button:hover {
+.message-report-button:hover,
+.message-edit-button:hover,
+.message-delete-button:hover {
   color: #ffffff;
   border-color: rgba(255, 93, 143, 0.42);
   background: rgba(255, 93, 143, 0.13);
   transform: translateY(-1px);
 }
 
-.message-report-button ion-icon {
+.message-report-button ion-icon,
+.message-edit-button ion-icon,
+.message-delete-button ion-icon {
   color: #ff9cbd;
   font-size: 16px;
+}
+
+.message-delete-button ion-icon {
+  color: #ff9c9c;
 }
 
 .report-dialog-layer {

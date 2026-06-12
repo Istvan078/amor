@@ -1,4 +1,3 @@
-import { HttpClient, HttpHeaders } from '@angular/common/http';
 import { Injectable, Injector, inject, runInInjectionContext } from '@angular/core';
 import {
     Firestore,
@@ -6,20 +5,11 @@ import {
     getDoc,
     updateDoc,
 } from '@angular/fire/firestore';
-import { firstValueFrom } from 'rxjs';
 
-import { environment } from '../../../../environments/environment';
 import { PublicProfile } from '../../../shared/models/public-profile.model';
 import { UserClass } from '../../../shared/models/user.model';
-import { AuthStore } from '../../auth/store/auth.store';
 import { MatchIndexRepository } from '../../matching/data-access/match-index.repository';
 import { sanitizeProfileForFirestore } from '../../profile/data-access/profile-firestore-sanitizer';
-
-export type CreateMutualMatchResponse = {
-    matched: boolean;
-    created: boolean;
-    matchParts?: UserClass['matchParts'];
-};
 
 @Injectable({
     providedIn: 'root',
@@ -27,8 +17,6 @@ export type CreateMutualMatchResponse = {
 export class DiscoverRepository {
     private injector = inject(Injector);
     private firestore = inject(Firestore);
-    private http = inject(HttpClient);
-    private authStore = inject(AuthStore);
     private matchIndexRepository = inject(MatchIndexRepository);
 
     async getUserProfile(uid: string): Promise<UserClass | undefined> {
@@ -102,60 +90,37 @@ export class DiscoverRepository {
         }
     }
 
-    async updateUserOnlineStatus(uid: string, isOnline: boolean) {
-        await this.runInFirebaseContext(() => {
+    async updateUserOnlineStatus(
+        uid: string,
+        isOnline: boolean,
+        showOnlineStatus = false
+    ) {
+        const now = new Date().toISOString();
+        const presenceUpdate = {
+            isOnline,
+            lastSeenAt: now,
+            lastActiveAt: now,
+        };
+
+        await this.runInFirebaseContext(async () => {
             const profileRef = doc(this.firestore, `users/${uid}`);
-            const now = new Date().toISOString();
+            const updates: Promise<unknown>[] = [
+                updateDoc(profileRef, presenceUpdate),
+            ];
 
-            return updateDoc(profileRef, {
-                isOnline,
-                lastSeenAt: now,
-                lastActiveAt: now,
-            });
+            if (showOnlineStatus) {
+                const publicProfileRef = doc(this.firestore, `publicProfiles/${uid}`);
+
+                updates.push(
+                    updateDoc(publicProfileRef, presenceUpdate).catch(() => undefined)
+                );
+            }
+
+            return Promise.all(updates);
         });
-    }
-
-    async createMutualMatch(
-        otherUid: string
-    ): Promise<CreateMutualMatchResponse> {
-        const user = this.authStore.user();
-        const idToken = await this.getIdToken();
-
-        if (!user?.uid || !idToken) {
-            return {
-                matched: false,
-                created: false,
-            };
-        }
-
-        return firstValueFrom(
-            this.http.post<CreateMutualMatchResponse>(
-                `${environment.API_URL}createMutualMatch`,
-                {
-                    uid: user.uid,
-                    otherUid,
-                },
-                {
-                    headers: new HttpHeaders().set('Authorization', idToken),
-                }
-            )
-        );
     }
 
     private runInFirebaseContext<T>(callback: () => T): T {
         return runInInjectionContext(this.injector, callback);
-    }
-
-    private async getIdToken() {
-        const user = this.authStore.user();
-        const rawUser = user?.raw as
-            | { getIdToken?: (forceRefresh?: boolean) => Promise<string> }
-            | undefined;
-
-        if (rawUser?.getIdToken) {
-            return rawUser.getIdToken();
-        }
-
-        return user?.idToken;
     }
 }

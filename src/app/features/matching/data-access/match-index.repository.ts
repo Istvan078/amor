@@ -23,6 +23,7 @@ export type MatchIndexEntry = {
   };
   currentPlace?: string;
   geohash?: string;
+  geoBucket?: string;
   isVisible: boolean;
   isBanned: boolean;
   profileCompleted: boolean;
