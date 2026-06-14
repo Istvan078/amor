@@ -118,6 +118,7 @@ export class DiscoverProfilePanelComponent implements AfterViewChecked, OnChange
   readonly selectInterfaceOptions = {
     cssClass: 'amor-auth-select-popover',
   };
+  readonly minimumDatingAge = 18;
 
   @Input() userProfile!: UserClass;
   @Input() labels: any = {};
@@ -170,6 +171,8 @@ export class DiscoverProfilePanelComponent implements AfterViewChecked, OnChange
   private pendingEditorScroll = false;
 
   ngOnChanges(changes: SimpleChanges) {
+    this.normalizeLookingForAge();
+
     if (changes['startUpdate']?.currentValue === true) {
       this.pendingEditorScroll = true;
     }
@@ -190,6 +193,28 @@ export class DiscoverProfilePanelComponent implements AfterViewChecked, OnChange
   requestProfileEdit() {
     this.pendingEditorScroll = true;
     this.startUpdateRequested.emit();
+  }
+
+  private normalizeLookingForAge() {
+    const range = this.userProfile?.lookingForAge;
+
+    if (!range) {
+      return;
+    }
+
+    const lower = Number(range.lower);
+    const upper = Number(range.upper);
+    const normalizedLower = Number.isFinite(lower)
+      ? Math.max(this.minimumDatingAge, lower)
+      : this.minimumDatingAge;
+    const normalizedUpper = Number.isFinite(upper)
+      ? Math.max(normalizedLower, upper)
+      : 100;
+
+    this.userProfile.lookingForAge = {
+      lower: normalizedLower,
+      upper: Math.max(normalizedLower, normalizedUpper),
+    };
   }
 
   profileCompletionPercent() {

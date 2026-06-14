@@ -157,6 +157,27 @@ ion-input {
   border-radius: 18px;
 }
 
+.login-alert {
+  margin-top: 14px;
+  padding: 11px 13px;
+  border-radius: 14px;
+  font-size: 0.84rem;
+  font-weight: 800;
+  line-height: 1.35;
+}
+
+.login-alert.is-error {
+  border: 1px solid rgba(255, 93, 143, 0.34);
+  background: rgba(255, 93, 143, 0.12);
+  color: #ffd1dc;
+}
+
+.login-alert.is-success {
+  border: 1px solid rgba(53, 198, 189, 0.34);
+  background: rgba(53, 198, 189, 0.13);
+  color: #d9fffb;
+}
+
 .login-submit {
   --background: linear-gradient(135deg, #ff5d8f, #ff7a59);
   --background-hover: linear-gradient(135deg, #ff6b98, #ff8768);
@@ -166,6 +187,15 @@ ion-input {
   margin-top: 26px;
   font-weight: 900;
   letter-spacing: 0;
+}
+
+.login-reset-link {
+  --color: #ffd1dc;
+  margin: 10px 0 0;
+  font-weight: 800;
+  letter-spacing: 0;
+  text-transform: none;
+  white-space: normal;
 }
 
 .login-footer {

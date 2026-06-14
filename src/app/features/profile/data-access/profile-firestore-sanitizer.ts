@@ -2,6 +2,8 @@ import { UserClass } from '../../../shared/models/user.model';
 
 export type FirestoreData = Record<string, any>;
 
+const MINIMUM_DATING_AGE = 18;
+
 function sanitizeFirestoreValue(value: unknown): unknown {
     if (value === undefined || typeof value === 'function') {
         return undefined;
@@ -35,6 +37,27 @@ function sanitizeFirestoreValue(value: unknown): unknown {
     );
 }
 
+function normalizeLookingForAge(value: unknown) {
+    if (!value || typeof value !== 'object') {
+        return undefined;
+    }
+
+    const range = value as Record<string, unknown>;
+    const lower = Number(range['lower']);
+    const upper = Number(range['upper']);
+    const normalizedLower = Number.isFinite(lower)
+        ? Math.max(MINIMUM_DATING_AGE, lower)
+        : MINIMUM_DATING_AGE;
+    const normalizedUpper = Number.isFinite(upper)
+        ? Math.max(normalizedLower, upper)
+        : 100;
+
+    return {
+        lower: normalizedLower,
+        upper: Math.max(normalizedLower, normalizedUpper),
+    };
+}
+
 export function sanitizeProfileForFirestore(
     profile: Partial<UserClass>
 ): FirestoreData {
@@ -53,6 +76,12 @@ export function sanitizeProfileForFirestore(
     delete sanitizedProfile['moderationRiskScore'];
     delete sanitizedProfile['moderationRiskReasons'];
     delete sanitizedProfile['lastRiskFlaggedAt'];
+
+    const lookingForAge = normalizeLookingForAge(sanitizedProfile['lookingForAge']);
+
+    if (lookingForAge) {
+        sanitizedProfile['lookingForAge'] = lookingForAge;
+    }
 
     return sanitizedProfile;
 }

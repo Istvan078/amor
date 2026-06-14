@@ -48,14 +48,36 @@
           required
         ></ion-input>
 
+        @if (authStore.error()) {
+          <div class="login-alert is-error">
+            {{ t(authStore.error() || '') }}
+          </div>
+        }
+
+        @if (resetSent) {
+          <div class="login-alert is-success">
+            {{ t('auth.login.resetSent') }}
+          </div>
+        }
+
         <ion-button
           class="login-submit"
           expand="block"
           type="submit"
-          [disabled]="loginForm.invalid"
+          [disabled]="loginForm.invalid || authStore.loading()"
         >
-          {{ t('auth.login.submit') }}
+          {{ authStore.loading() ? t('auth.login.loading') : t('auth.login.submit') }}
           <ion-icon name="arrow-forward-outline" slot="end"></ion-icon>
+        </ion-button>
+
+        <ion-button
+          class="login-reset-link"
+          fill="clear"
+          type="button"
+          [disabled]="authStore.loading()"
+          (click)="resetPassword()"
+        >
+          {{ t('auth.login.forgotPassword') }}
         </ion-button>
 
         <div class="login-footer">

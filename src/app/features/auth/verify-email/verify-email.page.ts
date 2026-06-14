@@ -29,11 +29,14 @@ export class VerifyEmailPage {
     checking = false;
 
     async resendVerificationEmail() {
-        await this.authStore.sendVerificationEmail();
-        this.resendSent = true;
+        this.resendSent = await this.authStore.sendVerificationEmail();
     }
 
     async refreshVerificationState() {
+        if (this.checking || this.authStore.loading()) {
+            return;
+        }
+
         this.checking = true;
 
         try {

@@ -5,6 +5,7 @@ import {
   ElementRef,
   EventEmitter,
   Input,
+  OnInit,
   OnChanges,
   OnDestroy,
   Output,
@@ -14,6 +15,8 @@ import {
   inject,
 } from '@angular/core';
 import { DOCUMENT } from '@angular/common';
+import { Capacitor, type PluginListenerHandle } from '@capacitor/core';
+import { Keyboard, type KeyboardInfo } from '@capacitor/keyboard';
 import { FormsModule, NgForm } from '@angular/forms';
 import {
   IonAvatar,
@@ -99,7 +102,9 @@ type ReportReasonSelection = {
     TranslocoDirective,
   ],
 })
-export class MessageComponent implements AfterViewChecked, OnChanges, OnDestroy {
+export class MessageComponent
+  implements AfterViewChecked, OnChanges, OnDestroy, OnInit
+{
   @ViewChild('messageThread', { read: ElementRef })
   private messageThread?: ElementRef<HTMLElement>;
   @ViewChild('composerTextarea')
@@ -150,6 +155,13 @@ export class MessageComponent implements AfterViewChecked, OnChanges, OnDestroy 
   private pendingReactionKeys = new Set<string>();
   private pendingMessageActionIds = new Set<string>();
   private reportingMessageIds = new Set<string>();
+  private keyboardHeight = 0;
+  private keyboardListenerHandles: PluginListenerHandle[] = [];
+  private visualViewport?: VisualViewport;
+  private readonly mobileViewportResizeHandler = () => {
+    this.syncMobileViewportMetrics();
+    this.scheduleThreadScrollToBottom();
+  };
   private reportDialogResolver?: (
     selection?: ReportReasonSelection
   ) => void;
@@ -258,6 +270,12 @@ export class MessageComponent implements AfterViewChecked, OnChanges, OnDestroy 
     });
   }
 
+  ngOnInit() {
+    this.setupMobileViewportListeners();
+    void this.setupNativeKeyboardListeners();
+    this.syncMobileViewportMetrics();
+  }
+
   ngAfterViewChecked() {
     this.syncMobileMessageViewState();
 
@@ -315,8 +333,12 @@ export class MessageComponent implements AfterViewChecked, OnChanges, OnDestroy 
   ngOnDestroy() {
     this.resolveReportDialog(undefined);
     this.clearLocalTypingStatus();
+    this.removeMobileViewportListeners();
+    this.removeNativeKeyboardListeners();
+    this.clearMobileViewportMetrics();
     this.document.body.classList.remove('is-mobile-messages-tab');
     this.document.body.classList.remove('is-mobile-message-view');
+    this.document.body.classList.remove('is-mobile-keyboard-open');
   }
 
   async loadMessages() {
@@ -1072,6 +1094,18 @@ export class MessageComponent implements AfterViewChecked, OnChanges, OnDestroy 
     }, 3000);
   }
 
+  onComposerFocus() {
+    this.activeReactionPickerMessageId = undefined;
+    this.syncMobileViewportMetrics();
+    this.scheduleThreadScrollToBottom();
+  }
+
+  onComposerBlur() {
+    window.setTimeout(() => {
+      this.syncMobileViewportMetrics();
+    }, 180);
+  }
+
   private scrollThreadToBottom() {
     queueMicrotask(() => {
       const element = this.messageThread?.nativeElement;
@@ -1081,6 +1115,13 @@ export class MessageComponent implements AfterViewChecked, OnChanges, OnDestroy 
       }
 
       element.scrollTop = element.scrollHeight;
+    });
+  }
+
+  private scheduleThreadScrollToBottom() {
+    this.pendingScrollToBottom = true;
+    this.document.defaultView?.requestAnimationFrame(() => {
+      this.scrollThreadToBottom();
     });
   }
 
@@ -1180,6 +1221,9 @@ export class MessageComponent implements AfterViewChecked, OnChanges, OnDestroy 
 
   private syncMobileMessageViewState() {
     const isMobileMessagesTab = !!this.options?.phoneView;
+    const isMobileMessageView = !!(
+      isMobileMessagesTab && this.options?.isSelectedMatch
+    );
 
     this.document.body.classList.toggle(
       'is-mobile-messages-tab',
@@ -1187,8 +1231,138 @@ export class MessageComponent implements AfterViewChecked, OnChanges, OnDestroy 
     );
     this.document.body.classList.toggle(
       'is-mobile-message-view',
-      !!(isMobileMessagesTab && this.options?.isSelectedMatch)
+      isMobileMessageView
     );
+    this.syncMobileViewportMetrics();
+  }
+
+  private setupMobileViewportListeners() {
+    const win = this.document.defaultView;
+
+    if (!win) {
+      return;
+    }
+
+    this.visualViewport = win.visualViewport ?? undefined;
+
+    win.addEventListener('resize', this.mobileViewportResizeHandler, {
+      passive: true,
+    });
+    win.addEventListener('orientationchange', this.mobileViewportResizeHandler, {
+      passive: true,
+    });
+    this.visualViewport?.addEventListener(
+      'resize',
+      this.mobileViewportResizeHandler,
+      { passive: true }
+    );
+    this.visualViewport?.addEventListener(
+      'scroll',
+      this.mobileViewportResizeHandler,
+      { passive: true }
+    );
+  }
+
+  private removeMobileViewportListeners() {
+    const win = this.document.defaultView;
+
+    win?.removeEventListener('resize', this.mobileViewportResizeHandler);
+    win?.removeEventListener(
+      'orientationchange',
+      this.mobileViewportResizeHandler
+    );
+    this.visualViewport?.removeEventListener(
+      'resize',
+      this.mobileViewportResizeHandler
+    );
+    this.visualViewport?.removeEventListener(
+      'scroll',
+      this.mobileViewportResizeHandler
+    );
+  }
+
+  private async setupNativeKeyboardListeners() {
+    if (
+      !Capacitor.isNativePlatform() ||
+      !Capacitor.isPluginAvailable('Keyboard')
+    ) {
+      return;
+    }
+
+    const onKeyboardShown = (info: KeyboardInfo) => {
+      this.keyboardHeight = info.keyboardHeight;
+      this.syncMobileViewportMetrics();
+      this.scheduleThreadScrollToBottom();
+    };
+    const onKeyboardHidden = () => {
+      this.keyboardHeight = 0;
+      this.syncMobileViewportMetrics();
+      this.scheduleThreadScrollToBottom();
+    };
+
+    this.keyboardListenerHandles = await Promise.all([
+      Keyboard.addListener('keyboardWillShow', onKeyboardShown),
+      Keyboard.addListener('keyboardDidShow', onKeyboardShown),
+      Keyboard.addListener('keyboardWillHide', onKeyboardHidden),
+      Keyboard.addListener('keyboardDidHide', onKeyboardHidden),
+    ]);
+  }
+
+  private removeNativeKeyboardListeners() {
+    for (const handle of this.keyboardListenerHandles) {
+      void handle.remove();
+    }
+
+    this.keyboardListenerHandles = [];
+  }
+
+  private syncMobileViewportMetrics() {
+    const win = this.document.defaultView;
+
+    if (!win) {
+      return;
+    }
+
+    const isMobileMessageView = !!(
+      this.options?.phoneView && this.options?.isSelectedMatch
+    );
+
+    if (!isMobileMessageView) {
+      this.clearMobileViewportMetrics();
+      return;
+    }
+
+    const viewport = win.visualViewport;
+    const innerHeight = win.innerHeight || viewport?.height || 0;
+    const visualViewportHeight = viewport?.height ?? innerHeight;
+    const viewportKeyboardHeight = Math.max(
+      0,
+      innerHeight - visualViewportHeight - (viewport?.offsetTop ?? 0)
+    );
+    const shouldUseNativeKeyboardHeight =
+      this.keyboardHeight > 0 && viewportKeyboardHeight < 80;
+    const availableHeight = shouldUseNativeKeyboardHeight
+      ? innerHeight - this.keyboardHeight
+      : visualViewportHeight;
+    const safeHeight = Math.max(320, Math.round(availableHeight));
+    const isKeyboardOpen =
+      this.keyboardHeight > 0 || viewportKeyboardHeight > 80;
+
+    this.document.documentElement.style.setProperty(
+      '--amor-mobile-message-viewport-height',
+      `${safeHeight}px`
+    );
+    this.document.body.classList.toggle(
+      'is-mobile-keyboard-open',
+      isKeyboardOpen
+    );
+  }
+
+  private clearMobileViewportMetrics() {
+    this.document.documentElement.style.removeProperty(
+      '--amor-mobile-message-viewport-height'
+    );
+    this.document.body.classList.remove('is-mobile-keyboard-open');
   }
 
   private async confirmRemoveMatch(match: PublicProfile) {

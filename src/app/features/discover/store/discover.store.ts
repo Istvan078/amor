@@ -42,6 +42,8 @@ type DiscoverState = {
     premiumFilters: DiscoveryPremiumFilters;
     currentCity: string;
     currentLocCoords: { lat: number; lon: number } | null;
+    locationFallbackActive: boolean;
+    locationFallbackPlace: string;
     loading: boolean;
     error: string | null;
 };
@@ -61,6 +63,8 @@ const initialState: DiscoverState = {
     premiumFilters: {},
     currentCity: '',
     currentLocCoords: null,
+    locationFallbackActive: false,
+    locationFallbackPlace: '',
     loading: false,
     error: null,
 };
@@ -101,6 +105,12 @@ export const DiscoverStore = signalStore(
                     {
                         feedMode: store.feedMode(),
                         premiumFilters: store.premiumFilters(),
+                        locationFallback: store.locationFallbackActive(),
+                        fallbackPlace:
+                            store.locationFallbackPlace() ||
+                            store.currentCity() ||
+                            userProfile.currentPlace ||
+                            '',
                     }
                 );
             } catch (error) {
@@ -150,7 +160,8 @@ export const DiscoverStore = signalStore(
             candidates: DiscoverCandidatesResponse['candidates'],
             userProfile: UserClass,
             currentCity: string,
-            resetPossibleMatches = true
+            resetPossibleMatches = true,
+            syncLocation = true
         ) {
             const possibleMatchIds: string[] = [];
             const checkedCandidateIds: string[] = [];
@@ -194,7 +205,7 @@ export const DiscoverStore = signalStore(
                 });
             }
 
-            if (resetPossibleMatches && userProfile.uid) {
+            if (resetPossibleMatches && userProfile.uid && syncLocation) {
                 userProfile.currentPlace = currentCity;
 
                 await repository.updateUserProfile(userProfile.uid, {
@@ -252,7 +263,8 @@ export const DiscoverStore = signalStore(
             userProfile: UserClass,
             currentCity: string,
             startAfter: string | null,
-            resetPossibleMatches: boolean
+            resetPossibleMatches: boolean,
+            syncLocation = true
         ) {
             let cursor = startAfter;
             let nextCursor: string | null = cursor;
@@ -267,7 +279,8 @@ export const DiscoverStore = signalStore(
                     candidatePage.candidates,
                     userProfile,
                     currentCity,
-                    resetPossibleMatches && attempt === 0
+                    resetPossibleMatches && attempt === 0,
+                    syncLocation
                 );
 
                 loadedIds.push(...pageIds);
@@ -297,6 +310,8 @@ export const DiscoverStore = signalStore(
                     loadingMoreCandidates: false,
                     currentCity: '',
                     currentLocCoords: null,
+                    locationFallbackActive: false,
+                    locationFallbackPlace: '',
                     candidateSummaries: {},
                 });
 
@@ -361,8 +376,10 @@ export const DiscoverStore = signalStore(
 
                     let userPosition: Awaited<
                         ReturnType<LocationService['getLocation']>
-                    >;
+                    > | null = null;
                     let currentCity = '';
+                    let locationFallbackActive = false;
+                    let shouldSyncLocation = true;
 
                     try {
                         userPosition = await locationService.getLocation();
@@ -373,31 +390,27 @@ export const DiscoverStore = signalStore(
                             locationError
                         );
 
-                        profileStore.setProfile(userProfile);
-
-                        patchState(store, {
-                            loggedUser: authStore.user(),
-                            userProfile,
-                            possibleMatchIds: shuffleArray(possibleMatchIds),
-                            matches,
-                            progress: 100,
-                            loading: false,
-                            error: null,
-                        });
-
-                        return;
+                        locationFallbackActive = true;
+                        shouldSyncLocation = false;
+                        currentCity = userProfile.currentPlace?.trim() ?? '';
                     }
 
-                    const userCoords = {
-                        lat: userPosition.coords.latitude,
-                        lon: userPosition.coords.longitude,
-                    };
+                    const userCoords = userPosition
+                        ? {
+                            lat: userPosition.coords.latitude,
+                            lon: userPosition.coords.longitude,
+                        }
+                        : null;
 
-                    userProfile.currentLocCoords = userCoords;
+                    if (userCoords) {
+                        userProfile.currentLocCoords = userCoords;
+                    }
 
                     patchState(store, {
                         currentCity,
                         currentLocCoords: userCoords,
+                        locationFallbackActive,
+                        locationFallbackPlace: locationFallbackActive ? currentCity : '',
                     });
 
                     patchState(store, {
@@ -414,7 +427,8 @@ export const DiscoverStore = signalStore(
                             userProfile,
                             currentCity,
                             null,
-                            true
+                            true,
+                            shouldSyncLocation
                         );
 
                         possibleMatchIds = candidateResult.ids;
@@ -472,9 +486,8 @@ export const DiscoverStore = signalStore(
 
                 const userProfile = store.userProfile();
                 const loggedUser = store.loggedUser() as AuthUser | null;
-                const currentLocCoords = store.currentLocCoords();
 
-                if (!userProfile?.uid || !loggedUser?.uid || !currentLocCoords) {
+                if (!userProfile?.uid || !loggedUser?.uid) {
                     patchState(store, {
                         candidateHasMore: false,
                     });

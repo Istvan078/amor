@@ -12,6 +12,34 @@ import { firstValueFrom, Subscription } from 'rxjs';
 import { AuthRepository } from '../data-access/auth.repository';
 import { AuthUser, initialState, UserClaims } from './auth.slice';
 
+function getFirebaseAuthErrorKey(error: unknown, fallbackKey: string) {
+    const code =
+        error && typeof error === 'object' && 'code' in error
+            ? String((error as { code?: unknown }).code)
+            : '';
+
+    switch (code) {
+        case 'auth/email-already-in-use':
+            return 'auth.errors.emailAlreadyInUse';
+        case 'auth/invalid-email':
+            return 'auth.errors.invalidEmail';
+        case 'auth/weak-password':
+            return 'auth.errors.weakPassword';
+        case 'auth/user-not-found':
+        case 'auth/wrong-password':
+        case 'auth/invalid-credential':
+            return 'auth.errors.invalidCredential';
+        case 'auth/too-many-requests':
+            return 'auth.errors.tooManyRequests';
+        case 'auth/network-request-failed':
+            return 'auth.errors.network';
+        case 'auth/requires-recent-login':
+            return 'auth.errors.requiresRecentLogin';
+        default:
+            return fallbackKey;
+    }
+}
+
 export const AuthStore = signalStore(
     {
         providedIn: 'root',
@@ -178,7 +206,10 @@ export const AuthStore = signalStore(
                     console.error(error);
                     patchState(store, {
                         loading: false,
-                        error: 'Registration failed.',
+                        error: getFirebaseAuthErrorKey(
+                            error,
+                            'auth.errors.registrationFailed'
+                        ),
                     });
                     throw error;
                 }
@@ -203,31 +234,130 @@ export const AuthStore = signalStore(
                     console.error(error);
                     patchState(store, {
                         loading: false,
-                        error: 'Login failed.',
+                        error: getFirebaseAuthErrorKey(
+                            error,
+                            'auth.errors.loginFailed'
+                        ),
                     });
                     throw error;
                 }
             },
 
             async signOut() {
-                await repository.signOut();
                 patchState(store, {
-                    user: null,
-                    claims: null,
-                    users: [],
-                    loading: false,
+                    loading: true,
                     error: null,
                 });
+
+                try {
+                    await repository.signOut();
+                    patchState(store, {
+                        user: null,
+                        claims: null,
+                        users: [],
+                        loading: false,
+                        error: null,
+                    });
+                } catch (error) {
+                    console.error(error);
+                    patchState(store, {
+                        loading: false,
+                        error: getFirebaseAuthErrorKey(
+                            error,
+                            'auth.errors.signOutFailed'
+                        ),
+                    });
+                    throw error;
+                }
             },
 
-            sendVerificationEmail() {
-                return repository.sendVerificationEmail();
+            async sendVerificationEmail() {
+                patchState(store, {
+                    loading: true,
+                    error: null,
+                });
+
+                try {
+                    await repository.sendVerificationEmail();
+                    patchState(store, {
+                        loading: false,
+                        error: null,
+                    });
+                    return true;
+                } catch (error) {
+                    console.error(error);
+                    patchState(store, {
+                        loading: false,
+                        error: getFirebaseAuthErrorKey(
+                            error,
+                            'auth.errors.verificationSendFailed'
+                        ),
+                    });
+                    return false;
+                }
+            },
+
+            async resetPassword(email: string) {
+                const normalizedEmail = email.trim();
+
+                if (!normalizedEmail) {
+                    patchState(store, {
+                        error: 'auth.errors.emailRequired',
+                    });
+                    return false;
+                }
+
+                patchState(store, {
+                    loading: true,
+                    error: null,
+                });
+
+                try {
+                    await repository.sendPasswordResetEmail(normalizedEmail);
+                    patchState(store, {
+                        loading: false,
+                        error: null,
+                    });
+                    return true;
+                } catch (error) {
+                    console.error(error);
+                    patchState(store, {
+                        loading: false,
+                        error: getFirebaseAuthErrorKey(
+                            error,
+                            'auth.errors.passwordResetFailed'
+                        ),
+                    });
+                    return false;
+                }
             },
 
             async refreshCurrentUser() {
-                const refreshedUser = await repository.refreshCurrentUser();
+                patchState(store, {
+                    loading: true,
+                    error: null,
+                });
+
+                let refreshedUser: AuthUser | null = null;
+
+                try {
+                    refreshedUser = await repository.refreshCurrentUser();
+                } catch (error) {
+                    console.error(error);
+                    patchState(store, {
+                        loading: false,
+                        error: getFirebaseAuthErrorKey(
+                            error,
+                            'auth.errors.refreshFailed'
+                        ),
+                    });
+                    return null;
+                }
 
                 if (!refreshedUser) {
+                    patchState(store, {
+                        loading: false,
+                    });
                     return null;
                 }
 
@@ -238,6 +368,8 @@ export const AuthStore = signalStore(
 
                 patchState(store, {
                     user: nextUser,
+                    loading: false,
+                    error: null,
                 });
 
                 return nextUser;
@@ -297,6 +429,12 @@ export const AuthStore = signalStore(
             setAutoFillEmail(email: string | null | undefined) {
                 patchState(store, {
                     autoFillEmail: email ?? null,
+                });
+            },
+
+            setError(error: string | null) {
+                patchState(store, {
+                    error,
                 });
             },
 

@@ -75,16 +75,50 @@ export class MessagesRepository {
                         return;
                     }
 
-                    const data = snapshot.data() as Record<string, unknown>;
-                    const lastMessage = this.mapLastMessage(data['lastMessage']);
-                    const unreadCounts = this.toRecord(data['unreadCounts']);
+                    onPreview(
+                        this.mapConversationPreview(
+                            snapshot.data() as Record<string, unknown>,
+                            myUid
+                        )
+                    );
+                },
+                (error) => onError?.(error)
+            );
+        });
+    }
 
-                    onPreview({
-                        hasMessages: !!lastMessage?.text,
-                        isLastMessageMine: lastMessage?.senderUid === myUid,
-                        lastMessage: lastMessage?.text ?? '',
-                        unreadCount: Number(unreadCounts[myUid] ?? 0),
+    listenToConversationPreviews(
+        myUid: string,
+        onPreviews: (previews: Record<string, ConversationPreviewData>) => void,
+        onError?: (error: unknown) => void,
+        pageSize = 80
+    ) {
+        return this.runInFirebaseContext(() => {
+            const conversationsCollection = collection(this.firestore, 'conversations');
+            const conversationsQuery = query(
+                conversationsCollection,
+                where('participants', 'array-contains', myUid),
+                orderBy('updatedAt', 'desc'),
+                limit(pageSize)
+            );
+
+            return onSnapshot(
+                conversationsQuery,
+                (snapshot) => {
+                    const previews: Record<string, ConversationPreviewData> = {};
+
+                    snapshot.docs.forEach((conversationSnapshot) => {
+                        const data = conversationSnapshot.data() as Record<string, unknown>;
+                        const matchUid = this.getOtherParticipantUid(data, myUid);
+
+                        if (!matchUid) {
+                            return;
+                        }
+
+                        previews[matchUid] = this.mapConversationPreview(data, myUid);
                     });
+
+                    onPreviews(previews);
                 },
                 (error) => onError?.(error)
             );
@@ -557,6 +591,19 @@ export class MessagesRepository {
         return [uidA, uidB].sort((a, b) => a.localeCompare(b));
     }
 
+    private getOtherParticipantUid(
+        conversation: Record<string, unknown>,
+        myUid: string
+    ) {
+        const participants = Array.isArray(conversation['participants'])
+            ? conversation['participants'].filter(
+                (uid): uid is string => typeof uid === 'string' && !!uid
+            )
+            : [];
+
+        return participants.find((uid) => uid !== myUid) ?? '';
+    }
+
     private getMessageDocumentId(message: Message, index: number) {
         return `${message.number || index}_${message.senderUid || 'unknown'}`;
     }
@@ -760,6 +807,21 @@ export class MessagesRepository {
             isLastMessageMine: false,
             lastMessage: '',
             unreadCount: 0,
+        };
+    }
+
+    private mapConversationPreview(
+        data: Record<string, unknown>,
+        myUid: string
+    ): ConversationPreviewData {
+        const lastMessage = this.mapLastMessage(data['lastMessage']);
+        const unreadCounts = this.toRecord(data['unreadCounts']);
+
+        return {
+            hasMessages: !!lastMessage?.text,
+            isLastMessageMine: lastMessage?.senderUid === myUid,
+            lastMessage: lastMessage?.text ?? '',
+            unreadCount: Number(unreadCounts[myUid] ?? 0),
         };
     }
 

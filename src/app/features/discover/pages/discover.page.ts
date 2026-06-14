@@ -241,6 +241,7 @@ export class DiscoverPage implements OnInit, OnDestroy {
       this.isShowMessages = this.discoverUiStore.isShowMessages();
       this.options.phoneView = this.discoverUiStore.phoneView();
       this.syncMobilePromoSheetState();
+      this.syncMobileDiscoverViewState();
 
       const selectedMessageProfile =
         this.discoverUiStore.selectedMessageProfile();
@@ -289,11 +290,19 @@ export class DiscoverPage implements OnInit, OnDestroy {
     this.billingFacade.clearDailyUsage();
     this.stopBoostCountdownTimer();
     this.document.body.classList.remove('is-mobile-promo-sheet-open');
+    this.document.body.classList.remove('is-mobile-discover-view');
     void this.presenceFacade.setOffline(this.user?.uid ?? this.authStore.user()?.uid);
   }
 
   private updatePhoneView() {
     this.chatFacade.setPhoneView(window.innerWidth <= 768);
+  }
+
+  private syncMobileDiscoverViewState() {
+    this.document.body.classList.toggle(
+      'is-mobile-discover-view',
+      !!this.options.phoneView && !this.isShowMessages && !this.isUserCardOpen
+    );
   }
 
   private async initMainView() {
@@ -1121,10 +1130,22 @@ export class DiscoverPage implements OnInit, OnDestroy {
 
   toggleMatchDetails() {
     this.isMatchDetailsOpen = !this.isMatchDetailsOpen;
+
+    if (this.isMatchDetailsOpen) {
+      this.scrollMatchDetailsIntoView();
+    }
   }
 
   closeMatchDetails() {
     this.isMatchDetailsOpen = false;
+  }
+
+  private scrollMatchDetailsIntoView() {
+    this.document.defaultView?.setTimeout(() => {
+      this.document
+        .querySelector('.poss-match-details-container')
+        ?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    });
   }
 
   async likeCurrentMatch() {

@@ -62,6 +62,7 @@ export class IonModalPage implements AfterViewInit {
   readonly selectInterfaceOptions = {
     cssClass: 'amor-auth-select-popover',
   };
+  readonly minimumDatingAge = 18;
   readonly maxBirthDate = new Date(new Date().setFullYear(new Date().getFullYear() - 18)).toISOString();
 
   @ViewChild('swiperRef') swiperRef?: ElementRef<SwiperContainer>;
@@ -131,10 +132,28 @@ export class IonModalPage implements AfterViewInit {
       return this.modalCtrl.dismiss(data, 'confirm');
     }
     if (this.userProf.firstName) {
+      this.normalizeLookingForAge();
       data = { ...this.userProf };
       return this.modalCtrl.dismiss(data, 'created-successfully');
     }
     console.error(`PROBLEM HA ITT VAN`);
     return this.modalCtrl.dismiss(data, 'no-data');
+  }
+
+  private normalizeLookingForAge() {
+    const range = this.userProf.lookingForAge;
+    const lower = Number(range?.lower);
+    const upper = Number(range?.upper);
+    const normalizedLower = Number.isFinite(lower)
+      ? Math.max(this.minimumDatingAge, lower)
+      : this.minimumDatingAge;
+    const normalizedUpper = Number.isFinite(upper)
+      ? Math.max(normalizedLower, upper)
+      : 100;
+
+    this.userProf.lookingForAge = {
+      lower: normalizedLower,
+      upper: Math.max(normalizedLower, normalizedUpper),
+    };
   }
 }

@@ -1,3 +1,70 @@
+.matches-empty-state {
+  display: grid;
+  place-items: center;
+  gap: 18px;
+  min-height: 310px;
+  padding: 24px 18px;
+  color: var(--amor-text);
+  text-align: center;
+}
+
+.matches-empty-art {
+  position: relative;
+  display: grid;
+  width: 128px;
+  height: 164px;
+  place-items: center;
+}
+
+.matches-empty-art span {
+  position: absolute;
+  width: 104px;
+  height: 142px;
+  border-radius: 8px;
+  background:
+    linear-gradient(145deg, rgba(255, 93, 143, 0.95), rgba(255, 122, 89, 0.88)),
+    #ff5d8f;
+  box-shadow:
+    0 22px 42px rgba(255, 93, 143, 0.24),
+    inset 0 1px 0 rgba(255, 255, 255, 0.18);
+}
+
+.matches-empty-art span:nth-child(1) {
+  transform: translate(17px, 13px);
+  background:
+    linear-gradient(145deg, rgba(255, 255, 255, 0.12), rgba(255, 255, 255, 0.04)),
+    rgba(255, 255, 255, 0.12);
+}
+
+.matches-empty-art span:nth-child(2) {
+  transform: translate(-6px, -4px);
+}
+
+.matches-empty-art ion-icon {
+  position: relative;
+  z-index: 1;
+  color: #fff6dd;
+  font-size: 46px;
+  filter: drop-shadow(0 10px 18px rgba(0, 0, 0, 0.24));
+}
+
+.matches-empty-state strong {
+  display: block;
+  color: #ffffff;
+  font-size: 1.35rem;
+  font-weight: 950;
+  line-height: 1.08;
+}
+
+.matches-empty-state p {
+  max-width: 26ch;
+  margin: 10px auto 0;
+  color: rgba(248, 245, 239, 0.66);
+  font-size: 0.92rem;
+  font-weight: 750;
+  line-height: 1.45;
+}
+
 .liked-by-card {
   position: relative;
   display: grid;

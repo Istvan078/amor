@@ -37,6 +37,9 @@
       "password": "Password",
       "passwordPlaceholder": "Your password",
       "submit": "Sign in",
+      "loading": "Signing in...",
+      "forgotPassword": "Forgot password?",
+      "resetSent": "Password reset email sent. Check your inbox.",
       "goToRegister": "Don't have an account yet? Create one",
       "secureNote": "Secure Firebase sign-in",
       "heroTitle": "Date with intention",
@@ -58,6 +61,7 @@
       "secureNote": "You can refine your photos, details and preferences after registration.",
       "continue": "Continue to Amor",
       "createAccount": "Create account",
+      "loading": "Working...",
       "goToLogin": "Already have an account? Sign in"
     },
     "modal": {
@@ -90,6 +94,22 @@
       "title": "Sign out",
       "message": "Are you sure you want to sign out?",
       "confirm": "Sign out"
+    },
+    "errors": {
+      "emailRequired": "Enter your email address first.",
+      "emailAlreadyInUse": "This email is already registered. Try signing in instead.",
+      "invalidEmail": "Enter a valid email address.",
+      "weakPassword": "Use a stronger password with at least 6 characters.",
+      "invalidCredential": "The email or password is incorrect.",
+      "tooManyRequests": "Too many attempts. Wait a bit, then try again.",
+      "network": "Network error. Check your connection and try again.",
+      "requiresRecentLogin": "Please sign in again before continuing.",
+      "registrationFailed": "Registration failed. Please try again.",
+      "loginFailed": "Sign in failed. Please try again.",
+      "passwordResetFailed": "Password reset email could not be sent.",
+      "verificationSendFailed": "Verification email could not be sent.",
+      "refreshFailed": "Could not refresh your email verification status.",
+      "signOutFailed": "Sign out failed. Please try again."
     }
   },
   "accountDeletion": {
@@ -124,6 +144,17 @@
     "interests": "Interests",
     "verifiedProfile": "Verified profile",
     "verifiedProfileText": "This profile passed Amor photo verification.",
+    "card": {
+      "recentlyActive": "Recently active",
+      "photoVerified": "Photo verified",
+      "distanceKm": "{{count}} km away",
+      "previousPhoto": "Previous photo",
+      "nextPhoto": "Next photo"
+    },
+    "locationFallback": {
+      "title": "Showing recommendations without location",
+      "text": "Turn on location for better matches."
+    },
     "feed": {
       "recommended": "Recommended",
       "nearby": "Nearby",
@@ -147,6 +178,8 @@
       "offline": "Offline",
       "newMatch": "New Match",
       "blockedPreview": "Blocked",
+      "emptyMatchesTitle": "Start matching",
+      "emptyMatchesText": "Matches will appear here once you start liking people.",
       "you": "You"
     },
     "likesYou": {
@@ -210,6 +243,16 @@
         "completeProfile": "Complete profile",
         "default": "Promising profile"
       }
+    },
+    "matchDetails": {
+      "essentials": "Essentials",
+      "heightCm": "{{count}} cm",
+      "livesIn": "Lives in {{place}}",
+      "lookingForPrompt": "I want someone who:",
+      "moreAboutMe": "More about me",
+      "lifestyle": "Lifestyle",
+      "interests": "Interests",
+      "anthem": "My anthem"
     }
   },
   "privacy": {
@@ -467,11 +510,25 @@
       "lookingForDistance": "Maximum distance (km)",
       "age": "Age",
       "job": "Job",
+      "heightCm": "Height",
       "highestSchool": "Highest education",
       "zodiacSign": "Zodiac sign",
       "currStudy": "Current studies",
       "freeTimeAct": "Free-time activities",
-      "interests": "Interests"
+      "familyPlans": "Family plans",
+      "communicationStyle": "Communication style",
+      "loveStyle": "Love style",
+      "pets": "Pets",
+      "drinking": "Drinking",
+      "smoking": "How often do you smoke?",
+      "workout": "Workout",
+      "socialMedia": "Social media",
+      "interests": "Interests",
+      "anthemTitle": "Anthem title",
+      "anthemArtist": "Anthem artist",
+      "anthemAlbum": "Anthem album",
+      "anthemImageUrl": "Anthem cover image URL",
+      "anthemUrl": "Anthem link"
     },
     "placeholders": {
       "pictures": "Upload photos of yourself",
@@ -493,7 +550,80 @@
       "art": "Art",
       "oneNightStands": "One-night stands",
       "makingFriends": "Making new friends",
-      "listeningToMusic": "Listening to music"
+      "listeningToMusic": "Listening to music",
+      "travel": "Travel",
+      "music": "Music",
+      "dogLover": "Dog lover",
+      "coffee": "Coffee",
+      "grabADrink": "Grab a drink",
+      "foodie": "Foodie",
+      "brunch": "Brunch",
+      "wine": "Wine",
+      "hiking": "Hiking",
+      "gym": "Gym",
+      "zodiac": {
+        "aries": "Aries",
+        "taurus": "Taurus",
+        "gemini": "Gemini",
+        "cancer": "Cancer",
+        "leo": "Leo",
+        "virgo": "Virgo",
+        "libra": "Libra",
+        "scorpio": "Scorpio",
+        "sagittarius": "Sagittarius",
+        "capricorn": "Capricorn",
+        "aquarius": "Aquarius",
+        "pisces": "Pisces"
+      },
+      "familyPlans": {
+        "wantKids": "Want kids",
+        "doNotWantKids": "Do not want kids",
+        "haveKids": "Have kids",
+        "openToKids": "Open to kids",
+        "notSureYet": "Not sure yet"
+      },
+      "communicationStyle": {
+        "betterInPerson": "Better in person",
+        "textingAllDay": "Texting all day",
+        "phoneCaller": "Phone caller",
+        "videoChatter": "Video chatter"
+      },
+      "loveStyle": {
+        "thoughtfulGestures": "Thoughtful gestures",
+        "qualityTime": "Quality time",
+        "wordsOfAffirmation": "Words of affirmation",
+        "physicalTouch": "Physical touch",
+        "actsOfService": "Acts of service"
+      },
+      "pets": {
+        "havePets": "Have pets",
+        "doNotHavePets": "Do not have pets",
+        "lovePets": "Don\u2019t have, but love",
+        "allergic": "Allergic to pets"
+      },
+      "drinking": {
+        "never": "Never",
+        "specialOccasions": "On special occasions",
+        "weekend": "Socially, at the weekend",
+        "sociallyActive": "Socially active"
+      },
+      "smoking": {
+        "nonSmoker": "Non-smoker",
+        "socialSmoker": "Social smoker",
+        "smoker": "Smoker"
+      },
+      "workout": {
+        "never": "Never",
+        "sometimes": "Sometimes",
+        "often": "Often",
+        "everyDay": "Every day"
+      },
+      "socialMedia": {
+        "notForMe": "Not for me",
+        "passiveScroller": "Passive scroller",
+        "sociallyActive": "Socially active",
+        "contentCreator": "Content creator"
+      }
     },
     "edit": {
       "delete": "Delete profile"

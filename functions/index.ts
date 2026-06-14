@@ -1,8 +1,16 @@
 import * as admin from 'firebase-admin';
 import { onRequest } from 'firebase-functions/v2/https';
+import { onSchedule } from 'firebase-functions/v2/scheduler';
 import { onDocumentCreated, onDocumentUpdated } from 'firebase-functions/v2/firestore';
 import * as express from 'express';
 import * as bodyParser from 'body-parser';
+import {
+  createApproximateGeoHash,
+  createGeoBucket,
+  getNearbyGeoBuckets,
+} from './src/discovery/geohash';
+import { normalizeLookingForAgeRange } from './src/shared/age-range';
+import { toTimestampMillis } from './src/shared/time';
 
 admin.initializeApp();
 
@@ -71,6 +79,12 @@ type DiscoveryPremiumFilters = {
   minSharedInterests?: number;
 };
 
+type DiscoveryCursor = {
+  id: string;
+  rankingScore?: number;
+  lastActiveAtMillis?: number;
+};
+
 type ProfileVerificationStatus = 'none' | 'pending' | 'approved' | 'rejected';
 
 type ProfileVerificationDecision = 'approved' | 'rejected';
@@ -98,6 +112,7 @@ const PROFILE_FAST_LIKE_WINDOW_MS = 1000 * 60 * 10;
 const PROFILE_FAST_LIKE_THRESHOLD = 25;
 const REPEATED_BIO_MIN_FINGERPRINT_LENGTH = 24;
 const REPEATED_BIO_DUPLICATE_THRESHOLD = 2;
+const DEFAULT_LOCATION_FALLBACK_FEED_MODE: DiscoveryFeedMode = 'recentlyActive';
 
 const getIdTokenFromRequest = (req: express.Request): string | null => {
   const authHeader = req.headers.authorization;
@@ -485,79 +500,6 @@ const normalizeProfileAge = (profile: Record<string, unknown>) => {
   return age;
 };
 
-const createApproximateGeoHash = (coords: unknown) => {
-  const location =
-    coords && typeof coords === 'object'
-      ? (coords as Record<string, unknown>)
-      : {};
-  const lat = Number(location.lat);
-  const lon = Number(location.lon);
-
-  if (!Number.isFinite(lat) || !Number.isFinite(lon)) {
-    return undefined;
-  }
-
-  return `${lat.toFixed(2)}:${lon.toFixed(2)}`;
-};
-
-const createGeoBucket = (coords: unknown) => {
-  const location =
-    coords && typeof coords === 'object'
-      ? (coords as Record<string, unknown>)
-      : {};
-  const lat = Number(location.lat);
-  const lon = Number(location.lon);
-
-  if (!Number.isFinite(lat) || !Number.isFinite(lon)) {
-    return undefined;
-  }
-
-  return `${Math.round(lat)}:${Math.round(lon)}`;
-};
-
-const MAX_DISCOVERY_GEO_BUCKETS = 25;
-
-const getNearbyGeoBuckets = (coords: unknown, radiusKm: number) => {
-  const location =
-    coords && typeof coords === 'object'
-      ? (coords as Record<string, unknown>)
-      : {};
-  const lat = Number(location.lat);
-  const lon = Number(location.lon);
-
-  if (!Number.isFinite(lat) || !Number.isFinite(lon)) {
-    return [];
-  }
-
-  const centerLat = Math.round(lat);
-  const centerLon = Math.round(lon);
-  const radiusBucketSpan = Number.isFinite(radiusKm)
-    ? Math.ceil(Math.max(radiusKm, 1) / 111)
-    : 1;
-  const span = Math.min(Math.max(radiusBucketSpan, 1), 2);
-  const buckets: Array<{
-    value: string;
-    distanceScore: number;
-  }> = [];
-
-  for (let latOffset = -span; latOffset <= span; latOffset++) {
-    for (let lonOffset = -span; lonOffset <= span; lonOffset++) {
-      const bucketLat = centerLat + latOffset;
-      const bucketLon = centerLon + lonOffset;
-
-      buckets.push({
-        value: `${bucketLat}:${bucketLon}`,
-        distanceScore: ((bucketLat - lat) ** 2) + ((bucketLon - lon) ** 2),
-      });
-    }
-  }
-
-  return buckets
-    .sort((bucketA, bucketB) => bucketA.distanceScore - bucketB.distanceScore)
-    .map((bucket) => bucket.value)
-    .slice(0, MAX_DISCOVERY_GEO_BUCKETS);
-};
-
 const getProfilePhotoUrl = (profile: Record<string, unknown>) => {
   if (typeof profile.profilePicture === 'string') {
     return profile.profilePicture;
@@ -658,6 +600,40 @@ const getProfileQualityScore = (
   );
 };
 
+const getIndexRankingScore = (
+  profile: Record<string, unknown>,
+  profileCompleteness = Number(profile.profileCompleteness ?? 0),
+  profileQualityScore = Number(profile.profileQualityScore ?? profileCompleteness)
+) => {
+  const now = Date.now();
+  const completeness = Math.min(Math.max(profileCompleteness, 0), 100);
+  const quality = Math.min(Math.max(profileQualityScore, 0), 100);
+  const moderationRiskScore = Math.min(
+    Math.max(Number(profile.moderationRiskScore ?? 0), 0),
+    100
+  );
+  const lastActiveAtMillis = toTimestampMillis(profile.lastActiveAt);
+  const activeAgeHours = lastActiveAtMillis
+    ? Math.max((now - lastActiveAtMillis) / 36e5, 0)
+    : 24 * 45;
+  const activityScore = Math.max(0, 100 - Math.min(activeAgeHours, 24 * 45) / 10.8);
+  const verificationScore = isProfileVerified(profile) ? 20 : 0;
+  const boostScore = isBoostedIndexEntry(profile) ? 90 : 0;
+  const riskPenalty = moderationRiskScore * 0.8;
+
+  return Math.round(
+    Math.max(
+      boostScore +
+        verificationScore +
+        quality * 0.42 +
+        completeness * 0.28 +
+        activityScore * 0.3 -
+        riskPenalty,
+      0
+    )
+  );
+};
+
 const buildMatchIndexEntry = (
   uid: string,
   profile: Record<string, unknown>
@@ -694,6 +670,16 @@ const buildMatchIndexEntry = (
       profile.profileVerificationStatus
     ),
     profileQualityScore,
+    rankingScore: getIndexRankingScore(
+      {
+        ...profile,
+        profileCompleteness,
+        profileQualityScore,
+      },
+      profileCompleteness,
+      profileQualityScore
+    ),
+    rankingScoreUpdatedAt: admin.firestore.FieldValue.serverTimestamp(),
     moderationRiskScore: Number(profile.moderationRiskScore ?? 0),
     ...(bioFingerprint ? { bioFingerprint } : {}),
     createdAt: profile.createdAt,
@@ -768,6 +754,22 @@ const setPublicStringListField = (
   }
 };
 
+const setPublicNumberField = (
+  target: Record<string, unknown>,
+  source: Record<string, unknown>,
+  key: string,
+  minValue: number,
+  maxValue: number
+) => {
+  const value = Number(source[key]);
+
+  if (!Number.isFinite(value) || value < minValue || value > maxValue) {
+    return;
+  }
+
+  target[key] = Math.round(value);
+};
+
 const buildPublicProfileEntry = (
   uid: string,
   profile: Record<string, unknown>,
@@ -802,9 +804,23 @@ const buildPublicProfileEntry = (
   setPublicStringField(publicProfile, profile, 'lookingForType', 500);
   setPublicStringField(publicProfile, profile, 'lookingForGender', 30);
   setPublicStringField(publicProfile, profile, 'job', 160);
+  setPublicNumberField(publicProfile, profile, 'heightCm', 90, 260);
   setPublicStringField(publicProfile, profile, 'currStudy', 160);
   setPublicStringField(publicProfile, profile, 'highestSchool', 160);
   setPublicStringField(publicProfile, profile, 'zodiacSign', 80);
+  setPublicStringField(publicProfile, profile, 'familyPlans', 80);
+  setPublicStringField(publicProfile, profile, 'communicationStyle', 80);
+  setPublicStringField(publicProfile, profile, 'loveStyle', 80);
+  setPublicStringField(publicProfile, profile, 'pets', 80);
+  setPublicStringField(publicProfile, profile, 'drinking', 80);
+  setPublicStringField(publicProfile, profile, 'smoking', 80);
+  setPublicStringField(publicProfile, profile, 'workout', 80);
+  setPublicStringField(publicProfile, profile, 'socialMedia', 80);
+  setPublicStringField(publicProfile, profile, 'anthemTitle', 180);
+  setPublicStringField(publicProfile, profile, 'anthemArtist', 120);
+  setPublicStringField(publicProfile, profile, 'anthemAlbum', 160);
+  setPublicStringField(publicProfile, profile, 'anthemImageUrl', 600);
+  setPublicStringField(publicProfile, profile, 'anthemUrl', 600);
   setPublicStringListField(publicProfile, profile, 'freeTimeAct');
   setPublicStringListField(publicProfile, profile, 'interests');
 
@@ -812,20 +828,10 @@ const buildPublicProfileEntry = (
     publicProfile.age = age;
   }
 
-  if (
-    profile.lookingForAge &&
-    typeof profile.lookingForAge === 'object'
-  ) {
-    const lookingForAge = profile.lookingForAge as Record<string, unknown>;
-    const lower = Number(lookingForAge.lower);
-    const upper = Number(lookingForAge.upper);
-
-    if (Number.isFinite(lower) && Number.isFinite(upper)) {
-      publicProfile.lookingForAge = {
-        lower,
-        upper,
-      };
-    }
+  if (profile.lookingForAge && typeof profile.lookingForAge === 'object') {
+    publicProfile.lookingForAge = normalizeLookingForAgeRange(
+      profile.lookingForAge
+    );
   }
 
   if (profile.distanceVisibility !== false) {
@@ -1862,41 +1868,51 @@ const applyRevenueCatBillingEvent = async (event: RevenueCatBillingEvent) => {
   });
 };
 
-const toTimestampMillis = (value: unknown) => {
-  if (!value) {
-    return 0;
+const parseDiscoveryCursor = (value: unknown): DiscoveryCursor | null => {
+  if (typeof value !== 'string' || !value.trim()) {
+    return null;
   }
 
-  if (value instanceof Date) {
-    return value.getTime();
-  }
+  try {
+    const cursor = JSON.parse(value) as Partial<DiscoveryCursor>;
 
-  if (typeof value === 'number') {
-    return value;
-  }
-
-  if (typeof value === 'string') {
-    const timestamp = Date.parse(value);
-
-    return Number.isNaN(timestamp) ? 0 : timestamp;
-  }
-
-  if (typeof value === 'object') {
-    const maybeTimestamp = value as {
-      toMillis?: () => number;
-      toDate?: () => Date;
+    if (typeof cursor.id === 'string' && cursor.id) {
+      return {
+        id: cursor.id,
+        ...(Number.isFinite(Number(cursor.rankingScore))
+          ? { rankingScore: Number(cursor.rankingScore) }
+          : {}),
+        ...(Number.isFinite(Number(cursor.lastActiveAtMillis))
+          ? { lastActiveAtMillis: Number(cursor.lastActiveAtMillis) }
+          : {}),
+      };
+    }
+  } catch {
+    return {
+      id: value,
     };
-
-    if (typeof maybeTimestamp.toMillis === 'function') {
-      return maybeTimestamp.toMillis();
-    }
-
-    if (typeof maybeTimestamp.toDate === 'function') {
-      return maybeTimestamp.toDate().getTime();
-    }
   }
 
-  return 0;
+  return null;
+};
+
+const serializeDiscoveryCursor = (
+  snapshot: admin.firestore.QueryDocumentSnapshot,
+  rankedCursor: boolean
+) => {
+  if (!rankedCursor) {
+    return snapshot.id;
+  }
+
+  const data = snapshot.data() as Record<string, unknown>;
+  const rankingScore = Number(data.rankingScore ?? 0);
+  const lastActiveAtMillis = toTimestampMillis(data.lastActiveAt);
+
+  return JSON.stringify({
+    id: snapshot.id,
+    rankingScore: Number.isFinite(rankingScore) ? rankingScore : 0,
+    lastActiveAtMillis,
+  });
 };
 
 const toRadians = (value: number) => (value * Math.PI) / 180;
@@ -1944,6 +1960,18 @@ const getDistanceBetweenCoordsKm = (origin: unknown, candidate: unknown) => {
   }
 
   return getDistanceKm(originLat, originLon, candidateLat, candidateLon);
+};
+
+const hasValidLocationCoords = (value: unknown) => {
+  const coords =
+    value && typeof value === 'object'
+      ? (value as Record<string, unknown>)
+      : {};
+
+  return (
+    Number.isFinite(Number(coords.lat)) &&
+    Number.isFinite(Number(coords.lon))
+  );
 };
 
 const distanceKmPasses = (distanceKm: number | null, maxDistanceKm: number) =>
@@ -2023,13 +2051,58 @@ const getSharedInterestCount = (
   ).length;
 };
 
+const normalizePlaceText = (value: unknown) =>
+  typeof value === 'string'
+    ? value
+      .trim()
+      .toLowerCase()
+      .normalize('NFD')
+      .replace(/[\u0300-\u036f]/g, '')
+      .replace(/[^a-z0-9]+/g, ' ')
+      .trim()
+    : '';
+
+const getPlaceAffinityScore = (
+  originPlace: unknown,
+  candidatePlace: unknown
+) => {
+  const origin = normalizePlaceText(originPlace);
+  const candidate = normalizePlaceText(candidatePlace);
+
+  if (!origin || !candidate) {
+    return 0;
+  }
+
+  if (origin === candidate) {
+    return 60;
+  }
+
+  if (
+    origin.length > 2 &&
+    candidate.length > 2 &&
+    (origin.includes(candidate) || candidate.includes(origin))
+  ) {
+    return 38;
+  }
+
+  const originTokens = new Set(
+    origin.split(' ').filter((token) => token.length > 2)
+  );
+  const sharedTokenCount = candidate
+    .split(' ')
+    .filter((token) => originTokens.has(token)).length;
+
+  return Math.min(sharedTokenCount * 14, 42);
+};
+
 const getDiscoveryRankScore = (
   feedMode: DiscoveryFeedMode,
   profile: Record<string, unknown>,
   candidate: Record<string, unknown>,
   distanceKm: number | null,
   createdAtMillis: number,
-  sharedInterestCount: number
+  sharedInterestCount: number,
+  placeAffinityScore = 0
 ) => {
   const now = Date.now();
   const completeness = Math.min(
@@ -2074,6 +2147,7 @@ const getDiscoveryRankScore = (
     profileQualityScore * 0.26 +
     completeness * 0.12 +
     sharedInterestScore +
+    placeAffinityScore +
     newProfileScore * 0.08 -
     riskPenalty;
 
@@ -2409,11 +2483,25 @@ const getPublicProfileSignature = (profile: Record<string, unknown>) =>
     lookingForGender: profile.lookingForGender ?? '',
     lookingForAge: profile.lookingForAge ?? null,
     job: profile.job ?? '',
+    heightCm: profile.heightCm ?? null,
     currStudy: profile.currStudy ?? '',
     highestSchool: profile.highestSchool ?? '',
     freeTimeAct: profile.freeTimeAct ?? [],
     interests: profile.interests ?? [],
     zodiacSign: profile.zodiacSign ?? '',
+    familyPlans: profile.familyPlans ?? '',
+    communicationStyle: profile.communicationStyle ?? '',
+    loveStyle: profile.loveStyle ?? '',
+    pets: profile.pets ?? '',
+    drinking: profile.drinking ?? '',
+    smoking: profile.smoking ?? '',
+    workout: profile.workout ?? '',
+    socialMedia: profile.socialMedia ?? '',
+    anthemTitle: profile.anthemTitle ?? '',
+    anthemArtist: profile.anthemArtist ?? '',
+    anthemAlbum: profile.anthemAlbum ?? '',
+    anthemImageUrl: profile.anthemImageUrl ?? '',
+    anthemUrl: profile.anthemUrl ?? '',
     currentPlace: profile.currentPlace ?? '',
     profilePicture: profile.profilePicture ?? '',
     pictures: profile.pictures ?? [],
@@ -2455,7 +2543,7 @@ app.post('/discoverCandidates', verifyToken, async (req: AuthenticatedRequest, r
   const { uid, startAfter } = req.body;
   const myUid = getRequestedActionUid(req, uid);
   const resultLimit = Math.min(Math.max(Number(req.body.limit ?? 20), 1), 20);
-  const cursor = typeof startAfter === 'string' && startAfter ? startAfter : '';
+  const cursor = parseDiscoveryCursor(startAfter);
   const feedMode = normalizeDiscoveryFeedMode(req.body.feedMode);
 
   if (!myUid) {
@@ -2482,14 +2570,30 @@ app.post('/discoverCandidates', verifyToken, async (req: AuthenticatedRequest, r
       req.body.currentLocCoords && typeof req.body.currentLocCoords === 'object'
         ? (req.body.currentLocCoords as Record<string, unknown>)
         : {};
+    const requestHasCoords =
+      Number.isFinite(Number(requestCoords.lat)) &&
+      Number.isFinite(Number(requestCoords.lon));
+    const requestedLocationFallback = req.body.locationFallback === true;
     const currentLocCoords =
-      typeof requestCoords.lat === 'number' &&
-      typeof requestCoords.lon === 'number'
+      !requestedLocationFallback && requestHasCoords
         ? {
-          lat: requestCoords.lat,
-          lon: requestCoords.lon,
+          lat: Number(requestCoords.lat),
+          lon: Number(requestCoords.lon),
         }
-        : profile.currentLocCoords;
+        : !requestedLocationFallback
+          ? profile.currentLocCoords
+          : null;
+    const hasUsableLocation = hasValidLocationCoords(currentLocCoords);
+    const fallbackPlace =
+      typeof req.body.fallbackPlace === 'string' && req.body.fallbackPlace.trim()
+        ? req.body.fallbackPlace.trim()
+        : typeof profile.currentPlace === 'string'
+          ? profile.currentPlace.trim()
+          : '';
+    const effectiveFeedMode =
+      hasUsableLocation || feedMode !== 'nearby'
+        ? feedMode
+        : DEFAULT_LOCATION_FALLBACK_FEED_MODE;
     const matchParts = normalizeMatchParts(profile.matchParts);
     const excludedUids = new Set([
       myUid,
@@ -2505,27 +2609,33 @@ app.post('/discoverCandidates', verifyToken, async (req: AuthenticatedRequest, r
         : '';
     const profileGender =
       typeof profile.gender === 'string' ? profile.gender : '';
-    const preferredAge =
-      profile.lookingForAge && typeof profile.lookingForAge === 'object'
-        ? (profile.lookingForAge as Record<string, unknown>)
-        : {};
-    const lowerAge = Number(preferredAge.lower ?? 18);
-    const upperAge = Number(preferredAge.upper ?? 100);
+    const preferredAge = normalizeLookingForAgeRange(profile.lookingForAge);
+    const lowerAge = preferredAge.lower;
+    const upperAge = preferredAge.upper;
     const profileDistanceKm = Number(profile.lookingForDistance ?? 50);
     const maxDistanceKm = Number.isFinite(premiumFilters.maxDistanceKm)
       ? Number(premiumFilters.maxDistanceKm)
       : profileDistanceKm;
     const activeThresholdMillis = Date.now() - 1000 * 60 * 60 * 24 * 7;
-    const geoBuckets = getNearbyGeoBuckets(currentLocCoords, maxDistanceKm);
+    const geoBuckets = hasUsableLocation
+      ? getNearbyGeoBuckets(currentLocCoords, maxDistanceKm)
+      : [];
     const useGeoBucketQuery = geoBuckets.length > 0;
     const scanLimit = Math.min(
       resultLimit * (useGeoBucketQuery ? 3 : 5),
       useGeoBucketQuery ? 60 : 100
     );
     const legacyFallbackScanLimit = Math.min(resultLimit * 5, 100);
+    const canUseRankedCursor =
+      !cursor ||
+      (
+        Number.isFinite(Number(cursor.rankingScore)) &&
+        Number.isFinite(Number(cursor.lastActiveAtMillis))
+      );
     const buildCandidateQuery = (
       limitCount: number,
-      geoBucketFilter: string[] = []
+      geoBucketFilter: string[] = [],
+      useRankedOrder = true
     ) => {
       let queryRef: admin.firestore.Query = db
         .collection('matchIndex')
@@ -2546,30 +2656,89 @@ app.post('/discoverCandidates', verifyToken, async (req: AuthenticatedRequest, r
         queryRef = queryRef.where('lookingForGender', '==', profileGender);
       }
 
-      queryRef = queryRef
-        .orderBy(admin.firestore.FieldPath.documentId())
-        .limit(limitCount);
+      if (useRankedOrder) {
+        queryRef = queryRef
+          .orderBy('rankingScore', 'desc')
+          .orderBy('lastActiveAt', 'desc')
+          .orderBy(admin.firestore.FieldPath.documentId());
 
-      if (cursor) {
-        queryRef = queryRef.startAfter(cursor);
+        if (
+          cursor?.id &&
+          Number.isFinite(Number(cursor.rankingScore)) &&
+          Number.isFinite(Number(cursor.lastActiveAtMillis))
+        ) {
+          queryRef = queryRef.startAfter(
+            Number(cursor.rankingScore),
+            admin.firestore.Timestamp.fromMillis(
+              Number(cursor.lastActiveAtMillis)
+            ),
+            cursor.id
+          );
+        }
+      } else {
+        queryRef = queryRef.orderBy(admin.firestore.FieldPath.documentId());
+
+        if (cursor?.id) {
+          queryRef = queryRef.startAfter(cursor.id);
+        }
       }
 
-      return queryRef;
+      return queryRef.limit(limitCount);
+    };
+
+    const fetchCandidateDocs = async (
+      limitCount: number,
+      geoBucketFilter: string[] = []
+    ) => {
+      if (canUseRankedCursor) {
+        try {
+          const rankedSnapshot = await buildCandidateQuery(
+            limitCount,
+            geoBucketFilter,
+            true
+          ).get();
+
+          return {
+            docs: rankedSnapshot.docs,
+            ranked: true,
+          };
+        } catch (error) {
+          console.warn('Ranked discovery query failed. Falling back to legacy cursor.', error);
+        }
+      }
+
+      const legacySnapshot = await buildCandidateQuery(
+        limitCount,
+        geoBucketFilter,
+        false
+      ).get();
+
+      return {
+        docs: legacySnapshot.docs,
+        ranked: false,
+      };
     };
 
     let activeScanLimit = scanLimit;
-    let snapshotDocs = (
-      await buildCandidateQuery(
-        scanLimit,
-        useGeoBucketQuery ? geoBuckets : []
-      ).get()
-    ).docs;
+    let candidateSnapshotResult = await fetchCandidateDocs(
+      scanLimit,
+      useGeoBucketQuery ? geoBuckets : []
+    );
+    let snapshotDocs = candidateSnapshotResult.docs;
+    let usedRankedQuery = candidateSnapshotResult.ranked;
 
     if (useGeoBucketQuery && snapshotDocs.length === 0) {
       activeScanLimit = legacyFallbackScanLimit;
-      snapshotDocs = (
-        await buildCandidateQuery(legacyFallbackScanLimit).get()
-      ).docs;
+      candidateSnapshotResult = await fetchCandidateDocs(legacyFallbackScanLimit);
+      snapshotDocs = candidateSnapshotResult.docs;
+      usedRankedQuery = candidateSnapshotResult.ranked;
+    } else if (usedRankedQuery && snapshotDocs.length === 0 && !cursor) {
+      candidateSnapshotResult = await fetchCandidateDocs(
+        legacyFallbackScanLimit,
+        [],
+      );
+      snapshotDocs = candidateSnapshotResult.docs;
+      usedRankedQuery = candidateSnapshotResult.ranked;
     }
 
     const scannedCandidates: Array<{
@@ -2614,18 +2783,22 @@ app.post('/discoverCandidates', verifyToken, async (req: AuthenticatedRequest, r
           candidate.claims['currentLocCoords']
         );
         const sharedInterestCount = getSharedInterestCount(profile, candidate.claims);
+        const placeAffinityScore = hasUsableLocation
+          ? 0
+          : getPlaceAffinityScore(fallbackPlace, candidate.claims['currentPlace']);
 
         return {
           ...candidate,
           distanceKm,
           sharedInterestCount,
           rankScore: getDiscoveryRankScore(
-            feedMode,
+            effectiveFeedMode,
             profile,
             candidate.claims,
             distanceKm,
             candidate.createdAtMillis,
-            sharedInterestCount
+            sharedInterestCount,
+            placeAffinityScore
           ),
         };
       })
@@ -2652,12 +2825,12 @@ app.post('/discoverCandidates', verifyToken, async (req: AuthenticatedRequest, r
           return scoreDelta;
         }
 
-        if (feedMode === 'nearby') {
+        if (effectiveFeedMode === 'nearby') {
           return (candidateA.distanceKm ?? Number.MAX_SAFE_INTEGER) -
             (candidateB.distanceKm ?? Number.MAX_SAFE_INTEGER);
         }
 
-        if (feedMode === 'newProfiles') {
+        if (effectiveFeedMode === 'newProfiles') {
           return candidateB.createdAtMillis - candidateA.createdAtMillis;
         }
 
@@ -2674,12 +2847,18 @@ app.post('/discoverCandidates', verifyToken, async (req: AuthenticatedRequest, r
       .slice(0, resultLimit);
     const nextCursor =
       snapshotDocs.length === activeScanLimit
-        ? snapshotDocs[snapshotDocs.length - 1]?.id ?? null
+        ? snapshotDocs[snapshotDocs.length - 1]
+          ? serializeDiscoveryCursor(
+            snapshotDocs[snapshotDocs.length - 1],
+            usedRankedQuery
+          )
+          : null
         : null;
 
     res.json({
       candidates,
       nextCursor,
+      locationFallback: !hasUsableLocation,
     });
   } catch (error) {
     console.error('Discovery candidate lookup failed:', error);
@@ -3457,6 +3636,57 @@ export const onModerationReportCreated = onDocumentCreated(
       profileSnapshot.data() ?? {},
       'report_created'
     );
+  }
+);
+
+export const refreshDiscoveryRankingScores = onSchedule(
+  'every 24 hours',
+  async () => {
+    const db = admin.firestore();
+    let lastSnapshot: admin.firestore.QueryDocumentSnapshot | null = null;
+    let processedCount = 0;
+
+    for (let page = 0; page < 10; page++) {
+      let queryRef: admin.firestore.Query = db
+        .collection('matchIndex')
+        .orderBy(admin.firestore.FieldPath.documentId())
+        .limit(400);
+
+      if (lastSnapshot) {
+        queryRef = queryRef.startAfter(lastSnapshot);
+      }
+
+      const snapshot = await queryRef.get();
+
+      if (snapshot.empty) {
+        break;
+      }
+
+      const batch = db.batch();
+
+      snapshot.docs.forEach((docSnapshot) => {
+        const entry = docSnapshot.data() as Record<string, unknown>;
+
+        batch.set(
+          docSnapshot.ref,
+          {
+            rankingScore: getIndexRankingScore(entry),
+            rankingScoreUpdatedAt: admin.firestore.FieldValue.serverTimestamp(),
+          },
+          { merge: true }
+        );
+      });
+
+      await batch.commit();
+      processedCount += snapshot.size;
+      lastSnapshot = snapshot.docs[snapshot.docs.length - 1] ?? null;
+
+      if (snapshot.size < 400) {
+        break;
+      }
+    }
+
+    console.log(`Refreshed discovery ranking scores for ${processedCount} profiles.`);
   }
 );
 

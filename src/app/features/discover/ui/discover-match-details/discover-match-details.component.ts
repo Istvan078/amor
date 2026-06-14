@@ -1,12 +1,28 @@
 import { Component, EventEmitter, Input, Output } from '@angular/core';
-import {
-  IonButton,
-  IonIcon,
-  IonItem,
-  IonLabel,
-  IonList,
-} from '@ionic/angular/standalone';
+import { IonIcon } from '@ionic/angular/standalone';
 import { TranslocoDirective } from '@jsverse/transloco';
+import { addIcons } from 'ionicons';
+import {
+  atOutline,
+  barbellOutline,
+  briefcaseOutline,
+  cameraOutline,
+  chatbubbleEllipsesOutline,
+  documentTextOutline,
+  heartOutline,
+  homeOutline,
+  idCardOutline,
+  locationOutline,
+  moonOutline,
+  musicalNotesOutline,
+  pawOutline,
+  peopleOutline,
+  playCircleOutline,
+  resizeOutline,
+  schoolOutline,
+  sparklesOutline,
+  wineOutline,
+} from 'ionicons/icons';
 
 import {
   translatedFieldLabel,
@@ -19,11 +35,12 @@ import { UserClass } from '../../../../shared/models/user.model';
   selector: 'app-discover-match-details',
   templateUrl: './discover-match-details.component.html',
   standalone: true,
-  imports: [TranslocoDirective, IonButton, IonIcon, IonItem, IonLabel, IonList],
+  imports: [TranslocoDirective, IonIcon],
 })
 export class DiscoverMatchDetailsComponent {
   readonly fieldLabel = translatedFieldLabel;
   readonly profileValueText = translatedProfileValue;
+  readonly fallbackAnthemImage = 'assets/icon/main-icon.png';
 
   @Input() labels: any = {};
   @Input() userProfile?: UserClass;
@@ -31,6 +48,30 @@ export class DiscoverMatchDetailsComponent {
   @Input() possibleDetailLists: number[] = [];
 
   @Output() closed = new EventEmitter<void>();
+
+  constructor() {
+    addIcons({
+      atOutline,
+      barbellOutline,
+      briefcaseOutline,
+      cameraOutline,
+      chatbubbleEllipsesOutline,
+      documentTextOutline,
+      heartOutline,
+      homeOutline,
+      idCardOutline,
+      locationOutline,
+      moonOutline,
+      musicalNotesOutline,
+      pawOutline,
+      peopleOutline,
+      playCircleOutline,
+      resizeOutline,
+      schoolOutline,
+      sparklesOutline,
+      wineOutline,
+    });
+  }
 
   getCompatibilityScore() {
     const reasons = this.getCompatibilityReasons();
@@ -106,6 +147,84 @@ export class DiscoverMatchDetailsComponent {
     return Array.isArray(value) ? value : [];
   }
 
+  getProfileTitle() {
+    const name = this.matchProfile?.firstName ?? '';
+    const age = this.matchProfile?.age ? ` ${this.matchProfile.age}` : '';
+
+    return `${name}${age}`.trim();
+  }
+
+  hasVisibleDistance() {
+    return (
+      this.isDistanceVisible() &&
+      Number.isFinite(Number(this.matchProfile?.distanceKm))
+    );
+  }
+
+  getDistanceKmLabel() {
+    const distanceKm = Number(this.matchProfile?.distanceKm);
+
+    if (!Number.isFinite(distanceKm)) {
+      return '';
+    }
+
+    if (distanceKm < 10) {
+      return (Math.round(distanceKm * 10) / 10).toString();
+    }
+
+    return String(Math.round(distanceKm));
+  }
+
+  hasHeight() {
+    return Number.isFinite(Number(this.matchProfile?.heightCm));
+  }
+
+  getHeightLabel() {
+    return String(Math.round(Number(this.matchProfile?.heightCm)));
+  }
+
+  getEducationValue() {
+    return this.matchProfile?.highestSchool || this.matchProfile?.currStudy || '';
+  }
+
+  hasMoreAboutMe() {
+    return !!(
+      this.matchProfile?.zodiacSign ||
+      this.getEducationValue() ||
+      this.matchProfile?.familyPlans ||
+      this.matchProfile?.communicationStyle ||
+      this.matchProfile?.loveStyle
+    );
+  }
+
+  hasLifestyle() {
+    return !!(
+      this.matchProfile?.pets ||
+      this.matchProfile?.drinking ||
+      this.matchProfile?.smoking ||
+      this.matchProfile?.workout ||
+      this.matchProfile?.socialMedia
+    );
+  }
+
+  hasAnthem() {
+    return !!this.matchProfile?.anthemTitle;
+  }
+
+  getAnthemImage() {
+    const imageUrl = this.matchProfile?.anthemImageUrl;
+
+    return typeof imageUrl === 'string' && imageUrl.trim()
+      ? imageUrl
+      : this.fallbackAnthemImage;
+  }
+
+  getAnthemMeta() {
+    return [this.matchProfile?.anthemArtist, this.matchProfile?.anthemAlbum]
+      .filter((value): value is string => typeof value === 'string' && !!value.trim())
+      .join(' · ');
+  }
+
   isDetailVisible(label: { key?: string }) {
     if (label.key === 'currentPlace') {
       return this.isDistanceVisible();
@@ -114,11 +233,15 @@ export class DiscoverMatchDetailsComponent {
     return true;
   }
 
-  private isDistanceVisible() {
+  isDistanceVisible() {
     return this.matchProfile?.distanceVisibility !== false;
   }
 
-  private isRecentlyActive() {
+  isRecentlyActive() {
+    if (this.matchProfile?.showOnlineStatus === false) {
+      return false;
+    }
+
     const value = this.matchProfile?.['lastActiveAt'] ?? this.matchProfile?.['lastSeenAt'];
     const timestamp = this.getTimestampValue(value);
 

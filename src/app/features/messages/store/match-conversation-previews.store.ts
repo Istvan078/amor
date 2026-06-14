@@ -51,11 +51,11 @@ export const MatchConversationPreviewsStore = signalStore(
     withMethods((store, repository = inject(MessagesRepository)) => {
         let signature = '';
         let requestId = 0;
-        let unsubscribers: Array<() => void> = [];
+        let unsubscribe: (() => void) | null = null;
 
         function stopListeners() {
-            unsubscribers.forEach((unsubscribe) => unsubscribe());
-            unsubscribers = [];
+            unsubscribe?.();
+            unsubscribe = null;
         }
 
         return {
@@ -94,30 +94,28 @@ export const MatchConversationPreviewsStore = signalStore(
                     ),
                 });
 
-                for (const match of matchProfiles) {
-                    try {
-                        const unsubscribe = repository.listenToConversationPreview(
-                            userProfile.uid,
-                            match.uid,
-                            (preview) => {
-                                if (activeRequestId !== requestId) {
-                                    return;
-                                }
+                try {
+                    unsubscribe = repository.listenToConversationPreviews(
+                        userProfile.uid,
+                        (conversationPreviews) => {
+                            if (activeRequestId !== requestId) {
+                                return;
+                            }
 
-                                patchState(store, {
-                                    previews: {
-                                        ...store.previews(),
-                                        [match.uid]: preview,
-                                    },
-                                });
-                            },
-                            (error) => console.error(error)
-                        );
-
-                        unsubscribers.push(unsubscribe);
-                    } catch (error) {
-                        console.error(error);
-                    }
+                            patchState(store, {
+                                previews: Object.fromEntries(
+                                    matchProfiles.map((match) => [
+                                        match.uid,
+                                        conversationPreviews[match.uid] ??
+                                        emptyConversationPreview(),
+                                    ])
+                                ),
+                            });
+                        },
+                        (error) => console.error(error)
+                    );
+                } catch (error) {
+                    console.error(error);
                 }
             },
 

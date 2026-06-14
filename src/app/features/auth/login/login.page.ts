@@ -31,11 +31,12 @@ import { AuthStore } from '../store/auth.store';
     ],
 })
 export class LoginPage {
-    private authStore = inject(AuthStore);
+    readonly authStore = inject(AuthStore);
     private router = inject(Router);
     private profileStore = inject(ProfileStore);
     private privacyStore = inject(PrivacyConsentStore);
 
+    resetSent = false;
     loginData = {
         data: {
             email: '',
@@ -54,15 +55,35 @@ export class LoginPage {
     }
 
     async loginUser() {
-        this.profileStore.setProfileCreated(false);
-        await this.authStore.signInWithEmail(this.loginData.data);
-        await this.profileStore.loadProfile(this.authStore.uid() ?? '');
-        await this.privacyStore.loadConsent(this.authStore.uid() ?? '');
+        if (this.authStore.loading()) {
+            return;
+        }
 
-        this.router.navigate([
-            this.privacyStore.hasRequiredConsent()
-                ? '/amor/discover'
-                : '/amor/privacy',
-        ]);
+        this.resetSent = false;
+        this.profileStore.setProfileCreated(false);
+
+        try {
+            await this.authStore.signInWithEmail(this.loginData.data);
+            await this.profileStore.loadProfile(this.authStore.uid() ?? '');
+            await this.privacyStore.loadConsent(this.authStore.uid() ?? '');
+
+            this.router.navigate([
+                this.privacyStore.hasRequiredConsent()
+                    ? '/amor/discover'
+                    : '/amor/privacy',
+            ]);
+        } catch {
+            // AuthStore owns the user-facing error state.
+        }
+    }
+
+    async resetPassword() {
+        if (this.authStore.loading()) {
+            return;
+        }
+
+        this.resetSent = await this.authStore.resetPassword(
+            this.loginData.data.email
+        );
     }
 }

@@ -370,7 +370,7 @@
             </section>
           }
         } @else {
-        @if (matchProfile) {
+        @if (matchProfile && !hasReadReceiptsEnabled()) {
           <section class="conversation-hero">
             <div>
               <span>{{ t('messages.readReceiptTitle') }}</span>
@@ -380,14 +380,10 @@
             </div>
             <ion-button
               fill="solid"
-              [disabled]="readReceiptsSaving || hasReadReceiptsEnabled()"
+              [disabled]="readReceiptsSaving"
               (click)="enableReadReceipts()"
             >
-              {{
-                hasReadReceiptsEnabled()
-                  ? t('messages.readReceiptEnabled')
-                  : t('messages.enableReadReceipt')
-              }}
+              {{ t('messages.enableReadReceipt') }}
             </ion-button>
           </section>
         }
@@ -698,6 +694,8 @@
             rows="1"
             autoGrow="true"
             (ionInput)="onMessageInput()"
+            (ionFocus)="onComposerFocus()"
+            (ionBlur)="onComposerBlur()"
           ></ion-textarea>
           <ion-button
             type="submit"

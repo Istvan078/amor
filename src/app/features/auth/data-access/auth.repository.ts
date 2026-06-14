@@ -7,6 +7,7 @@ import {
     createUserWithEmailAndPassword,
     reload,
     sendEmailVerification,
+    sendPasswordResetEmail,
     signInWithEmailAndPassword,
     signOut,
 } from '@angular/fire/auth';
@@ -43,6 +44,12 @@ export class AuthRepository {
     signInWithEmail(data: LoginData) {
         return this.runInFirebaseContext(() =>
             signInWithEmailAndPassword(this.auth, data.email, data.password)
+        );
+    }
+
+    sendPasswordResetEmail(email: string) {
+        return this.runInFirebaseContext(() =>
+            sendPasswordResetEmail(this.auth, email)
         );
     }
 

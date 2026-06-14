@@ -1940,6 +1940,21 @@
     flex-direction: column;
   }
 
+  :host-context(body.is-mobile-keyboard-open) .conversation-header {
+    padding-block: 8px;
+  }
+
+  :host-context(body.is-mobile-keyboard-open) .conversation-header ion-avatar {
+    width: 40px;
+    height: 40px;
+  }
+
+  :host-context(body.is-mobile-keyboard-open) .conversation-header small,
+  :host-context(body.is-mobile-keyboard-open) .conversation-header p,
+  :host-context(body.is-mobile-keyboard-open) .conversation-hero {
+    display: none;
+  }
+
   .conversation-header {
     grid-template-columns: auto minmax(0, 1fr) auto;
     gap: 10px;
@@ -2104,6 +2119,10 @@
     touch-action: pan-y;
   }
 
+  :host-context(body.is-mobile-keyboard-open) .message-thread {
+    padding-block: 10px;
+  }
+
   .message-row {
     max-width: 100%;
   }
@@ -2159,6 +2178,10 @@
     border-radius: 0;
     background: rgba(15, 19, 33, 0.96);
     backdrop-filter: blur(18px);
+  }
+
+  :host-context(body.is-mobile-keyboard-open) .message-composer {
+    padding-bottom: 10px;
   }
 
   .message-composer ion-textarea {

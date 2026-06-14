@@ -17,6 +17,7 @@ type ProfilePicture = NonNullable<UserClass['pictures']>[number];
 })
 export class ProfileEditorFacade {
   readonly maxProfilePictures = 6;
+  private readonly minimumDatingAge = 18;
 
   private config = inject(ConfigService);
   private profilePicturesRepository = inject(ProfilePicturesRepository);
@@ -59,16 +60,30 @@ export class ProfileEditorFacade {
       aboutMe: profile.aboutMe,
       lookingForType: profile.lookingForType,
       lookingForGender: profile.lookingForGender,
-      lookingForAge: profile.lookingForAge,
+      lookingForAge: this.normalizeLookingForAge(profile.lookingForAge),
       lookingForDistance: profile.lookingForDistance,
 
       job: profile.job,
+      heightCm: profile.heightCm,
       currStudy: profile.currStudy,
       studies: profile.studies,
       highestSchool: profile.highestSchool,
       freeTimeAct: profile.freeTimeAct,
       interests: profile.interests,
       zodiacSign: profile.zodiacSign,
+      familyPlans: profile.familyPlans,
+      communicationStyle: profile.communicationStyle,
+      loveStyle: profile.loveStyle,
+      pets: profile.pets,
+      drinking: profile.drinking,
+      smoking: profile.smoking,
+      workout: profile.workout,
+      socialMedia: profile.socialMedia,
+      anthemTitle: profile.anthemTitle,
+      anthemArtist: profile.anthemArtist,
+      anthemAlbum: profile.anthemAlbum,
+      anthemImageUrl: profile.anthemImageUrl,
+      anthemUrl: profile.anthemUrl,
 
       currentPlace: profile.currentPlace,
       currentLocCoords: profile.currentLocCoords,
@@ -97,6 +112,24 @@ export class ProfileEditorFacade {
 
   hasRequiredProfilePictures(profile?: UserClass | null) {
     return (profile?.pictures?.length ?? 0) >= 1;
+  }
+
+  private normalizeLookingForAge(
+    range: UserClass['lookingForAge'] | undefined
+  ) {
+    const lower = Number(range?.lower);
+    const upper = Number(range?.upper);
+    const normalizedLower = Number.isFinite(lower)
+      ? Math.max(this.minimumDatingAge, lower)
+      : this.minimumDatingAge;
+    const normalizedUpper = Number.isFinite(upper)
+      ? Math.max(normalizedLower, upper)
+      : 100;
+
+    return {
+      lower: normalizedLower,
+      upper: Math.max(normalizedLower, normalizedUpper),
+    };
   }
 
   async savePictures(

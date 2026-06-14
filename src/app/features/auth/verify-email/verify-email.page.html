@@ -18,13 +18,28 @@
           </div>
         }
 
+        @if (authStore.error()) {
+          <div class="verify-email-status is-error">
+            {{ t(authStore.error() || '') }}
+          </div>
+        }
+
         <div class="verify-email-actions">
-          <ion-button class="verify-email-primary" (click)="refreshVerificationState()" [disabled]="checking">
+          <ion-button
+            class="verify-email-primary"
+            (click)="refreshVerificationState()"
+            [disabled]="checking || authStore.loading()"
+          >
             {{ checking ? t('auth.verify.checking') : t('auth.verify.refresh') }}
             <ion-icon name="refresh-outline" slot="end"></ion-icon>
           </ion-button>
 
-          <ion-button class="verify-email-secondary" fill="clear" (click)="resendVerificationEmail()">
+          <ion-button
+            class="verify-email-secondary"
+            fill="clear"
+            [disabled]="checking || authStore.loading()"
+            (click)="resendVerificationEmail()"
+          >
             {{ t('auth.verify.resend') }}
           </ion-button>
         </div>

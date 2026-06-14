@@ -29,6 +29,7 @@
       class="m-0 p-0"
       [class.is-message-view]="isShowMessages"
       [class.is-profile-view]="isUserCardOpen"
+      [class.is-match-details-open]="isMatchDetailsOpen"
     >
       @if(!isUserCardOpen) {
       <ion-grid class="m-0 p-0">
@@ -100,6 +101,13 @@
               </div>
             </section>
 
+            @if(discoverStore.locationFallbackActive()) {
+            <section class="discover-location-fallback-notice" aria-live="polite">
+              <strong>{{ 'discover.locationFallback.title' | transloco }}</strong>
+              <span>{{ 'discover.locationFallback.text' | transloco }}</span>
+            </section>
+            }
+
             <app-discover-match-card
               [progress]="progress"
               [buffer]="buffer"
@@ -117,8 +125,7 @@
               (disliked)="dislikeCurrentMatch()"
               (superLiked)="superLikeCurrentMatch()"
             ></app-discover-match-card>
-            } @if(isMatchDetailsOpen || (options.phoneView && !isShowMessages && !isMatchPlaceHolder
-            && matchProf)) {
+            } @if(isMatchDetailsOpen && !isShowMessages && !isMatchPlaceHolder && matchProf) {
             <app-discover-match-details
               [labels]="labels"
               [userProfile]="userProf"

@@ -92,4 +92,8 @@ ion-tabs {
     height: 68px;
     padding-inline: 10px;
   }
+
+  :host-context(body.is-mobile-message-view) ion-tabs .mobile-tab-bar {
+    display: none;
+  }
 }

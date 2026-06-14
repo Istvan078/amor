@@ -37,6 +37,9 @@
       "password": "Jelszó",
       "passwordPlaceholder": "Jelszavad",
       "submit": "Belépés",
+      "loading": "Belépés...",
+      "forgotPassword": "Elfelejtetted a jelszavad?",
+      "resetSent": "Jelszó-visszaállító email elküldve. Nézd meg a postaládádat.",
       "goToRegister": "Még nincs fiókod? Hozz létre egyet",
       "secureNote": "Biztonságos Firebase belépés",
       "heroTitle": "Ismerkedj tudatosan",
@@ -58,6 +61,7 @@
       "secureNote": "A képeidet, adataidat és preferenciáidat regisztráció után is finomíthatod.",
       "continue": "Folytatás az Amorba",
       "createAccount": "Fiók létrehozása",
+      "loading": "Folyamatban...",
       "goToLogin": "Már van fiókod? Jelentkezz be"
     },
     "modal": {
@@ -90,6 +94,22 @@
       "title": "Kilépés",
       "message": "Biztosan ki szeretnél lépni?",
       "confirm": "Kilépés"
+    },
+    "errors": {
+      "emailRequired": "Először add meg az email címed.",
+      "emailAlreadyInUse": "Ezzel az email címmel már van fiók. Próbálj belépni.",
+      "invalidEmail": "Adj meg egy érvényes email címet.",
+      "weakPassword": "Használj erősebb, legalább 6 karakteres jelszót.",
+      "invalidCredential": "Az email vagy a jelszó nem megfelelő.",
+      "tooManyRequests": "Túl sok próbálkozás. Várj egy kicsit, majd próbáld újra.",
+      "network": "Hálózati hiba. Ellenőrizd a kapcsolatot, majd próbáld újra.",
+      "requiresRecentLogin": "A folytatáshoz jelentkezz be újra.",
+      "registrationFailed": "A regisztráció nem sikerült. Próbáld újra.",
+      "loginFailed": "A belépés nem sikerült. Próbáld újra.",
+      "passwordResetFailed": "Nem sikerült elküldeni a jelszó-visszaállító emailt.",
+      "verificationSendFailed": "Nem sikerült elküldeni a megerősítő emailt.",
+      "refreshFailed": "Nem sikerült frissíteni az email megerősítés állapotát.",
+      "signOutFailed": "A kilépés nem sikerült. Próbáld újra."
     }
   },
   "accountDeletion": {
@@ -124,6 +144,17 @@
     "interests": "Érdeklődési körök",
     "verifiedProfile": "Ellenőrzött profil",
     "verifiedProfileText": "Ez a profil átment az Amor fotós ellenőrzésén.",
+    "card": {
+      "recentlyActive": "Mostan\u00e1ban akt\u00edv",
+      "photoVerified": "Fot\u00f3val ellen\u0151rz\u00f6tt",
+      "distanceKm": "{{count}} km-re van",
+      "previousPhoto": "El\u0151z\u0151 fot\u00f3",
+      "nextPhoto": "K\u00f6vetkez\u0151 fot\u00f3"
+    },
+    "locationFallback": {
+      "title": "Location nélkül is mutatunk ajánlásokat",
+      "text": "Kapcsold be a locationt jobb találatokhoz."
+    },
     "feed": {
       "recommended": "Ajánlott",
       "nearby": "Közeli",
@@ -147,6 +178,8 @@
       "offline": "Offline",
       "newMatch": "Új match",
       "blockedPreview": "Blokkolva",
+      "emptyMatchesTitle": "Kezdj matchelni",
+      "emptyMatchesText": "A matchek itt jelennek meg, amint elkezdesz embereket kedvelni.",
       "you": "Te"
     },
     "likesYou": {
@@ -210,6 +243,16 @@
         "completeProfile": "Teljes profil",
         "default": "Ígéretes profil"
       }
+    },
+    "matchDetails": {
+      "essentials": "Alapadatok",
+      "heightCm": "{{count}} cm",
+      "livesIn": "Itt \u00e9l: {{place}}",
+      "lookingForPrompt": "Olyan valakit keresek, aki:",
+      "moreAboutMe": "T\u00f6bb r\u00f3lam",
+      "lifestyle": "\u00c9letm\u00f3d",
+      "interests": "\u00c9rdekl\u0151d\u00e9sek",
+      "anthem": "Kedvenc dalom"
     }
   },
   "privacy": {
@@ -467,11 +510,25 @@
       "lookingForDistance": "Maximum távolság (km)",
       "age": "Kor",
       "job": "Munkahely",
+      "heightCm": "Magass\u00e1g",
       "highestSchool": "Legmagasabb iskolai végzettség",
       "zodiacSign": "Csillagjegy",
       "currStudy": "Jelenlegi tanulmány",
       "freeTimeAct": "Szabadidős tevékenységek",
-      "interests": "Érdeklődési körök"
+      "familyPlans": "Csal\u00e1di tervek",
+      "communicationStyle": "Kommunik\u00e1ci\u00f3s st\u00edlus",
+      "loveStyle": "Szeretetnyelv",
+      "pets": "Kis\u00e1llatok",
+      "drinking": "Alkoholfogyaszt\u00e1s",
+      "smoking": "Milyen gyakran doh\u00e1nyzol?",
+      "workout": "Edz\u00e9s",
+      "socialMedia": "Social media",
+      "interests": "\u00c9rdekl\u0151d\u00e9si k\u00f6r\u00f6k",
+      "anthemTitle": "Kedvenc dal c\u00edme",
+      "anthemArtist": "El\u0151ad\u00f3",
+      "anthemAlbum": "Album",
+      "anthemImageUrl": "Dal bor\u00edt\u00f3k\u00e9p URL",
+      "anthemUrl": "Dal link"
     },
     "placeholders": {
       "pictures": "Tölts fel képeket magadról",
@@ -493,7 +550,80 @@
       "art": "Művészet",
       "oneNightStands": "Egyéjszakás kalandok",
       "makingFriends": "Új ismeretségek kötése",
-      "listeningToMusic": "Zenehallgatás"
+      "listeningToMusic": "Zenehallgat\u00e1s",
+      "travel": "Utaz\u00e1s",
+      "music": "Zene",
+      "dogLover": "Kutyabar\u00e1t",
+      "coffee": "K\u00e1v\u00e9",
+      "grabADrink": "Igyunk valamit",
+      "foodie": "Gasztro",
+      "brunch": "Brunch",
+      "wine": "Bor",
+      "hiking": "T\u00far\u00e1z\u00e1s",
+      "gym": "Edz\u0151terem",
+      "zodiac": {
+        "aries": "Kos",
+        "taurus": "Bika",
+        "gemini": "Ikrek",
+        "cancer": "R\u00e1k",
+        "leo": "Oroszl\u00e1n",
+        "virgo": "Sz\u0171z",
+        "libra": "M\u00e9rleg",
+        "scorpio": "Skorpi\u00f3",
+        "sagittarius": "Nyilas",
+        "capricorn": "Bak",
+        "aquarius": "V\u00edz\u00f6nt\u0151",
+        "pisces": "Halak"
+      },
+      "familyPlans": {
+        "wantKids": "Szeretn\u00e9k gyereket",
+        "doNotWantKids": "Nem szeretn\u00e9k gyereket",
+        "haveKids": "Van gyerekem",
+        "openToKids": "Nyitott vagyok r\u00e1",
+        "notSureYet": "M\u00e9g nem tudom"
+      },
+      "communicationStyle": {
+        "betterInPerson": "\u00c9l\u0151ben jobb",
+        "textingAllDay": "Eg\u00e9sz nap \u00edrogatok",
+        "phoneCaller": "Telefon\u00e1l\u00f3s t\u00edpus",
+        "videoChatter": "Vide\u00f3h\u00edv\u00e1sos"
+      },
+      "loveStyle": {
+        "thoughtfulGestures": "Figyelmes gesztusok",
+        "qualityTime": "Min\u0151s\u00e9gi id\u0151",
+        "wordsOfAffirmation": "Meger\u0151s\u00edt\u0151 szavak",
+        "physicalTouch": "\u00c9rint\u00e9s",
+        "actsOfService": "Tettekkel mutatom ki"
+      },
+      "pets": {
+        "havePets": "Van kis\u00e1llatom",
+        "doNotHavePets": "Nincs kis\u00e1llatom",
+        "lovePets": "Nincs, de szeretem \u0151ket",
+        "allergic": "Allergi\u00e1s vagyok"
+      },
+      "drinking": {
+        "never": "Soha",
+        "specialOccasions": "K\u00fcl\u00f6nleges alkalmakkor",
+        "weekend": "T\u00e1rsas\u00e1gban, h\u00e9tv\u00e9g\u00e9n",
+        "sociallyActive": "T\u00e1rsas\u00e1gban akt\u00edv"
+      },
+      "smoking": {
+        "nonSmoker": "Nem doh\u00e1nyzom",
+        "socialSmoker": "T\u00e1rsas\u00e1gban doh\u00e1nyzom",
+        "smoker": "Doh\u00e1nyzom"
+      },
+      "workout": {
+        "never": "Soha",
+        "sometimes": "N\u00e9ha",
+        "often": "Gyakran",
+        "everyDay": "Minden nap"
+      },
+      "socialMedia": {
+        "notForMe": "Nem az \u00e9n vil\u00e1gom",
+        "passiveScroller": "Csak n\u00e9zel\u0151d\u00f6m",
+        "sociallyActive": "Akt\u00edv vagyok",
+        "contentCreator": "Tartalomk\u00e9sz\u00edt\u0151"
+      }
     },
     "edit": {
       "delete": "Profil törlése"

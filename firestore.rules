@@ -37,6 +37,30 @@ service cloud.firestore {
         );
     }
 
+    function lookingForAgeIsSafe(data) {
+      return !data.keys().hasAny(['lookingForAge'])
+        || (
+          data.lookingForAge is map
+          && data.lookingForAge.keys().hasAny(['lower'])
+          && data.lookingForAge.lower is number
+          && data.lookingForAge.lower >= 18
+          && (
+            !data.lookingForAge.keys().hasAny(['upper'])
+            || (
+              data.lookingForAge.upper is number
+              && data.lookingForAge.upper >= data.lookingForAge.lower
+            )
+          )
+        );
+    }
+
+    function lookingForAgeUpdateIsSafe() {
+      return !request.resource.data.diff(resource.data).affectedKeys().hasAny([
+          'lookingForAge'
+        ])
+        || lookingForAgeIsSafe(request.resource.data);
+    }
+
     function protectedUserCreateFieldsAreSafe() {
       return (
           !request.resource.data.keys().hasAny(['isBanned'])
@@ -58,7 +82,8 @@ service cloud.firestore {
         && protectedMatchPartCreateIsEmpty('matches')
         && protectedMatchPartCreateIsEmpty('liked')
         && protectedMatchPartCreateIsEmpty('superLiked')
-        && protectedMatchPartCreateIsEmpty('notLiked');
+        && protectedMatchPartCreateIsEmpty('notLiked')
+        && lookingForAgeIsSafe(request.resource.data);
     }
 
     function protectedMatchPartUnchangedOrEmpty(key) {
@@ -105,7 +130,8 @@ service cloud.firestore {
             && protectedMatchPartUnchangedOrEmpty('superLiked')
             && protectedMatchPartUnchangedOrEmpty('notLiked')
           )
-        );
+        )
+        && lookingForAgeUpdateIsSafe();
     }
 
     function protectedMatchIndexCreateFieldsAreSafe() {

@@ -87,4 +87,8 @@
   :host-context(body.is-mobile-promo-sheet-open) .notification-center-link {
     display: none;
   }
+
+  :host-context(body.is-mobile-discover-view) .app-top-actions {
+    display: none;
+  }
 }

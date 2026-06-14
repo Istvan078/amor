@@ -37,6 +37,7 @@ export type MatchIndexEntry = {
   profileVerified?: boolean;
   profileVerificationStatus?: 'none' | 'pending' | 'approved' | 'rejected';
   profileQualityScore?: number;
+  rankingScore?: number;
   moderationRiskScore?: number;
   moderationRiskReasons?: string[];
   createdAt?: unknown;
@@ -61,6 +62,8 @@ export type DiscoveryPremiumFilters = {
 export type DiscoveryCandidateRequestOptions = {
   feedMode?: DiscoveryFeedMode;
   premiumFilters?: DiscoveryPremiumFilters;
+  locationFallback?: boolean;
+  fallbackPlace?: string;
 };
 
 export type DiscoverCandidatesResponse = {
@@ -70,6 +73,7 @@ export type DiscoverCandidatesResponse = {
     sharedInterestCount?: number;
   }>;
   nextCursor: string | null;
+  locationFallback?: boolean;
 };
 
 @Injectable({
@@ -167,7 +171,10 @@ export class MatchIndexRepository {
         {
           uid: profile.uid,
           limit: Math.min(Math.max(resultLimit, 1), 20),
-          currentLocCoords: profile.currentLocCoords,
+          currentLocCoords:
+            options.locationFallback === true ? null : profile.currentLocCoords,
+          locationFallback: options.locationFallback === true,
+          fallbackPlace: options.fallbackPlace ?? profile.currentPlace ?? '',
           feedMode: options.feedMode ?? 'recommended',
           premiumFilters: options.premiumFilters ?? {},
           ...(startAfter ? { startAfter } : {}),

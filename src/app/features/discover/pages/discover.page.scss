@@ -104,21 +104,24 @@ app-discover {
 
   #main-view-container ion-col {
     display: flex;
-    justify-content: center;
     align-items: center;
+    flex-direction: column;
+    justify-content: center;
+    gap: 16px;
   }
 
   .discover-feed-toolbar {
     position: absolute;
     top: 20px;
-    left: clamp(20px, 4vw, 48px);
-    right: clamp(86px, 8vw, 132px);
+    left: 50%;
     z-index: 6;
     display: flex;
     align-items: center;
     justify-content: space-between;
     gap: 0.8rem;
+    width: min(900px, calc(100% - 48px));
     pointer-events: none;
+    transform: translateX(-50%);
   }
 
   .discover-feed-tabs,
@@ -130,7 +133,43 @@ app-discover {
     pointer-events: auto;
   }
 
+  .discover-location-fallback-notice {
+    position: absolute;
+    top: 72px;
+    left: 50%;
+    z-index: 5;
+    display: flex;
+    align-items: center;
+    gap: 0.65rem;
+    width: min(680px, calc(100% - 48px));
+    min-height: 38px;
+    padding: 0.45rem 0.8rem;
+    border: 1px solid rgba(242, 199, 110, 0.34);
+    border-radius: 8px;
+    background: rgba(16, 20, 35, 0.82);
+    box-shadow: 0 14px 34px rgba(4, 8, 18, 0.22);
+    color: #f8f5ef;
+    font-size: 0.78rem;
+    line-height: 1.25;
+    pointer-events: none;
+    transform: translateX(-50%);
+    backdrop-filter: blur(14px);
+  }
+
+  .discover-location-fallback-notice strong {
+    flex: 0 0 auto;
+    color: var(--amor-gold);
+    font-weight: 900;
+  }
+
+  .discover-location-fallback-notice span {
+    min-width: 0;
+    color: rgba(248, 245, 239, 0.78);
+    font-weight: 700;
+  }
+
   .discover-feed-tabs {
+    flex: 0 0 auto;
     padding: 0.28rem;
     border: 1px solid rgba(255, 255, 255, 0.12);
     border-radius: 999px;
@@ -168,7 +207,9 @@ app-discover {
   }
 
   .discover-feed-filters {
+    flex: 1 1 auto;
     overflow-x: auto;
+    padding: 2px;
     scrollbar-width: none;
   }
 
@@ -198,6 +239,17 @@ app-discover {
     transform: translateY(-1px);
   }
 
+  .discover-feed-tabs button:focus,
+  .discover-feed-filters button:focus {
+    outline: none;
+  }
+
+  .discover-feed-tabs button:focus-visible,
+  .discover-feed-filters button:focus-visible {
+    outline: 2px solid rgba(248, 245, 239, 0.72);
+    outline-offset: 2px;
+  }
+
   #main-view-container.is-message-view > ion-grid,
   #main-view-container.is-message-view ion-row,
   #main-view-container.is-message-view ion-col {
@@ -207,6 +259,11 @@ app-discover {
 
   #main-view-container.is-message-view ion-col {
     align-items: stretch;
+  }
+
+  #main-view-container.is-match-details-open:not(.is-message-view) ion-col {
+    justify-content: flex-start;
+    padding-block: 76px 34px;
   }
 
   .app-message-card {
@@ -235,9 +292,9 @@ app-discover {
 
   .user-card {
     position: relative;
-    width: min(900px, 68vw);
-    height: min(82dvh, 780px);
-    min-height: 560px;
+    width: min(456px, calc(100vw - 448px));
+    height: min(82dvh, 760px);
+    min-height: 610px;
     margin: 0;
     overflow: hidden;
     border: 1px solid rgba(255, 255, 255, 0.14);
@@ -291,12 +348,97 @@ app-discover {
     background: #252b3e;
   }
 
+  .possible-match-img-cont {
+    cursor: pointer;
+  }
+
   .possible-match-img-cont swiper-slide,
   .possible-match-img-cont img,
   .user-settings-card-img-cont img,
   .match-container img,
   .prom-img-cont img {
     object-fit: cover;
+  }
+
+  .possible-match-img-cont img {
+    display: block;
+    width: 100%;
+    height: 100%;
+  }
+
+  .photo-count-segments {
+    position: absolute;
+    top: 12px;
+    right: 12px;
+    left: 12px;
+    z-index: 4;
+    display: grid;
+    grid-auto-columns: minmax(0, 1fr);
+    grid-auto-flow: column;
+    gap: 5px;
+    pointer-events: none;
+  }
+
+  .photo-count-segments span {
+    height: 4px;
+    border-radius: 999px;
+    background: rgba(248, 245, 239, 0.42);
+    box-shadow: 0 1px 5px rgba(0, 0, 0, 0.35);
+  }
+
+  .photo-count-segments span.is-active {
+    background: rgba(248, 245, 239, 0.95);
+  }
+
+  .photo-nav-button {
+    position: absolute;
+    top: 50%;
+    z-index: 5;
+    display: grid;
+    width: 42px;
+    height: 42px;
+    place-items: center;
+    margin: 0;
+    padding: 0;
+    border: 1px solid rgba(255, 255, 255, 0.16);
+    border-radius: 999px;
+    background: rgba(10, 14, 26, 0.48);
+    color: #ffffff;
+    box-shadow: 0 14px 30px rgba(0, 0, 0, 0.24);
+    cursor: pointer;
+    opacity: 0;
+    transform: translateY(-50%);
+    transition:
+      opacity 160ms ease,
+      background 160ms ease,
+      transform 160ms ease;
+    backdrop-filter: blur(12px);
+  }
+
+  .user-card:hover .photo-nav-button,
+  .photo-nav-button:focus-visible {
+    opacity: 1;
+  }
+
+  .photo-nav-button:hover {
+    background: rgba(255, 255, 255, 0.17);
+  }
+
+  .photo-nav-button:focus-visible {
+    outline: 2px solid rgba(248, 245, 239, 0.72);
+    outline-offset: 2px;
+  }
+
+  .photo-nav-button ion-icon {
+    font-size: 24px;
+  }
+
+  .previous-photo-button {
+    left: 14px;
+  }
+
+  .next-photo-button {
+    right: 14px;
   }
 
   .swipe-feedback-layer {
@@ -431,8 +573,8 @@ app-discover {
     left: 0;
     display: flex;
     flex-direction: column;
-    gap: 16px;
-    padding: 34px 40px 40px;
+    gap: 12px;
+    padding: 28px 24px 28px;
     background:
       linear-gradient(180deg, transparent 0%, rgba(8, 11, 20, 0.35) 18%),
       linear-gradient(0deg, rgba(8, 10, 18, 0.92), rgba(8, 10, 18, 0.22));
@@ -450,13 +592,13 @@ app-discover {
     position: relative;
     display: flex;
     align-items: center;
-    gap: 18px;
+    gap: 12px;
     width: 100%;
-    min-height: 70px;
-    padding: 0 86px 0 0;
+    min-height: 104px;
+    padding: 0 60px 0 0;
     color: var(--amor-text);
     background: transparent;
-    font-size: clamp(2rem, 4vw, 3.6rem);
+    font-size: clamp(2rem, 3.2vw, 2.9rem);
     font-weight: 800;
     line-height: 1;
     text-shadow: 0 8px 26px rgba(0, 0, 0, 0.55);
@@ -469,8 +611,74 @@ app-discover {
 
   .poss-match-name-stack {
     display: grid;
+    gap: 7px;
+    min-width: 0;
+  }
+
+  .recently-active-badge,
+  .poss-match-distance {
+    display: inline-flex;
+    align-items: center;
+    width: fit-content;
+    max-width: 100%;
+    overflow: hidden;
+    font-size: 0.86rem;
+    font-weight: 900;
+    line-height: 1.15;
+    text-overflow: ellipsis;
+    text-shadow: 0 7px 18px rgba(0, 0, 0, 0.45);
+    white-space: nowrap;
+  }
+
+  .recently-active-badge {
+    gap: 7px;
+    color: #ffffff;
+  }
+
+  .recently-active-badge i {
+    flex: 0 0 auto;
+    width: 9px;
+    height: 9px;
+    border-radius: 999px;
+    background: #6dff6f;
+    box-shadow:
+      0 0 0 4px rgba(109, 255, 111, 0.15),
+      0 0 16px rgba(109, 255, 111, 0.42);
+  }
+
+  .poss-match-title-row {
+    display: flex;
+    align-items: center;
     gap: 9px;
     min-width: 0;
+  }
+
+  .photo-verified-badge {
+    display: inline-grid;
+    flex: 0 0 auto;
+    width: 30px;
+    height: 30px;
+    place-items: center;
+    border: 2px solid #ffffff;
+    border-radius: 999px;
+    background: #1d79ff;
+    color: #ffffff;
+    box-shadow: 0 10px 24px rgba(29, 121, 255, 0.35);
+    text-shadow: none;
+  }
+
+  .photo-verified-badge ion-icon {
+    font-size: 17px;
+  }
+
+  .poss-match-distance {
+    gap: 6px;
+    color: rgba(255, 255, 255, 0.9);
+  }
+
+  .poss-match-distance ion-icon {
+    flex: 0 0 auto;
+    font-size: 18px;
   }
 
   .verified-profile-badge {
@@ -507,8 +715,8 @@ app-discover {
     position: absolute;
     top: 50%;
     right: 0;
-    width: 58px;
-    height: 58px;
+    width: 48px;
+    height: 48px;
     margin: 0;
     transform: translateY(-50%);
     border-radius: 999px;
@@ -522,7 +730,7 @@ app-discover {
   }
 
   .show-match-details-button ion-icon {
-    font-size: 31px;
+    font-size: 28px;
   }
 
   .interests-title {
@@ -1387,40 +1595,298 @@ app-discover {
   }
 
   .poss-match-details-container {
-    position: fixed;
-    top: 72px;
-    right: 28px;
-    z-index: 30;
-    width: 360px;
-    max-height: calc(100dvh - 110px);
-    overflow-y: auto;
-    padding: 58px 18px 18px;
-    border: 1px solid var(--amor-line);
-    border-radius: 8px;
-    background: rgba(19, 24, 40, 0.94);
-    box-shadow: var(--amor-shadow);
-    backdrop-filter: blur(18px);
+    position: static;
+    z-index: 1;
+    display: grid;
+    width: min(456px, calc(100vw - 448px));
+    max-height: none;
+    gap: 12px;
+    overflow: visible;
+    padding: 0;
+    border: 0;
+    border-radius: 0;
+    background: transparent;
+    box-shadow: none;
+    backdrop-filter: none;
   }
 
   .details-close-button {
-    position: absolute;
-    top: 14px;
-    right: 14px;
-    z-index: 3;
-    width: 48px;
-    height: 48px;
+    position: static;
+    z-index: 1;
+    flex: 0 0 auto;
+    width: 44px;
+    height: 44px;
     margin: 0;
     --background: rgba(255, 255, 255, 0.07);
     --background-hover: rgba(255, 255, 255, 0.14);
     --border-radius: 999px;
-    --color: #4c8dff;
+    --color: var(--amor-text);
     --padding-end: 0;
     --padding-start: 0;
     pointer-events: auto;
   }
 
   .details-close-button ion-icon {
-    font-size: 32px;
+    font-size: 24px;
+  }
+
+  .match-detail-card {
+    position: relative;
+    overflow: hidden;
+    border: 1px solid var(--amor-line);
+    border-radius: 8px;
+    background:
+      radial-gradient(circle at 100% 0%, rgba(255, 93, 143, 0.1), transparent 32%),
+      linear-gradient(135deg, rgba(255, 255, 255, 0.08), rgba(255, 255, 255, 0.035)),
+      rgba(19, 24, 40, 0.94);
+    box-shadow: 0 18px 44px rgba(4, 8, 18, 0.28);
+    color: var(--amor-text);
+  }
+
+  .match-detail-header-card {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 14px;
+    padding: 18px 18px 16px;
+  }
+
+  .match-detail-header-card h2 {
+    display: flex;
+    align-items: center;
+    gap: 9px;
+    margin: 0;
+    color: #ffffff;
+    font-size: clamp(2rem, 4vw, 2.72rem);
+    font-weight: 950;
+    letter-spacing: 0;
+    line-height: 1;
+  }
+
+  .detail-photo-verified-badge {
+    display: inline-grid;
+    flex: 0 0 auto;
+    width: 30px;
+    height: 30px;
+    place-items: center;
+    border: 2px solid #ffffff;
+    border-radius: 999px;
+    background: #1d79ff;
+    color: #ffffff;
+    box-shadow: 0 10px 24px rgba(29, 121, 255, 0.35);
+  }
+
+  .detail-photo-verified-badge ion-icon {
+    font-size: 17px;
+  }
+
+  .detail-active-line {
+    display: inline-flex;
+    align-items: center;
+    gap: 7px;
+    margin: 9px 0 0;
+    color: var(--amor-muted);
+    font-size: 0.86rem;
+    font-weight: 900;
+  }
+
+  .detail-active-line i {
+    width: 9px;
+    height: 9px;
+    border-radius: 999px;
+    background: #6dff6f;
+    box-shadow: 0 0 0 4px rgba(109, 255, 111, 0.14);
+  }
+
+  .match-detail-section,
+  .match-detail-copy-card,
+  .match-detail-prompt-card,
+  .match-detail-anthem-card {
+    padding: 18px;
+  }
+
+  .match-detail-card h3 {
+    display: flex;
+    align-items: center;
+    gap: 9px;
+    margin: 0 0 14px;
+    color: var(--amor-muted);
+    font-size: 1rem;
+    font-weight: 950;
+  }
+
+  .match-detail-card h3 ion-icon,
+  .match-detail-prompt-card small ion-icon {
+    flex: 0 0 auto;
+    color: rgba(248, 245, 239, 0.58);
+    font-size: 19px;
+  }
+
+  .match-detail-list {
+    display: grid;
+  }
+
+  .match-detail-row {
+    display: flex;
+    align-items: center;
+    gap: 11px;
+    min-height: 48px;
+    padding: 9px 0;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.12);
+    color: var(--amor-text);
+    font-size: 1rem;
+    font-weight: 850;
+    line-height: 1.25;
+  }
+
+  .match-detail-row:last-child {
+    border-bottom: 0;
+  }
+
+  .match-detail-row > ion-icon {
+    flex: 0 0 auto;
+    color: rgba(248, 245, 239, 0.62);
+    font-size: 22px;
+  }
+
+  .match-detail-row > span,
+  .match-detail-row p,
+  .match-detail-copy-card p,
+  .match-detail-prompt-card p,
+  .match-detail-anthem strong,
+  .match-detail-anthem p {
+    overflow-wrap: anywhere;
+  }
+
+  .match-detail-row.is-stacked {
+    display: grid;
+    gap: 6px;
+    align-items: start;
+  }
+
+  .match-detail-row.is-stacked > span {
+    color: var(--amor-muted);
+    font-size: 0.82rem;
+    font-weight: 900;
+  }
+
+  .match-detail-row.is-stacked p {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    margin: 0;
+    color: var(--amor-text);
+    font-size: 1.02rem;
+    font-weight: 850;
+  }
+
+  .match-detail-row.is-stacked p ion-icon {
+    color: rgba(248, 245, 239, 0.62);
+    font-size: 22px;
+  }
+
+  .match-detail-prompt-card small {
+    display: flex;
+    align-items: center;
+    gap: 9px;
+    color: var(--amor-muted);
+    font-size: 0.92rem;
+    font-weight: 950;
+  }
+
+  .match-detail-prompt-card p {
+    margin: 12px 0 0;
+    color: #ffffff;
+    font-size: clamp(1.45rem, 3vw, 1.82rem);
+    font-weight: 950;
+    line-height: 1.14;
+  }
+
+  .match-detail-copy-card p {
+    margin: 0;
+    color: var(--amor-text);
+    font-size: 1rem;
+    line-height: 1.55;
+  }
+
+  .match-detail-chip-group {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 10px;
+  }
+
+  .match-detail-chip-group span {
+    display: inline-flex;
+    align-items: center;
+    min-height: 36px;
+    padding: 0 13px;
+    border: 1px solid rgba(255, 255, 255, 0.11);
+    border-radius: 999px;
+    background: rgba(255, 255, 255, 0.08);
+    color: var(--amor-text);
+    font-weight: 850;
+  }
+
+  .match-detail-chip-group span:nth-child(-n + 2) {
+    border-color: rgba(255, 93, 143, 0.38);
+    background: linear-gradient(135deg, rgba(255, 93, 143, 0.8), rgba(195, 83, 255, 0.66));
+    color: #ffffff;
+  }
+
+  .match-detail-anthem {
+    display: grid;
+    grid-template-columns: 96px minmax(0, 1fr);
+    gap: 14px;
+    align-items: center;
+  }
+
+  .match-detail-anthem-cover {
+    position: relative;
+    width: 96px;
+    aspect-ratio: 1;
+    overflow: hidden;
+    border-radius: 8px;
+    background: rgba(255, 255, 255, 0.08);
+  }
+
+  .match-detail-anthem-cover img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+  }
+
+  .match-detail-anthem-cover ion-icon {
+    position: absolute;
+    inset: 0;
+    margin: auto;
+    color: #ffffff;
+    font-size: 38px;
+    filter: drop-shadow(0 8px 18px rgba(0, 0, 0, 0.45));
+  }
+
+  .match-detail-anthem strong {
+    display: block;
+    color: #ffffff;
+    font-size: 1.04rem;
+    font-weight: 950;
+    line-height: 1.26;
+  }
+
+  .match-detail-anthem p {
+    display: flex;
+    align-items: flex-start;
+    gap: 7px;
+    margin: 8px 0 0;
+    color: var(--amor-muted);
+    font-weight: 800;
+    line-height: 1.35;
+  }
+
+  .match-detail-anthem p ion-icon {
+    flex: 0 0 auto;
+    margin-top: 2px;
+    color: #47e179;
+    font-size: 18px;
   }
 
   .poss-match-details-container ion-list {
@@ -1443,14 +1909,14 @@ app-discover {
     border-radius: 8px;
   }
 
-  .poss-match-details-container h2 {
+  .poss-match-details-container ion-item h2 {
     margin: 0 0 4px;
     color: var(--amor-gold);
     font-size: 0.82rem;
     font-weight: 900;
   }
 
-  .poss-match-details-container p {
+  .poss-match-details-container ion-item p {
     margin: 0;
     color: var(--amor-text);
   }
@@ -2726,7 +3192,7 @@ app-discover {
     }
 
     .user-card {
-      width: min(820px, 64vw);
+      width: min(456px, calc(100vw - 400px));
     }
   }
 }
@@ -2746,7 +3212,7 @@ app-discover {
     #main-view-container {
       display: block;
       min-height: calc(100dvh - 68px);
-      padding: 12px 12px 84px;
+      padding: 0 10px calc(112px + env(safe-area-inset-bottom));
       overflow-y: auto;
     }
 
@@ -2759,6 +3225,7 @@ app-discover {
 
     #main-view-container ion-col {
       display: block;
+      padding-block: 0;
     }
 
     .discover-feed-toolbar {
@@ -2766,11 +3233,12 @@ app-discover {
       top: auto;
       left: auto;
       right: auto;
-      display: grid;
+      display: none;
       gap: 0.55rem;
       width: 100%;
       margin: 0 auto 0.7rem;
       padding: 0 0.1rem;
+      transform: none;
     }
 
     .discover-feed-tabs,
@@ -2779,6 +3247,14 @@ app-discover {
       justify-content: flex-start;
       width: 100%;
       max-width: 100%;
+      -ms-overflow-style: none;
+      overscroll-behavior-inline: contain;
+      scrollbar-width: none;
+    }
+
+    .discover-feed-tabs::-webkit-scrollbar,
+    .discover-feed-filters::-webkit-scrollbar {
+      display: none;
     }
 
     .discover-feed-tabs button,
@@ -2786,6 +3262,18 @@ app-discover {
       flex: 0 0 auto;
       min-height: 34px;
       font-size: 0.74rem;
+    }
+
+    .discover-location-fallback-notice {
+      position: relative;
+      top: auto;
+      left: auto;
+      width: 100%;
+      margin: 0 auto 0.7rem;
+      flex-direction: column;
+      align-items: flex-start;
+      gap: 0.2rem;
+      transform: none;
     }
 
     #main-view-container.is-message-view > ion-grid,
@@ -2814,18 +3302,26 @@ app-discover {
       margin: 0 auto;
     }
 
+    .photo-nav-button {
+      display: none;
+    }
+
     .card-content-cont {
       gap: 14px;
-      padding: 22px;
+      padding: 22px 22px calc(28px + env(safe-area-inset-bottom));
     }
 
     .poss-match-name {
       font-size: clamp(1.9rem, 8vw, 2.55rem);
+      min-height: 94px;
       padding-right: 0;
     }
 
     .show-match-details-button {
-      display: none;
+      display: inline-flex;
+      right: 0;
+      width: 44px;
+      height: 44px;
     }
 
     .card-content-cont ion-buttons {
@@ -2850,6 +3346,7 @@ app-discover {
       max-height: none;
       margin: 14px auto 0;
       overflow: visible;
+      scroll-margin-block: 0 112px;
     }
 
     .hide-on-mobile {
@@ -3018,10 +3515,54 @@ app-discover {
   }
 }
 
+@media screen and (max-width: 768px) {
+  body.is-mobile-message-view app-discover {
+    #main-container {
+      min-height: var(--amor-mobile-message-viewport-height, 100dvh);
+    }
+
+    #main-view-container.is-message-view {
+      height: var(--amor-mobile-message-viewport-height, 100dvh);
+      min-height: 0;
+      padding: 0;
+    }
+
+    .app-message-card {
+      height: 100%;
+      border: 0;
+      border-radius: 0;
+      box-shadow: none;
+    }
+  }
+}
+
 @media screen and (max-width: 420px) {
   app-discover {
     #main-view-container {
       padding-inline: 10px;
+    }
+
+    .discover-feed-toolbar {
+      gap: 0.45rem;
+      margin-bottom: 0.55rem;
+    }
+
+    .discover-feed-tabs,
+    .discover-feed-filters {
+      gap: 0.35rem;
+    }
+
+    .discover-feed-tabs button,
+    .discover-feed-filters button {
+      min-height: 32px;
+      padding-inline: 0.68rem;
+      font-size: 0.72rem;
+    }
+
+    .discover-location-fallback-notice {
+      margin-bottom: 0.6rem;
+      padding: 0.7rem 0.8rem;
+      font-size: 0.74rem;
     }
 
     .user-card {
@@ -3030,12 +3571,28 @@ app-discover {
     }
 
     .card-content-cont {
-      padding: 18px;
+      gap: 10px;
+      padding: 18px 18px calc(20px + env(safe-area-inset-bottom));
+    }
+
+    .poss-match-name {
+      min-height: 84px;
+      padding-right: 52px;
+      font-size: 2rem;
+    }
+
+    .show-match-details-button {
+      width: 42px;
+      height: 42px;
+    }
+
+    .card-content-cont ion-buttons {
+      gap: 6px;
     }
 
     .action-button {
-      width: 56px;
-      height: 56px;
+      width: 52px;
+      height: 52px;
     }
 
     .profile-actions {

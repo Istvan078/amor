@@ -3,12 +3,89 @@ import { Injectable, signal } from '@angular/core';
 import { Promotions } from '../shared/models/promotions.model';
 import { UserClass } from '../shared/models/user.model';
 
+type ProfileSelectOption = {
+  value: string;
+  labelKey: string;
+};
+
 @Injectable({
   providedIn: 'root',
 })
 export class ConfigService {
   labels: any = {};
   promotions: Promotions[] = [];
+
+  private readonly zodiacOptions: ProfileSelectOption[] = [
+    { value: 'Aries', labelKey: 'profile.values.zodiac.aries' },
+    { value: 'Taurus', labelKey: 'profile.values.zodiac.taurus' },
+    { value: 'Gemini', labelKey: 'profile.values.zodiac.gemini' },
+    { value: 'Cancer', labelKey: 'profile.values.zodiac.cancer' },
+    { value: 'Leo', labelKey: 'profile.values.zodiac.leo' },
+    { value: 'Virgo', labelKey: 'profile.values.zodiac.virgo' },
+    { value: 'Libra', labelKey: 'profile.values.zodiac.libra' },
+    { value: 'Scorpio', labelKey: 'profile.values.zodiac.scorpio' },
+    { value: 'Sagittarius', labelKey: 'profile.values.zodiac.sagittarius' },
+    { value: 'Capricorn', labelKey: 'profile.values.zodiac.capricorn' },
+    { value: 'Aquarius', labelKey: 'profile.values.zodiac.aquarius' },
+    { value: 'Pisces', labelKey: 'profile.values.zodiac.pisces' },
+  ];
+
+  private readonly familyPlanOptions: ProfileSelectOption[] = [
+    { value: 'Want kids', labelKey: 'profile.values.familyPlans.wantKids' },
+    { value: 'Do not want kids', labelKey: 'profile.values.familyPlans.doNotWantKids' },
+    { value: 'Have kids', labelKey: 'profile.values.familyPlans.haveKids' },
+    { value: 'Open to kids', labelKey: 'profile.values.familyPlans.openToKids' },
+    { value: 'Not sure yet', labelKey: 'profile.values.familyPlans.notSureYet' },
+  ];
+
+  private readonly communicationStyleOptions: ProfileSelectOption[] = [
+    { value: 'Better in person', labelKey: 'profile.values.communicationStyle.betterInPerson' },
+    { value: 'Texting all day', labelKey: 'profile.values.communicationStyle.textingAllDay' },
+    { value: 'Phone caller', labelKey: 'profile.values.communicationStyle.phoneCaller' },
+    { value: 'Video chatter', labelKey: 'profile.values.communicationStyle.videoChatter' },
+  ];
+
+  private readonly loveStyleOptions: ProfileSelectOption[] = [
+    { value: 'Thoughtful gestures', labelKey: 'profile.values.loveStyle.thoughtfulGestures' },
+    { value: 'Quality time', labelKey: 'profile.values.loveStyle.qualityTime' },
+    { value: 'Words of affirmation', labelKey: 'profile.values.loveStyle.wordsOfAffirmation' },
+    { value: 'Physical touch', labelKey: 'profile.values.loveStyle.physicalTouch' },
+    { value: 'Acts of service', labelKey: 'profile.values.loveStyle.actsOfService' },
+  ];
+
+  private readonly petsOptions: ProfileSelectOption[] = [
+    { value: 'Have pets', labelKey: 'profile.values.pets.havePets' },
+    { value: 'Do not have pets', labelKey: 'profile.values.pets.doNotHavePets' },
+    { value: 'Do not have, but love', labelKey: 'profile.values.pets.lovePets' },
+    { value: 'Allergic to pets', labelKey: 'profile.values.pets.allergic' },
+  ];
+
+  private readonly drinkingOptions: ProfileSelectOption[] = [
+    { value: 'Never drinks', labelKey: 'profile.values.drinking.never' },
+    { value: 'On special occasions', labelKey: 'profile.values.drinking.specialOccasions' },
+    { value: 'Socially, at the weekend', labelKey: 'profile.values.drinking.weekend' },
+    { value: 'Socially active drinking', labelKey: 'profile.values.drinking.sociallyActive' },
+  ];
+
+  private readonly smokingOptions: ProfileSelectOption[] = [
+    { value: 'Non-smoker', labelKey: 'profile.values.smoking.nonSmoker' },
+    { value: 'Social smoker', labelKey: 'profile.values.smoking.socialSmoker' },
+    { value: 'Smoker', labelKey: 'profile.values.smoking.smoker' },
+  ];
+
+  private readonly workoutOptions: ProfileSelectOption[] = [
+    { value: 'Never works out', labelKey: 'profile.values.workout.never' },
+    { value: 'Sometimes', labelKey: 'profile.values.workout.sometimes' },
+    { value: 'Often', labelKey: 'profile.values.workout.often' },
+    { value: 'Every day', labelKey: 'profile.values.workout.everyDay' },
+  ];
+
+  private readonly socialMediaOptions: ProfileSelectOption[] = [
+    { value: 'Not for me', labelKey: 'profile.values.socialMedia.notForMe' },
+    { value: 'Passive scroller', labelKey: 'profile.values.socialMedia.passiveScroller' },
+    { value: 'Socially active', labelKey: 'profile.values.socialMedia.sociallyActive' },
+    { value: 'Content creator', labelKey: 'profile.values.socialMedia.contentCreator' },
+  ];
 
   readonly selectedFiles = signal<File[]>([]);
   readonly mainViewInitVersion = signal(0);
@@ -19,6 +96,14 @@ export class ConfigService {
 
   clearSelectedFiles() {
     this.selectedFiles.set([]);
+  }
+
+  private selectLabelKeys(options: ProfileSelectOption[]) {
+    return options.map((option) => option.labelKey);
+  }
+
+  private selectValues(options: ProfileSelectOption[]) {
+    return options.map((option) => option.value);
   }
 
   getLabels(isUserProfL?: boolean, isPromLabels?: boolean) {
@@ -149,6 +234,15 @@ export class ConfigService {
           listNum: 2,
         },
         {
+          key: 'heightCm',
+          value: 'Magassag',
+          valueKey: 'profile.fields.heightCm',
+          type: 'number',
+          setLaterInProf: true,
+          inMatch: true,
+          listNum: 2,
+        },
+        {
           key: 'highestSchool',
           value: 'Legmagasabb iskolai vegzettseg',
           valueKey: 'profile.fields.highestSchool',
@@ -163,11 +257,56 @@ export class ConfigService {
           key: 'zodiacSign',
           value: 'Csillagjegy',
           valueKey: 'profile.fields.zodiacSign',
-          type: 'text',
+          type: 'select',
+          options: this.selectValues(this.zodiacOptions),
+          values: this.selectValues(this.zodiacOptions),
+          optionLabelKeys: this.selectLabelKeys(this.zodiacOptions),
           setLaterInProf: true,
           inMatch: true,
           listNum(matchProf: UserClass) {
             return matchProf?.zodiacSign ? 4 : '';
+          },
+        },
+        {
+          key: 'familyPlans',
+          value: 'Csaladi tervek',
+          valueKey: 'profile.fields.familyPlans',
+          type: 'select',
+          options: this.selectValues(this.familyPlanOptions),
+          values: this.selectValues(this.familyPlanOptions),
+          optionLabelKeys: this.selectLabelKeys(this.familyPlanOptions),
+          setLaterInProf: true,
+          inMatch: true,
+          listNum(matchProf: UserClass) {
+            return matchProf?.familyPlans ? 4 : '';
+          },
+        },
+        {
+          key: 'communicationStyle',
+          value: 'Kommunikacios stilus',
+          valueKey: 'profile.fields.communicationStyle',
+          type: 'select',
+          options: this.selectValues(this.communicationStyleOptions),
+          values: this.selectValues(this.communicationStyleOptions),
+          optionLabelKeys: this.selectLabelKeys(this.communicationStyleOptions),
+          setLaterInProf: true,
+          inMatch: true,
+          listNum(matchProf: UserClass) {
+            return matchProf?.communicationStyle ? 4 : '';
+          },
+        },
+        {
+          key: 'loveStyle',
+          value: 'Szeretetnyelv',
+          valueKey: 'profile.fields.loveStyle',
+          type: 'select',
+          options: this.selectValues(this.loveStyleOptions),
+          values: this.selectValues(this.loveStyleOptions),
+          optionLabelKeys: this.selectLabelKeys(this.loveStyleOptions),
+          setLaterInProf: true,
+          inMatch: true,
+          listNum(matchProf: UserClass) {
+            return matchProf?.loveStyle ? 4 : '';
           },
         },
         {
@@ -222,6 +361,76 @@ export class ConfigService {
             matchProf?.freeTimeAct?.length ? 5 : '',
         },
         {
+          key: 'pets',
+          value: 'Kisallatok',
+          valueKey: 'profile.fields.pets',
+          type: 'select',
+          options: this.selectValues(this.petsOptions),
+          values: this.selectValues(this.petsOptions),
+          optionLabelKeys: this.selectLabelKeys(this.petsOptions),
+          setLaterInProf: true,
+          inMatch: true,
+          listNum(matchProf: UserClass) {
+            return matchProf?.pets ? 5 : '';
+          },
+        },
+        {
+          key: 'drinking',
+          value: 'Alkoholfogyasztas',
+          valueKey: 'profile.fields.drinking',
+          type: 'select',
+          options: this.selectValues(this.drinkingOptions),
+          values: this.selectValues(this.drinkingOptions),
+          optionLabelKeys: this.selectLabelKeys(this.drinkingOptions),
+          setLaterInProf: true,
+          inMatch: true,
+          listNum(matchProf: UserClass) {
+            return matchProf?.drinking ? 5 : '';
+          },
+        },
+        {
+          key: 'smoking',
+          value: 'Dohanyzas',
+          valueKey: 'profile.fields.smoking',
+          type: 'select',
+          options: this.selectValues(this.smokingOptions),
+          values: this.selectValues(this.smokingOptions),
+          optionLabelKeys: this.selectLabelKeys(this.smokingOptions),
+          setLaterInProf: true,
+          inMatch: true,
+          listNum(matchProf: UserClass) {
+            return matchProf?.smoking ? 5 : '';
+          },
+        },
+        {
+          key: 'workout',
+          value: 'Edzes',
+          valueKey: 'profile.fields.workout',
+          type: 'select',
+          options: this.selectValues(this.workoutOptions),
+          values: this.selectValues(this.workoutOptions),
+          optionLabelKeys: this.selectLabelKeys(this.workoutOptions),
+          setLaterInProf: true,
+          inMatch: true,
+          listNum(matchProf: UserClass) {
+            return matchProf?.workout ? 5 : '';
+          },
+        },
+        {
+          key: 'socialMedia',
+          value: 'Social media',
+          valueKey: 'profile.fields.socialMedia',
+          type: 'select',
+          options: this.selectValues(this.socialMediaOptions),
+          values: this.selectValues(this.socialMediaOptions),
+          optionLabelKeys: this.selectLabelKeys(this.socialMediaOptions),
+          setLaterInProf: true,
+          inMatch: true,
+          listNum(matchProf: UserClass) {
+            return matchProf?.socialMedia ? 5 : '';
+          },
+        },
+        {
           key: 'interests',
           value: 'Erdeklodesi korom',
           valueKey: 'profile.fields.interests',
@@ -257,9 +466,114 @@ export class ConfigService {
               value: 'Zenehallgatas',
               labelKey: 'profile.values.listeningToMusic',
             },
+            {
+              key: 'travel',
+              value: 'Travel',
+              labelKey: 'profile.values.travel',
+            },
+            {
+              key: 'music',
+              value: 'Music',
+              labelKey: 'profile.values.music',
+            },
+            {
+              key: 'dogLover',
+              value: 'Dog lover',
+              labelKey: 'profile.values.dogLover',
+            },
+            {
+              key: 'coffee',
+              value: 'Coffee',
+              labelKey: 'profile.values.coffee',
+            },
+            {
+              key: 'grabADrink',
+              value: 'Grab a drink',
+              labelKey: 'profile.values.grabADrink',
+            },
+            {
+              key: 'foodie',
+              value: 'Foodie',
+              labelKey: 'profile.values.foodie',
+            },
+            {
+              key: 'brunch',
+              value: 'Brunch',
+              labelKey: 'profile.values.brunch',
+            },
+            {
+              key: 'wine',
+              value: 'Wine',
+              labelKey: 'profile.values.wine',
+            },
+            {
+              key: 'hiking',
+              value: 'Hiking',
+              labelKey: 'profile.values.hiking',
+            },
+            {
+              key: 'gym',
+              value: 'Gym',
+              labelKey: 'profile.values.gym',
+            },
           ],
           setLaterInProf: true,
           inMatch: true,
+        },
+        {
+          key: 'anthemTitle',
+          value: 'Kedvenc dal',
+          valueKey: 'profile.fields.anthemTitle',
+          type: 'text',
+          setLaterInProf: true,
+          inMatch: true,
+          listNum(matchProf: UserClass) {
+            return matchProf?.anthemTitle ? 6 : '';
+          },
+        },
+        {
+          key: 'anthemArtist',
+          value: 'Eloado',
+          valueKey: 'profile.fields.anthemArtist',
+          type: 'text',
+          setLaterInProf: true,
+          inMatch: true,
+          listNum(matchProf: UserClass) {
+            return matchProf?.anthemTitle ? 6 : '';
+          },
+        },
+        {
+          key: 'anthemAlbum',
+          value: 'Album',
+          valueKey: 'profile.fields.anthemAlbum',
+          type: 'text',
+          setLaterInProf: true,
+          inMatch: true,
+          listNum(matchProf: UserClass) {
+            return matchProf?.anthemTitle ? 6 : '';
+          },
+        },
+        {
+          key: 'anthemImageUrl',
+          value: 'Dal boritokep URL',
+          valueKey: 'profile.fields.anthemImageUrl',
+          type: 'text',
+          setLaterInProf: true,
+          inMatch: true,
+          listNum(matchProf: UserClass) {
+            return matchProf?.anthemTitle ? 6 : '';
+          },
+        },
+        {
+          key: 'anthemUrl',
+          value: 'Dal link',
+          valueKey: 'profile.fields.anthemUrl',
+          type: 'text',
+          setLaterInProf: true,
+          inMatch: true,
+          listNum(matchProf: UserClass) {
+            return matchProf?.anthemTitle ? 6 : '';
+          },
         },
       ];
     }

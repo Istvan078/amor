@@ -65,10 +65,24 @@ export class UserClass {
   };
 
   public job?: string;
+  public heightCm?: number;
   public currStudy?: string;
   public studies?: Study;
   public freeTimeAct?: string[];
   public zodiacSign?: string;
+  public familyPlans?: string;
+  public communicationStyle?: string;
+  public loveStyle?: string;
+  public pets?: string;
+  public drinking?: string;
+  public smoking?: string;
+  public workout?: string;
+  public socialMedia?: string;
+  public anthemTitle?: string;
+  public anthemArtist?: string;
+  public anthemAlbum?: string;
+  public anthemImageUrl?: string;
+  public anthemUrl?: string;
 
   public lookingForDistance?: number;
   public lookingForAge: {

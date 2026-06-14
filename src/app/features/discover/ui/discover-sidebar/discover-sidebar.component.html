@@ -178,6 +178,20 @@
     </div>
 
     <div class="pairs-and-messageheads-cont">
+      @if (!matches.length) {
+        <section class="matches-empty-state">
+          <div class="matches-empty-art" aria-hidden="true">
+            <span></span>
+            <span></span>
+            <ion-icon name="heart-circle-outline"></ion-icon>
+          </div>
+          <div>
+            <strong>{{ t('discover.sidebar.emptyMatchesTitle') }}</strong>
+            <p>{{ t('discover.sidebar.emptyMatchesText') }}</p>
+          </div>
+        </section>
+      }
+
       @for(match of matches; track match.uid ?? $index) {
       <div
         (click)="messageOpened.emit(match)"

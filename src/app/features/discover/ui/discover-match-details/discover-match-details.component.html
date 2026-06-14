@@ -1,71 +1,220 @@
 <ng-container *transloco="let t">
   <div class="poss-match-details-container">
-    <ion-button
-      fill="clear"
-      type="button"
-      [attr.aria-label]="t('common.close')"
-      (click)="closed.emit()"
-      class="details-close-button hide-on-mobile"
-    >
-      <ion-icon name="close-outline"></ion-icon>
-    </ion-button>
-
-    @if(matchProfile) {
-    <section class="match-quality-card">
-      <div class="match-quality-score">
-        <span>{{ getCompatibilityScore() }}%</span>
-        <small>{{ t('discover.matchQuality.score') }}</small>
-      </div>
-      <div class="match-quality-copy">
-        <small>{{ t('discover.matchQuality.eyebrow') }}</small>
-        <h3>{{ t('discover.matchQuality.title') }}</h3>
-        <p>{{ t('discover.matchQuality.subtitle') }}</p>
-        <div class="match-quality-reasons">
-          @for(reason of getCompatibilityReasons(); track reason.key) {
-            <span>{{ t('discover.matchQuality.reasons.' + reason.key, reason.params) }}</span>
-          } @empty {
-            <span>{{ t('discover.matchQuality.reasons.default') }}</span>
+    @if (matchProfile) {
+      <section class="match-detail-card match-detail-section">
+        <h3>
+          <ion-icon name="id-card-outline"></ion-icon>
+          {{ t('discover.matchDetails.essentials') }}
+        </h3>
+        <div class="match-detail-list">
+          @if (matchProfile.profileVerified) {
+            <div class="match-detail-row">
+              <ion-icon name="camera-outline"></ion-icon>
+              <span>{{ t('discover.card.photoVerified') }}</span>
+            </div>
+          }
+          @if (hasVisibleDistance()) {
+            <div class="match-detail-row">
+              <ion-icon name="location-outline"></ion-icon>
+              <span>{{ t('discover.card.distanceKm', { count: getDistanceKmLabel() }) }}</span>
+            </div>
+          }
+          @if (hasHeight()) {
+            <div class="match-detail-row">
+              <ion-icon name="resize-outline"></ion-icon>
+              <span>{{ t('discover.matchDetails.heightCm', { count: getHeightLabel() }) }}</span>
+            </div>
+          }
+          @if (matchProfile.job) {
+            <div class="match-detail-row">
+              <ion-icon name="briefcase-outline"></ion-icon>
+              <span>{{ matchProfile.job }}</span>
+            </div>
+          }
+          @if (getEducationValue()) {
+            <div class="match-detail-row">
+              <ion-icon name="school-outline"></ion-icon>
+              <span>{{ profileValueText(t, getEducationValue()) }}</span>
+            </div>
+          }
+          @if (isDistanceVisible() && matchProfile.currentPlace) {
+            <div class="match-detail-row">
+              <ion-icon name="home-outline"></ion-icon>
+              <span>{{ t('discover.matchDetails.livesIn', { place: matchProfile.currentPlace }) }}</span>
+            </div>
           }
         </div>
-      </div>
-    </section>
+      </section>
 
-    @if(matchProfile.profileVerified) {
-    <section class="verified-profile-detail">
-      <ion-icon name="shield-checkmark-outline"></ion-icon>
-      <div>
-        <strong>{{ t('discover.verifiedProfile') }}</strong>
-        <span>{{ t('discover.verifiedProfileText') }}</span>
-      </div>
-    </section>
-    }
-    }
+      @if (matchProfile.lookingForType) {
+        <section class="match-detail-card match-detail-prompt-card">
+          <small>
+            <ion-icon name="document-text-outline"></ion-icon>
+            {{ t('discover.matchDetails.lookingForPrompt') }}
+          </small>
+          <p>{{ profileValueText(t, matchProfile.lookingForType) }}</p>
+        </section>
+      }
 
-    @for(listNum of possibleDetailLists;track $index){
-    <ion-list style="margin-top: 10px">
-      @for(lab of labels.userProfLabels; track $index) {
-      @if(matchProfile && lab?.inMatch && lab.listNum === listNum && getDetailValue(lab.key) && isDetailVisible(lab)) {
-      <ion-item>
-        <ion-label>
-          <h2>{{ fieldLabel(t, lab) }}</h2>
-          @if(lab.type === "checkbox") {
-          <div class="d-flex">
-            @for(ch of getDetailListValue(lab.key); track $index;) {
-            <p class="m-r-1 m-t-1 border-rounded user-choices-style">
-              {{ profileValueText(t, ch) }}
-            </p>
+      @if (matchProfile.aboutMe) {
+        <section class="match-detail-card match-detail-copy-card">
+          <h3>
+            <ion-icon name="heart-outline"></ion-icon>
+            {{ t('profile.fields.aboutMe') }}
+          </h3>
+          <p>{{ matchProfile.aboutMe }}</p>
+        </section>
+      }
+
+      @if (hasMoreAboutMe()) {
+        <section class="match-detail-card match-detail-section">
+          <h3>
+            <ion-icon name="sparkles-outline"></ion-icon>
+            {{ t('discover.matchDetails.moreAboutMe') }}
+          </h3>
+          <div class="match-detail-list">
+            @if (matchProfile.zodiacSign) {
+              <div class="match-detail-row is-stacked">
+                <span>{{ t('profile.fields.zodiacSign') }}</span>
+                <p>
+                  <ion-icon name="moon-outline"></ion-icon>
+                  {{ profileValueText(t, matchProfile.zodiacSign) }}
+                </p>
+              </div>
+            }
+            @if (getEducationValue()) {
+              <div class="match-detail-row is-stacked">
+                <span>{{ t('profile.fields.highestSchool') }}</span>
+                <p>
+                  <ion-icon name="school-outline"></ion-icon>
+                  {{ profileValueText(t, getEducationValue()) }}
+                </p>
+              </div>
+            }
+            @if (matchProfile.familyPlans) {
+              <div class="match-detail-row is-stacked">
+                <span>{{ t('profile.fields.familyPlans') }}</span>
+                <p>
+                  <ion-icon name="people-outline"></ion-icon>
+                  {{ profileValueText(t, matchProfile.familyPlans) }}
+                </p>
+              </div>
+            }
+            @if (matchProfile.communicationStyle) {
+              <div class="match-detail-row is-stacked">
+                <span>{{ t('profile.fields.communicationStyle') }}</span>
+                <p>
+                  <ion-icon name="chatbubble-ellipses-outline"></ion-icon>
+                  {{ profileValueText(t, matchProfile.communicationStyle) }}
+                </p>
+              </div>
+            }
+            @if (matchProfile.loveStyle) {
+              <div class="match-detail-row is-stacked">
+                <span>{{ t('profile.fields.loveStyle') }}</span>
+                <p>
+                  <ion-icon name="heart-outline"></ion-icon>
+                  {{ profileValueText(t, matchProfile.loveStyle) }}
+                </p>
+              </div>
             }
           </div>
-          }
+        </section>
+      }
 
-          @if(lab.type !== "checkbox") {
-          <p>{{ profileValueText(t, getDetailValue(lab.key)) }}</p>
-          }
-        </ion-label>
-      </ion-item>
+      @if (hasLifestyle()) {
+        <section class="match-detail-card match-detail-section">
+          <h3>
+            <ion-icon name="sparkles-outline"></ion-icon>
+            {{ t('discover.matchDetails.lifestyle') }}
+          </h3>
+          <div class="match-detail-list">
+            @if (matchProfile.pets) {
+              <div class="match-detail-row is-stacked">
+                <span>{{ t('profile.fields.pets') }}</span>
+                <p>
+                  <ion-icon name="paw-outline"></ion-icon>
+                  {{ profileValueText(t, matchProfile.pets) }}
+                </p>
+              </div>
+            }
+            @if (matchProfile.drinking) {
+              <div class="match-detail-row is-stacked">
+                <span>{{ t('profile.fields.drinking') }}</span>
+                <p>
+                  <ion-icon name="wine-outline"></ion-icon>
+                  {{ profileValueText(t, matchProfile.drinking) }}
+                </p>
+              </div>
+            }
+            @if (matchProfile.smoking) {
+              <div class="match-detail-row is-stacked">
+                <span>{{ t('profile.fields.smoking') }}</span>
+                <p>
+                  <ion-icon name="sparkles-outline"></ion-icon>
+                  {{ profileValueText(t, matchProfile.smoking) }}
+                </p>
+              </div>
+            }
+            @if (matchProfile.workout) {
+              <div class="match-detail-row is-stacked">
+                <span>{{ t('profile.fields.workout') }}</span>
+                <p>
+                  <ion-icon name="barbell-outline"></ion-icon>
+                  {{ profileValueText(t, matchProfile.workout) }}
+                </p>
+              </div>
+            }
+            @if (matchProfile.socialMedia) {
+              <div class="match-detail-row is-stacked">
+                <span>{{ t('profile.fields.socialMedia') }}</span>
+                <p>
+                  <ion-icon name="at-outline"></ion-icon>
+                  {{ profileValueText(t, matchProfile.socialMedia) }}
+                </p>
+              </div>
+            }
+          </div>
+        </section>
       }
+
+      @if (matchProfile.interests?.length) {
+        <section class="match-detail-card match-detail-section">
+          <h3>
+            <ion-icon name="sparkles-outline"></ion-icon>
+            {{ t('discover.matchDetails.interests') }}
+          </h3>
+          <div class="match-detail-chip-group">
+            @for (interest of matchProfile.interests; track $index) {
+              <span>{{ profileValueText(t, interest) }}</span>
+            }
+          </div>
+        </section>
       }
-    </ion-list>
+
+      @if (hasAnthem()) {
+        <section class="match-detail-card match-detail-anthem-card">
+          <h3>
+            <ion-icon name="musical-notes-outline"></ion-icon>
+            {{ t('discover.matchDetails.anthem') }}
+          </h3>
+          <div class="match-detail-anthem">
+            <div class="match-detail-anthem-cover">
+              <img [src]="getAnthemImage()" alt="" />
+              <ion-icon name="play-circle-outline"></ion-icon>
+            </div>
+            <div>
+              <strong>{{ matchProfile.anthemTitle }}</strong>
+              @if (getAnthemMeta()) {
+                <p>
+                  <ion-icon name="musical-notes-outline"></ion-icon>
+                  {{ getAnthemMeta() }}
+                </p>
+              }
+            </div>
+          </div>
+        </section>
+      }
     }
   </div>
 </ng-container>

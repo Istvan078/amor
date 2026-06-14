@@ -28,14 +28,15 @@ import { AuthStore } from '../store/auth.store';
     ],
 })
 export class RegisterPage implements OnInit {
-    private authStore = inject(AuthStore);
-    private profileStore = inject(ProfileStore);
+    readonly authStore = inject(AuthStore);
+    readonly profileStore = inject(ProfileStore);
     private config = inject(ConfigService);
     private modalCtrl = inject(ModalController);
     private router = inject(Router);
 
     user: any;
     labels: any;
+    submitting = false;
 
     constructor() {
         effect(() => {
@@ -61,55 +62,66 @@ export class RegisterPage implements OnInit {
     }
 
     async regUser() {
+        if (this.submitting || this.authStore.loading() || this.profileStore.loading()) {
+            return;
+        }
+
+        this.submitting = true;
         let profileCreatedSuccessfully = false;
 
-        if (!this.user) {
-            const ionModal = await this.createModal({
-                regFirstPhase: true,
-            });
+        try {
+            if (!this.user) {
+                const ionModal = await this.createModal({
+                    regFirstPhase: true,
+                });
 
-            const data = await ionModal.onWillDismiss();
+                const data = await ionModal.onWillDismiss();
 
-            if (data.role === 'confirm') {
-                const userCredentials = await this.authStore.registerEmail(data.data);
-                this.user = userCredentials.user;
+                if (data.role === 'confirm') {
+                    const userCredentials = await this.authStore.registerEmail(data.data);
+                    this.user = userCredentials.user;
 
-                const ionModal2 = await this.createModal({
+                    const ionModal2 = await this.createModal({
+                        regSecondPhase: true,
+                        labels: this.labels,
+                    });
+
+                    const data2 = await ionModal2.onWillDismiss();
+
+                    if (data2.role === 'created-successfully') {
+                        data2.data.uid = this.user.uid;
+
+                        await this.createUserProfile(data2);
+
+                        profileCreatedSuccessfully = true;
+                        this.profileStore.setProfileCreated(true);
+
+                        this.router.navigate(['/amor/privacy']);
+                    }
+                }
+            }
+
+            if (this.user?.uid && !profileCreatedSuccessfully) {
+                const ionModal = await this.createModal({
                     regSecondPhase: true,
                     labels: this.labels,
                 });
 
-                const data2 = await ionModal2.onWillDismiss();
+                const data = await ionModal.onWillDismiss();
 
-                if (data2.role === 'created-successfully') {
-                    data2.data.uid = this.user.uid;
+                if (data.role === 'created-successfully') {
+                    data.data.uid = this.user.uid;
 
-                    await this.createUserProfile(data2);
+                    await this.createUserProfile(data);
 
-                    profileCreatedSuccessfully = true;
                     this.profileStore.setProfileCreated(true);
-
                     this.router.navigate(['/amor/privacy']);
                 }
             }
-        }
-
-        if (this.user?.uid && !profileCreatedSuccessfully) {
-            const ionModal = await this.createModal({
-                regSecondPhase: true,
-                labels: this.labels,
-            });
-
-            const data = await ionModal.onWillDismiss();
-
-            if (data.role === 'created-successfully') {
-                data.data.uid = this.user.uid;
-
-                await this.createUserProfile(data);
-
-                this.profileStore.setProfileCreated(true);
-                this.router.navigate(['/amor/privacy']);
-            }
+        } catch (error) {
+            console.error(error);
+        } finally {
+            this.submitting = false;
         }
     }
 

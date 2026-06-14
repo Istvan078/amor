@@ -27,8 +27,31 @@
           <p>{{ t('auth.register.subtitle') }}</p>
         </div>
 
-        <ion-button class="register-submit" expand="block" (click)="regUser()">
-          {{ user?.uid ? t('auth.register.continue') : t('auth.register.createAccount') }} @if
+        @if (authStore.error()) {
+          <div class="register-alert is-error">
+            {{ t(authStore.error() || '') }}
+          </div>
+        }
+
+        @if (profileStore.error()) {
+          <div class="register-alert is-error">
+            {{ profileStore.error() }}
+          </div>
+        }
+
+        <ion-button
+          class="register-submit"
+          expand="block"
+          [disabled]="submitting || authStore.loading() || profileStore.loading()"
+          (click)="regUser()"
+        >
+          {{
+            submitting || authStore.loading() || profileStore.loading()
+              ? t('auth.register.loading')
+              : user?.uid
+                ? t('auth.register.continue')
+                : t('auth.register.createAccount')
+          }} @if
           (user?.uid) {
           <ion-icon name="arrow-forward-outline" slot="end"></ion-icon>
           } @else {
