@@ -1266,7 +1266,6 @@ const ACCOUNT_DELETION_RETENTION_POLICY =
 const ACCOUNT_DELETION_BATCH_SIZE = 400;
 const ACCOUNT_DELETION_ARRAY_FIELDS = [
   'matchParts.matches',
-  'matchParts.possMatches',
   'matchParts.liked',
   'matchParts.notLiked',
   'matchParts.superLiked',
@@ -2653,121 +2652,7 @@ app.post('/activateProfileBoost', verifyToken, async (req: AuthenticatedRequest,
   }
 });
 
-app.post('/createMutualMatch', verifyToken, async (req: AuthenticatedRequest, res: express.Response) => {
-  const { uid, otherUid } = req.body;
-  const myUid = getRequestedActionUid(req, uid);
-
-  if (!myUid || typeof otherUid !== 'string' || !otherUid || myUid === otherUid) {
-    res.sendStatus(403);
-    return;
-  }
-
-  try {
-    const db = admin.firestore();
-    const result = await db.runTransaction(async (transaction) => {
-      const myProfileRef = db.collection('users').doc(myUid);
-      const otherProfileRef = db.collection('users').doc(otherUid);
-      const [myProfileSnapshot, otherProfileSnapshot] = await Promise.all([
-        transaction.get(myProfileRef),
-        transaction.get(otherProfileRef),
-      ]);
-
-      if (!myProfileSnapshot.exists || !otherProfileSnapshot.exists) {
-        throw new Error('profile_not_found');
-      }
-
-      const myProfile = myProfileSnapshot.data() ?? {};
-      const otherProfile = otherProfileSnapshot.data() ?? {};
-      const myMatchParts = normalizeMatchParts(myProfile.matchParts);
-      const otherMatchParts = normalizeMatchParts(otherProfile.matchParts);
-      const alreadyMatched =
-        myMatchParts.matches.includes(otherUid) ||
-        otherMatchParts.matches.includes(myUid);
-
-      if (alreadyMatched) {
-        return {
-          matched: true,
-          created: false,
-          matchParts: myMatchParts,
-        };
-      }
-
-      const myLikesOther =
-        myMatchParts.liked.includes(otherUid) ||
-        myMatchParts.superLiked.includes(otherUid);
-      const otherLikesMe =
-        otherMatchParts.liked.includes(myUid) ||
-        otherMatchParts.superLiked.includes(myUid);
-
-      if (!myLikesOther || !otherLikesMe) {
-        return {
-          matched: false,
-          created: false,
-          matchParts: myMatchParts,
-        };
-      }
-
-      const nextMyMatchParts = buildMutualMatchParts(myMatchParts, otherUid);
-      const nextOtherMatchParts = buildMutualMatchParts(otherMatchParts, myUid);
-
-      transaction.update(myProfileRef, {
-        matchParts: nextMyMatchParts,
-      });
-      transaction.update(otherProfileRef, {
-        matchParts: nextOtherMatchParts,
-      });
-      removeIncomingLike(transaction, db, otherUid, myUid);
-      removeIncomingLike(transaction, db, myUid, otherUid);
-
-      return {
-        matched: true,
-        created: true,
-        matchParts: nextMyMatchParts,
-      };
-    });
-
-    if (result.created) {
-      await notifyMutualMatchCreated(myUid, otherUid);
-    }
-
-    res.json({
-      message: 'OK',
-      ...result,
-    });
-  } catch (error) {
-    console.error('Hiba tortent a mutual match letrehozasakor:', error);
-    res.sendStatus(500);
-  }
-});
-
 app.get('/users', verifyToken, (req: AuthenticatedRequest, res: express.Response) => {
-  if (!isPrivilegedUser(req)) {
-    res.sendStatus(403);
-    return;
-  }
-
-  admin
-    .auth()
-    .listUsers()
-    .then((userRecords) => {
-      const users = userRecords.users.map((user) => ({
-          uid: user.uid,
-          email: user.email,
-          displayName: user.displayName,
-          claims: user.customClaims,
-          profilePicture: user.photoURL,
-          phoneNumber: user.phoneNumber,
-        }));
-
-      res.json(users);
-    })
-    .catch((error: unknown) => {
-      console.error('Hiba tÃ¶rtÃ©nt a felhasznÃ¡lÃ³k lekÃ©rÃ©sekor:', error);
-      res.sendStatus(500);
-    });
-});
-
-app.get('/legacy-users', verifyToken, (req: AuthenticatedRequest, res: express.Response) => {
   if (!isPrivilegedUser(req)) {
     res.sendStatus(403);
     return;
@@ -2781,15 +2666,15 @@ app.get('/legacy-users', verifyToken, (req: AuthenticatedRequest, res: express.R
         uid: user.uid,
         email: user.email,
         displayName: user.displayName,
-        claims: user.customClaims,
+        claims: sanitizeUserClaims(user.customClaims ?? {}),
         profilePicture: user.photoURL,
         phoneNumber: user.phoneNumber,
-        // Egyéb felhasználói adatok ......
       }));
+
       res.json(users);
     })
     .catch((error: unknown) => {
-      console.error('Hiba történt a felhasználók lekérésekor:', error);
+      console.error('Hiba tÃ¶rtÃ©nt a felhasznÃ¡lÃ³k lekÃ©rÃ©sekor:', error);
       res.sendStatus(500);
     });
 });
@@ -2810,26 +2695,6 @@ app.get('/users/:uid/claims', verifyToken, (req: AuthenticatedRequest, res: expr
     })
     .catch((error: unknown) => {
       console.error('Hiba tÃ¶rtÃ©nt a felhasznÃ¡lÃ³ lekÃ©rdezÃ©sekor:', error);
-      res.sendStatus(500);
-    });
-});
-
-app.get('/legacy-users/:uid/claims', verifyToken, (req: AuthenticatedRequest, res: express.Response) => {
-  const { uid } = req.params;
-
-  if (!canAccessUser(req, uid)) {
-    res.sendStatus(403);
-    return;
-  }
-
-  admin
-    .auth()
-    .getUser(uid)
-    .then((userRecord) => {
-      res.json(userRecord.customClaims);
-    })
-    .catch((error: unknown) => {
-      console.error('Hiba történt a felhasználó lekérdezésekor:', error);
       res.sendStatus(500);
     });
 });

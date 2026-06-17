@@ -10,7 +10,10 @@
     "build": "ng build",
     "watch": "ng build --watch --configuration development",
     "test": "ng test",
-    "lint": "ng lint"
+    "lint": "ng lint",
+    "test:functions": "npm --prefix functions test",
+    "test:rules": "firebase emulators:exec --project demo-amor-test --only firestore \"node --test test/firestore.rules.test.js\"",
+    "ci": "npm run build && npm run test:functions && npm run test:rules"
   },
   "private": true,
   "dependencies": {
@@ -56,6 +59,7 @@
     "@angular/compiler-cli": "^20.3.21",
     "@angular/language-service": "^20.3.21",
     "@capacitor/cli": "7.0.1",
+    "@firebase/rules-unit-testing": "^5.0.1",
     "@ionic/angular-toolkit": "^12.0.0",
     "@types/jasmine": "~5.1.0",
     "@typescript-eslint/eslint-plugin": "^8.18.0",
@@ -64,6 +68,7 @@
     "eslint-plugin-import": "^2.29.1",
     "eslint-plugin-jsdoc": "^48.2.1",
     "eslint-plugin-prefer-arrow": "1.2.2",
+    "firebase-tools": "^14.27.0",
     "jasmine-core": "~5.1.0",
     "jasmine-spec-reporter": "~5.0.0",
     "karma": "~6.4.0",
