@@ -145,7 +145,11 @@ export class DiscoverSidebarComponent implements AfterViewInit, OnChanges {
   }
 
   getMatchImage(match?: PublicProfile) {
-    return match?.pictures?.[0]?.url || this.fallbackAvatar;
+    return this.getPrimaryProfileImage(match) || this.fallbackAvatar;
+  }
+
+  getUserProfileImage() {
+    return this.getPrimaryProfileImage(this.userProfile) || this.fallbackAvatar;
   }
 
   isSelectedMatch(match: PublicProfile) {
@@ -349,6 +353,17 @@ export class DiscoverSidebarComponent implements AfterViewInit, OnChanges {
       lastMessage: '',
       unreadCount: 0,
     };
+  }
+
+  private getPrimaryProfileImage(
+    profile?: Pick<PublicProfile, 'profilePicture' | 'pictures'> | Pick<UserClass, 'profilePicture' | 'pictures'>
+  ) {
+    const pictures = profile?.pictures ?? [];
+    const primaryPicture = pictures.find(
+      (picture) => picture.url === profile?.profilePicture
+    );
+
+    return primaryPicture?.url || profile?.profilePicture || pictures[0]?.url || '';
   }
 
   private queuePromoSwiperConfig() {

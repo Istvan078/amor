@@ -103,6 +103,12 @@
   gap: 12px;
 }
 
+.paywall-package-entry {
+  display: grid;
+  gap: 10px;
+  scroll-margin-block: 24px;
+}
+
 .paywall-package {
   display: flex;
   align-items: center;
@@ -169,6 +175,14 @@
     rgba(255, 255, 255, 0.06);
   border: 1px solid rgba(255, 255, 255, 0.12);
   border-radius: 24px;
+}
+
+.paywall-benefits--inline {
+  display: none;
+}
+
+.paywall-benefits--side {
+  display: block;
 }
 
 .paywall-benefits__header {
@@ -309,12 +323,27 @@
     grid-template-columns: 1fr;
   }
 
+  .paywall-package-entry {
+    scroll-margin-block: 18px;
+  }
+
   .paywall-package {
     min-height: 86px;
   }
 
   .paywall-package__price {
     font-size: 0.98rem;
+  }
+
+  .paywall-benefits--side {
+    display: none;
+  }
+
+  .paywall-benefits--inline {
+    display: block;
+    padding: 16px;
+    border-radius: 22px;
+    animation: paywall-benefits-enter 180ms ease both;
   }
 
   .paywall-actions {
@@ -327,5 +356,17 @@
   .paywall-primary,
   .paywall-restore {
     flex: 1 1 100%;
+  }
+}
+
+@keyframes paywall-benefits-enter {
+  from {
+    opacity: 0;
+    transform: translateY(-6px);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateY(0);
   }
 }

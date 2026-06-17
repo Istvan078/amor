@@ -3,17 +3,10 @@
     <nav class="nav">
       <button type="button" class="profile-entry" (click)="profileOpened.emit()">
         <ion-avatar class="user-img" slot="start">
-          @if(userProfile?.pictures?.length) {
           <img
-            [src]="userProfile?.pictures?.[0]?.url"
+            [src]="getUserProfileImage()"
             [alt]="t('discover.sidebar.profileImageAlt')"
           />
-          } @else {
-          <img
-            src="https://img.freepik.com/free-vector/user-circles-set_78370-4704.jpg?t=st=1741696833~exp=1741700433~hmac=5c4d9770452bab7cb12b3a38cead02ffcd3f50b45d75a0da6324820dc1bd3df2&w=740"
-            [alt]="t('discover.sidebar.profileImageAlt')"
-          />
-          }
         </ion-avatar>
         <span>
           <small>{{ t('discover.sidebar.profile') }}</small>

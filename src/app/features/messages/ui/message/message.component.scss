@@ -1923,6 +1923,8 @@
 }
 
 .icebreaker-prompts button {
+  display: grid;
+  gap: 4px;
   max-width: min(100%, 280px);
   min-height: 36px;
   padding: 8px 11px;
@@ -1938,6 +1940,16 @@
   line-height: 1.24;
   overflow-wrap: anywhere;
   text-align: left;
+}
+
+.icebreaker-prompts button small {
+  color: var(--amor-gold);
+  font-size: 0.64rem;
+  text-align: left;
+}
+
+.icebreaker-prompts button span {
+  color: #ffffff;
 }
 
 .icebreaker-prompts button:hover {

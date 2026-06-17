@@ -29,6 +29,15 @@
             <strong>{{ t('discover.boost.active') }}</strong>
             <span>{{ t('discover.boost.minutesLeft', { count: profileBoostMinutesLeft }) }}</span>
             <small>{{ t('discover.boost.shownHigher') }}</small>
+            <small>
+              {{
+                t('discover.boost.analytics', {
+                  multiplier: getBoostMultiplierLabel(),
+                  likes: getBoostLikeEstimate(),
+                  views: getBoostViewEstimate()
+                })
+              }}
+            </small>
           </div>
         </div>
       }
@@ -123,6 +132,30 @@
                     <ion-icon name="location-outline"></ion-icon>
                     {{ t('discover.card.distanceKm', { count: getDistanceKmLabel() }) }}
                   </span>
+                }
+                @if (getCompatibilityHighlights().length) {
+                  <div class="compatibility-strip">
+                    <strong>
+                      {{
+                        t('discover.card.compatibilityScore', {
+                          count: getCompatibilityScore()
+                        })
+                      }}
+                    </strong>
+                    <div>
+                      @for (highlight of getCompatibilityHighlights(); track highlight.key) {
+                        <span>
+                          <ion-icon [name]="highlight.icon"></ion-icon>
+                          {{
+                            t(
+                              'discover.card.compatibility.' + highlight.key,
+                              highlight.params
+                            )
+                          }}
+                        </span>
+                      }
+                    </div>
+                  </div>
                 }
               </div>
             } @else if (!isMatchPlaceHolder) {

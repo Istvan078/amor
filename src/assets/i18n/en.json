@@ -149,7 +149,15 @@
       "photoVerified": "Photo verified",
       "distanceKm": "{{count}} km away",
       "previousPhoto": "Previous photo",
-      "nextPhoto": "Next photo"
+      "nextPhoto": "Next photo",
+      "compatibilityScore": "{{count}}% match",
+      "compatibility": {
+        "sharedInterests": "{{count}} shared interests",
+        "similarGoal": "Similar relationship goal",
+        "nearby": "Nearby",
+        "recentlyActive": "Active recently",
+        "verified": "Verified"
+      }
     },
     "locationFallback": {
       "title": "Showing recommendations without location",
@@ -205,7 +213,8 @@
     "boost": {
       "active": "Boost active",
       "minutesLeft": "{{count}} minutes left",
-      "shownHigher": "Shown higher"
+      "shownHigher": "Shown higher",
+      "analytics": "{{multiplier}} more impressions · {{likes}} new likes · {{views}} views"
     },
     "profile": {
       "myProfile": "My profile",
@@ -494,7 +503,19 @@
       "delete": "Delete photo",
       "open": "Open photo",
       "reorder": "Reorder photo",
-      "empty": "Add at least one photo to continue"
+      "empty": "Add at least one photo to continue",
+      "uploadStates": {
+        "uploading": "Uploading...",
+        "processing": "Processing...",
+        "finalizing": "Finalizing...",
+        "error": "Upload needs attention"
+      },
+      "errors": {
+        "processingTimeout": "Processing took too long. Try another photo or retry in a moment.",
+        "moderationRejected": "This photo could not be published because it failed moderation.",
+        "moderationReviewRequired": "This photo needs review before it can be published.",
+        "uploadFailed": "Photo upload failed. Please try again."
+      }
     },
     "fields": {
       "pictures": "My photos",
@@ -650,6 +671,13 @@
         "bio": "Bio",
         "interests": "Interests",
         "location": "Location"
+      },
+      "coach": {
+        "photos": "Add {{count}} more photos for a stronger first impression.",
+        "bio": "Write a short intro so people have something real to react to.",
+        "interests": "Pick a few interests to improve compatibility signals.",
+        "verification": "Verify your profile to stand out in discovery.",
+        "ready": "Your profile has the essentials. Small updates can still improve matches."
       }
     },
     "verification": {
@@ -759,7 +787,18 @@
     "startText": "A short, personal opener works best.",
     "icebreakers": {
       "title": "Try an opener",
+      "styles": {
+        "kind": "Kind",
+        "curious": "Curious",
+        "playful": "Playful",
+        "short": "Short"
+      },
+      "kind": "Hi {{name}}, your profile has a calm, thoughtful vibe. What made your week better?",
       "sharedInterest": "I saw you are into {{interest}} too. What got you into it?",
+      "curiousFallback": "What is something you could talk about for hours?",
+      "playful": "Two truths and one tiny dating-app exaggeration?",
+      "playfulPlace": "If {{place}} had a perfect low-key date route, where would it start?",
+      "short": "Your profile caught my attention. How is your day going?",
       "profile": "What is one thing from your profile you wish people asked about?",
       "place": "What is your favorite low-key date idea around {{place}}?",
       "fallback": "What would make a first date feel easy for you?"

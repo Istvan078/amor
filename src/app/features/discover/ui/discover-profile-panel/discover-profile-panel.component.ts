@@ -46,11 +46,14 @@ import {
 } from '../../../../shared/i18n/profile-value-labels';
 import { Options } from '../../../../shared/models/options.model';
 import { UserClass } from '../../../../shared/models/user.model';
+import { PictureUploadState } from '../../../profile/data-access/profile-pictures.repository';
 import { addIcons } from 'ionicons';
 import {
+  alertCircleOutline,
   cameraOutline,
   diamondOutline,
   checkmarkCircleOutline,
+  createOutline,
   heartOutline,
   imagesOutline,
   locationOutline,
@@ -133,6 +136,7 @@ export class DiscoverProfilePanelComponent implements AfterViewChecked, OnChange
   @Input() profileBoostMinutesLeft = 0;
   @Input() canOpenAdmin = false;
   @Input() verificationSubmitting = false;
+  @Input() pictureUploadState: PictureUploadState = { phase: 'idle' };
 
   @Output() startUpdateRequested = new EventEmitter<void>();
   @Output() profilePictureOpened = new EventEmitter<number>();
@@ -149,8 +153,10 @@ export class DiscoverProfilePanelComponent implements AfterViewChecked, OnChange
 
   constructor() {
     addIcons({
+      alertCircleOutline,
       cameraOutline,
       checkmarkCircleOutline,
+      createOutline,
       diamondOutline,
       heartOutline,
       imagesOutline,
@@ -285,6 +291,37 @@ export class DiscoverProfilePanelComponent implements AfterViewChecked, OnChange
     return `profile.verification.status.${this.profileVerificationStatus()}.text`;
   }
 
+  profileCoachTips() {
+    const profile = this.userProfile;
+    const tips: Array<{ key: string; params?: Record<string, unknown> }> = [];
+    const photoCount = profile?.pictures?.length ?? 0;
+
+    if (photoCount < 3) {
+      tips.push({
+        key: 'photos',
+        params: { count: 3 - photoCount },
+      });
+    }
+
+    if (!profile?.aboutMe?.trim()) {
+      tips.push({ key: 'bio' });
+    }
+
+    if (!profile?.interests?.length) {
+      tips.push({ key: 'interests' });
+    }
+
+    if (!profile?.profileVerified) {
+      tips.push({ key: 'verification' });
+    }
+
+    if (!tips.length) {
+      tips.push({ key: 'ready' });
+    }
+
+    return tips.slice(0, 3);
+  }
+
   profileVerificationReviewNote() {
     return this.userProfile?.profileVerificationReviewNote?.trim() ?? '';
   }
@@ -351,6 +388,20 @@ export class DiscoverProfilePanelComponent implements AfterViewChecked, OnChange
     return this.selectedFiles.map((file) => file.name).join(', ');
   }
 
+  primaryProfilePhotoUrl() {
+    const pictures = this.userProfile?.pictures ?? [];
+    const primaryPicture = pictures.find(
+      (picture) => picture.url === this.userProfile?.profilePicture
+    );
+
+    return (
+      primaryPicture?.url ||
+      this.userProfile?.profilePicture ||
+      pictures[0]?.url ||
+      ''
+    );
+  }
+
   photoCount() {
     return this.userProfile?.pictures?.length ?? 0;
   }
@@ -375,6 +426,22 @@ export class DiscoverProfilePanelComponent implements AfterViewChecked, OnChange
     return this.canAddMorePhotos()
       ? 'profile.photos.required'
       : 'profile.photos.maxReached';
+  }
+
+  isPictureUploadActive() {
+    return (
+      this.pictureUploadState.phase === 'uploading' ||
+      this.pictureUploadState.phase === 'processing' ||
+      this.pictureUploadState.phase === 'finalizing'
+    );
+  }
+
+  pictureUploadStatusKey() {
+    if (this.pictureUploadState.phase === 'error') {
+      return this.pictureUploadState.errorKey ?? 'profile.pictures.errors.uploadFailed';
+    }
+
+    return `profile.photos.uploadStates.${this.pictureUploadState.phase}`;
   }
 
   isPrimaryPhoto(index: number) {

@@ -117,9 +117,21 @@ export class AuthRepository {
         });
     }
 
-    async deleteUser(uid?: string) {
+    async deleteOwnAccount() {
         const user = this.auth.currentUser;
-        const targetUid = uid ?? user?.uid;
+
+        if (!user?.uid) {
+            throw new Error('auth.errors.accountDeletionAuthRequired');
+        }
+
+        const idToken = await user.getIdToken(true);
+
+        await this.deleteAccountRequest(user.uid, idToken);
+        await this.runInFirebaseContext(() => signOut(this.auth));
+    }
+
+    async adminDeleteUser(targetUid: string) {
+        const user = this.auth.currentUser;
 
         if (!user || !targetUid) {
             throw new Error('auth.errors.accountDeletionAuthRequired');
@@ -127,18 +139,31 @@ export class AuthRepository {
 
         const idToken = await user.getIdToken(true);
 
+        await this.deleteAccountRequest(targetUid, idToken);
+    }
+
+    async deleteUser(uid?: string) {
+        const currentUid = this.auth.currentUser?.uid;
+
+        if (!uid || uid === currentUid) {
+            return this.deleteOwnAccount();
+        }
+
+        return this.adminDeleteUser(uid);
+    }
+
+    private async deleteAccountRequest(uid: string, idToken: string) {
         await firstValueFrom(
             this.http.post(
                 this.usersApiUrl + 'deleteAccount',
                 {
-                    uid: targetUid,
+                    uid,
                 },
                 {
                     headers: this.createAuthHeaders(idToken),
                 }
             )
         );
-        await this.runInFirebaseContext(() => signOut(this.auth));
     }
 
     private createAuthHeaders(idToken: string) {

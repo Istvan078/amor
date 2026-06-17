@@ -63,6 +63,84 @@ export const ProfileStore = signalStore(
             }
         }
 
+        async function deleteOwnProfile() {
+            const uid = authStore.uid();
+
+            patchState(store, {
+                loading: true,
+                error: null,
+            });
+
+            if (!uid) {
+                patchState(store, {
+                    loading: false,
+                    error: 'Failed to delete profile',
+                });
+
+                return false;
+            }
+
+            try {
+                await authStore.deleteOwnAccount();
+                patchState(store, {
+                    profile: null,
+                    profileCreated: false,
+                    profileDeleted: true,
+                    loading: false,
+                    error: null,
+                });
+
+                return true;
+            } catch (error) {
+                console.error(error);
+                patchState(store, {
+                    loading: false,
+                    error: 'Failed to delete profile',
+                });
+
+                return false;
+            }
+        }
+
+        async function adminDeleteProfile(targetUid: string) {
+            if (!targetUid) {
+                return false;
+            }
+
+            patchState(store, {
+                loading: true,
+                error: null,
+            });
+
+            try {
+                await authStore.adminDeleteUser(targetUid);
+
+                const isCurrentProfile = store.profile()?.uid === targetUid;
+
+                patchState(store, {
+                    ...(isCurrentProfile
+                        ? {
+                              profile: null,
+                              profileCreated: false,
+                              profileDeleted: true,
+                          }
+                        : {}),
+                    loading: false,
+                    error: null,
+                });
+
+                return true;
+            } catch (error) {
+                console.error(error);
+                patchState(store, {
+                    loading: false,
+                    error: 'Failed to delete profile',
+                });
+
+                return false;
+            }
+        }
+
         return {
         setProfile(profile: UserClass | null) {
             patchState(store, {
@@ -185,32 +263,14 @@ export const ProfileStore = signalStore(
             }
         },
 
+        deleteOwnProfile,
+
+        adminDeleteProfile,
+
         async deleteProfile(uid: string) {
-            patchState(store, {
-                loading: true,
-                error: null,
-            });
-
-            try {
-                await authStore.deleteUser(uid);
-                patchState(store, {
-                    profile: null,
-                    profileCreated: false,
-                    profileDeleted: true,
-                    loading: false,
-                    error: null,
-                });
-
-                return true;
-            } catch (error) {
-                console.error(error)
-                patchState(store, {
-                    loading: false,
-                    error: "Failed to delete profile"
-                })
-
-                return false;
-            }
+            return uid && uid !== authStore.uid()
+                ? adminDeleteProfile(uid)
+                : deleteOwnProfile();
         },
 
         clearProfile() {

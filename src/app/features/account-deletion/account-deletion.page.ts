@@ -83,7 +83,7 @@ export class AccountDeletionPage {
         uid = credentials.user.uid;
       }
 
-      const wasDeleted = await this.profileStore.deleteProfile(uid);
+      const wasDeleted = await this.profileStore.deleteOwnProfile();
 
       if (!wasDeleted) {
         throw new Error('accountDeletion.errors.failed');

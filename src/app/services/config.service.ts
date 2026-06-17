@@ -147,8 +147,8 @@ export class ConfigService {
           value: 'Kit keresel?',
           valueKey: 'profile.fields.lookingForGender',
           type: 'select',
-          options: ['Ferfi', 'No', 'Egyeb'],
-          values: ['Ferfi', 'No', 'Egyeb'],
+          options: ['man', 'woman', 'other'],
+          values: ['man', 'woman', 'other'],
           optionLabelKeys: [
             'profile.values.man',
             'profile.values.woman',
@@ -170,8 +170,8 @@ export class ConfigService {
           value: 'Nemed',
           valueKey: 'profile.fields.gender',
           type: 'select',
-          options: ['Ferfi', 'No', 'Egyeb'],
-          values: ['Ferfi', 'No', 'Egyeb'],
+          options: ['man', 'woman', 'other'],
+          values: ['man', 'woman', 'other'],
           optionLabelKeys: [
             'profile.values.man',
             'profile.values.woman',

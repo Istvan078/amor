@@ -8,10 +8,12 @@ interface RegistrationDataForLogin {
 }
 
 export enum LookingFor {
-  man = 'Ferfi',
-  woman = 'No',
-  other = 'Egyeb',
+  man = 'man',
+  woman = 'woman',
+  other = 'other',
 }
+
+export type GenderValue = 'man' | 'woman' | 'other' | 'Ferfi' | 'No' | 'Egyeb';
 
 interface Study {
   location: string;
@@ -52,7 +54,7 @@ export class UserClass {
   public email?: string;
   private loginData?: RegistrationDataForLogin;
 
-  public gender?: 'No' | 'Ferfi' | 'Egyeb';
+  public gender?: GenderValue;
   public firstName?: string;
   public lastName?: string;
   public birthDate?: string;
@@ -94,7 +96,7 @@ export class UserClass {
     };
 
   public highestSchool?: string;
-  public lookingForGender?: LookingFor;
+  public lookingForGender?: LookingFor | GenderValue;
   public aboutMe?: string;
   public lookingForType?: string;
 

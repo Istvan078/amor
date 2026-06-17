@@ -2,6 +2,7 @@ export type PublicProfilePicture = {
   url: string;
   name?: string;
   thumbnailUrl?: string;
+  imageModerationStatus?: 'approved' | 'rejected' | 'review_required';
 };
 
 export type PublicProfile = {

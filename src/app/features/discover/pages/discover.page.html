@@ -111,6 +111,7 @@
             <app-discover-match-card
               [progress]="progress"
               [buffer]="buffer"
+              [userProfile]="userProf"
               [matchProfile]="matchProf"
               [isMatchPlaceHolder]="isMatchPlaceHolder"
               [hasRewindCandidate]="hasRewindCandidate"
@@ -152,6 +153,7 @@
         [profileBoostMinutesLeft]="profileBoostMinutesLeft()"
         [canOpenAdmin]="canOpenAdminPanelResult"
         [verificationSubmitting]="verificationSubmitting"
+        [pictureUploadState]="pictureUploadState"
         (startUpdateRequested)="startUpdateUserProf()"
         (profilePictureOpened)="showProfPics($event)"
         (picturesSaved)="savePictures()"

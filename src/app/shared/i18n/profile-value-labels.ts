@@ -1,6 +1,9 @@
 export type TranslationFn = (key: string) => string;
 
 const PROFILE_VALUE_TRANSLATION_KEYS: Record<string, string> = {
+  man: 'profile.values.man',
+  woman: 'profile.values.woman',
+  other: 'profile.values.other',
   Ferfi: 'profile.values.man',
   No: 'profile.values.woman',
   Egyeb: 'profile.values.other',

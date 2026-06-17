@@ -444,6 +444,12 @@ service cloud.firestore {
       allow write: if isAdminOrModerator();
     }
 
+    match /imageModeration/{moderationId} {
+      allow read: if isAdminOrModerator()
+        || (signedIn() && resource.data.uid == request.auth.uid);
+      allow write: if false;
+    }
+
     match /profileRiskFlags/{uid} {
       allow read, update: if isAdminOrModerator();
       allow create, delete: if false;

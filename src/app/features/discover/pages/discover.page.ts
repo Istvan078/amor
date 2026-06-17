@@ -55,6 +55,7 @@ import { ChatFacade } from '../facades/chat.facade';
 import { DiscoverFacade } from '../facades/discover.facade';
 import { PresenceFacade } from '../facades/presence.facade';
 import { ProfileEditorFacade } from '../facades/profile-editor.facade';
+import { PictureUploadState } from '../../profile/data-access/profile-pictures.repository';
 
 @Component({
   selector: 'app-discover',
@@ -107,6 +108,7 @@ export class DiscoverPage implements OnInit, OnDestroy {
   premiumDiscoveryFilters: DiscoveryPremiumFilters = {};
   isLoadingMoreCandidates = false;
   verificationSubmitting = false;
+  pictureUploadState: PictureUploadState = { phase: 'idle' };
 
   readonly discoveryFeedModes: Array<{
     mode: DiscoveryFeedMode;
@@ -230,6 +232,7 @@ export class DiscoverPage implements OnInit, OnDestroy {
 
     effect(() => {
       this.selectedFiles = this.profileEditorFacade.selectedFiles();
+      this.pictureUploadState = this.profileEditorFacade.pictureUploadState();
     });
 
     effect(() => {

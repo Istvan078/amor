@@ -493,6 +493,22 @@ const normalizeStringListValue = (values: unknown): string[] =>
         .filter((value) => !!value)
     : [];
 
+const normalizeGenderValue = (value: unknown) => {
+  if (value === 'man' || value === 'Ferfi') {
+    return 'man';
+  }
+
+  if (value === 'woman' || value === 'No') {
+    return 'woman';
+  }
+
+  if (value === 'other' || value === 'Egyeb') {
+    return 'other';
+  }
+
+  return '';
+};
+
 const getProfilePicturesCount = (profile: Record<string, unknown>) =>
   Array.isArray(profile.pictures) ? profile.pictures.length : 0;
 
@@ -591,8 +607,8 @@ const buildMatchIndexEntry = (
     profile.isVisible !== false && !isBanned && profileCompleted && hasPhoto;
   const entry: Record<string, unknown> = {
     uid,
-    gender: profile.gender,
-    lookingForGender: profile.lookingForGender,
+    gender: normalizeGenderValue(profile.gender),
+    lookingForGender: normalizeGenderValue(profile.lookingForGender),
     age: normalizeProfileAge(profile),
     currentLocCoords: profile.currentLocCoords,
     geohash: createApproximateGeoHash(profile.currentLocCoords),
@@ -747,10 +763,19 @@ const buildPublicProfileEntry = (
   const age = normalizeProfileAge(profile);
 
   setPublicStringField(publicProfile, profile, 'firstName', 80);
-  setPublicStringField(publicProfile, profile, 'gender', 30);
+  const gender = normalizeGenderValue(profile.gender);
+  const lookingForGender = normalizeGenderValue(profile.lookingForGender);
+
+  if (gender) {
+    publicProfile.gender = gender;
+  }
+
+  if (lookingForGender) {
+    publicProfile.lookingForGender = lookingForGender;
+  }
+
   setPublicStringField(publicProfile, profile, 'aboutMe', 1000);
   setPublicStringField(publicProfile, profile, 'lookingForType', 500);
-  setPublicStringField(publicProfile, profile, 'lookingForGender', 30);
   setPublicStringField(publicProfile, profile, 'job', 160);
   setPublicNumberField(publicProfile, profile, 'heightCm', 90, 260);
   setPublicStringField(publicProfile, profile, 'currStudy', 160);

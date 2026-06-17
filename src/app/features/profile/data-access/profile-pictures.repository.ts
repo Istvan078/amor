@@ -1,5 +1,10 @@
 import { Injectable, Injector, inject, runInInjectionContext } from '@angular/core';
 import {
+    Firestore,
+    doc,
+    getDoc,
+} from '@angular/fire/firestore';
+import {
     Storage,
     deleteObject,
     getDownloadURL,
@@ -10,18 +15,41 @@ import {
 import { UserClass } from '../../../shared/models/user.model';
 import { ProfileRepository } from './profile.repository';
 
+export type PictureUploadPhase =
+    | 'idle'
+    | 'uploading'
+    | 'processing'
+    | 'finalizing'
+    | 'error';
+
+export type PictureUploadState = {
+    phase: PictureUploadPhase;
+    fileName?: string;
+    completed?: number;
+    total?: number;
+    errorKey?: string;
+};
+
+type PictureUploadStatusCallback = (state: PictureUploadState) => void;
+
 @Injectable({
     providedIn: 'root',
 })
 export class ProfilePicturesRepository {
     private injector = inject(Injector);
+    private firestore = inject(Firestore);
     private storage = inject(Storage);
     private profileRepository = inject(ProfileRepository);
     private readonly maxPictures = 6;
     private readonly processedPictureTimeoutMs = 60_000;
     private readonly processedPicturePollMs = 1_000;
 
-    async addPictures(uid: string, userProfile: UserClass, files: File[]) {
+    async addPictures(
+        uid: string,
+        userProfile: UserClass,
+        files: File[],
+        onStatus?: PictureUploadStatusCallback
+    ) {
         if (!files.length) {
             return userProfile;
         }
@@ -41,12 +69,30 @@ export class ProfilePicturesRepository {
                 ref(this.storage, privatePicturePath)
             );
 
+            onStatus?.({
+                phase: 'uploading',
+                fileName: file.name,
+                completed: userProfile.pictures.length,
+                total: files.length,
+            });
+
             await this.runInFirebaseContext(() => uploadBytes(storageRef, file));
+
+            onStatus?.({
+                phase: 'processing',
+                fileName: file.name,
+                completed: userProfile.pictures.length,
+                total: files.length,
+            });
 
             const publicPicturePath = `publicPictures/${uid}/${storageFileName}`;
             const thumbnailPath = `publicPictures/${uid}/thumbs/${this.getThumbnailFileName(storageFileName)}`;
             const [url, thumbnailUrl] = await Promise.all([
-                this.waitForProcessedDownloadUrl(publicPicturePath, true),
+                this.waitForProcessedDownloadUrl(
+                    publicPicturePath,
+                    true,
+                    privatePicturePath
+                ),
                 this.waitForProcessedDownloadUrl(thumbnailPath, false),
             ]);
 
@@ -58,6 +104,14 @@ export class ProfilePicturesRepository {
                 url,
                 name: storageFileName,
                 ...(thumbnailUrl ? { thumbnailUrl } : {}),
+                imageModerationStatus: 'approved',
+            });
+
+            onStatus?.({
+                phase: 'finalizing',
+                fileName: file.name,
+                completed: userProfile.pictures.length,
+                total: files.length,
             });
         }
 
@@ -115,7 +169,11 @@ export class ProfilePicturesRepository {
         return runInInjectionContext(this.injector, callback);
     }
 
-    private async waitForProcessedDownloadUrl(path: string, required: boolean) {
+    private async waitForProcessedDownloadUrl(
+        path: string,
+        required: boolean,
+        moderationSourcePath?: string
+    ) {
         const deadline =
             Date.now() + (required ? this.processedPictureTimeoutMs : 10_000);
         let lastError: unknown;
@@ -131,15 +189,70 @@ export class ProfilePicturesRepository {
                 );
             } catch (error) {
                 lastError = error;
+
+                if (required && moderationSourcePath) {
+                    const moderationStatus =
+                        await this.getImageModerationStatus(moderationSourcePath);
+
+                    if (moderationStatus && moderationStatus !== 'approved') {
+                        throw new Error(
+                            moderationStatus === 'rejected'
+                                ? 'profile.pictures.errors.moderationRejected'
+                                : 'profile.pictures.errors.moderationReviewRequired'
+                        );
+                    }
+                }
+
                 await this.delay(this.processedPicturePollMs);
             }
         }
 
         if (required) {
-            throw lastError ?? new Error('profile.pictures.errors.processingTimeout');
+            throw new Error('profile.pictures.errors.processingTimeout');
         }
 
         return undefined;
+    }
+
+    private async getImageModerationStatus(objectPath: string) {
+        const moderationDocId = this.getModerationDocId(objectPath);
+
+        if (!moderationDocId) {
+            return null;
+        }
+
+        try {
+            const snapshot = await this.runInFirebaseContext(() =>
+                getDoc(doc(this.firestore, `imageModeration/${moderationDocId}`))
+            );
+
+            if (!snapshot.exists()) {
+                return null;
+            }
+
+            const status = snapshot.data()?.['status'];
+
+            return status === 'approved' ||
+                status === 'rejected' ||
+                status === 'review_required'
+                ? status
+                : null;
+        } catch {
+            return null;
+        }
+    }
+
+    private getModerationDocId(objectPath: string) {
+        const bucketName = this.storage.app.options.storageBucket;
+
+        if (!bucketName) {
+            return '';
+        }
+
+        return btoa(`${bucketName}/${objectPath}`)
+            .replace(/\+/g, '-')
+            .replace(/\//g, '_')
+            .replace(/=+$/g, '');
     }
 
     private delay(ms: number) {

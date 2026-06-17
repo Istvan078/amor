@@ -610,12 +610,13 @@
               <section class="icebreaker-prompts" aria-label="Conversation starters">
                 <small>{{ t('messages.icebreakers.title') }}</small>
                 <div>
-                  @for (prompt of getIcebreakerPrompts(); track prompt) {
+                  @for (prompt of getIcebreakerPrompts(); track prompt.text) {
                     <button
                       type="button"
-                      (click)="selectIcebreakerPrompt(prompt)"
+                      (click)="selectIcebreakerPrompt(prompt.text)"
                     >
-                      {{ prompt }}
+                      <small>{{ t('messages.icebreakers.styles.' + prompt.styleKey) }}</small>
+                      <span>{{ prompt.text }}</span>
                     </button>
                   }
                 </div>

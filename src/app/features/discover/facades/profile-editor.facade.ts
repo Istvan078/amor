@@ -1,8 +1,11 @@
-import { Injectable, inject } from '@angular/core';
+import { Injectable, inject, signal } from '@angular/core';
 
 import { ConfigService } from '../../../services/config.service';
 import { UserClass } from '../../../shared/models/user.model';
-import { ProfilePicturesRepository } from '../../profile/data-access/profile-pictures.repository';
+import {
+  PictureUploadState,
+  ProfilePicturesRepository,
+} from '../../profile/data-access/profile-pictures.repository';
 import { ProfileVerificationRepository } from '../../profile/data-access/profile-verification.repository';
 import { ProfileStore } from '../../profile/store/profile.store';
 import {
@@ -17,6 +20,7 @@ type ProfilePicture = NonNullable<UserClass['pictures']>[number];
 })
 export class ProfileEditorFacade {
   readonly maxProfilePictures = 6;
+  readonly pictureUploadState = signal<PictureUploadState>({ phase: 'idle' });
   private readonly minimumDatingAge = 18;
 
   private config = inject(ConfigService);
@@ -151,11 +155,25 @@ export class ProfileEditorFacade {
       return profile;
     }
 
-    const updatedProfile = await this.profilePicturesRepository.addPictures(
-      uid,
-      profile,
-      selectedFiles.slice(0, availableSlots)
-    );
+    let updatedProfile: UserClass;
+
+    try {
+      updatedProfile = await this.profilePicturesRepository.addPictures(
+        uid,
+        profile,
+        selectedFiles.slice(0, availableSlots),
+        (state) => this.pictureUploadState.set(state)
+      );
+    } catch (error) {
+      this.pictureUploadState.set({
+        phase: 'error',
+        errorKey: this.getPictureUploadErrorKey(error),
+      });
+
+      return profile;
+    }
+
+    this.pictureUploadState.set({ phase: 'finalizing' });
 
     const persisted = await this.persistProfilePictures(
       profile,
@@ -165,6 +183,7 @@ export class ProfileEditorFacade {
     );
 
     this.clearSelectedFiles();
+    this.pictureUploadState.set({ phase: 'idle' });
     return persisted ?? profile;
   }
 
@@ -293,6 +312,15 @@ export class ProfileEditorFacade {
     return pictures
       .filter((picture) => !!picture?.url && !!picture?.name)
       .slice(0, this.maxProfilePictures);
+  }
+
+  private getPictureUploadErrorKey(error: unknown) {
+    const message =
+      error instanceof Error && error.message.startsWith('profile.pictures.errors.')
+        ? error.message
+        : '';
+
+    return message || 'profile.pictures.errors.uploadFailed';
   }
 
   private async persistProfilePictures(

@@ -5,8 +5,8 @@
         <section class="profile-shell">
           <ion-card class="user-card profile-hero">
             <div class="user-settings-card-img-cont">
-              @if (userProfile.pictures?.length) {
-                <img class="w-100 h-100" [src]="userProfile.pictures![0].url" alt="User photo" />
+              @if (primaryProfilePhotoUrl()) {
+                <img class="w-100 h-100" [src]="primaryProfilePhotoUrl()" alt="User photo" />
               } @else {
                 <img
                   class="w-100 h-100"
@@ -15,6 +15,16 @@
                 />
               }
             </div>
+
+            @if (profileVerificationStatus() === 'approved') {
+              <span
+                class="profile-hero-verified-badge"
+                [attr.aria-label]="t('discover.verifiedProfile')"
+              >
+                <ion-icon name="shield-checkmark-outline" aria-hidden="true"></ion-icon>
+                <span>{{ t('discover.card.compatibility.verified') }}</span>
+              </span>
+            }
 
             <div class="profile-hero-overlay">
               <span class="profile-eyebrow">{{ t('discover.profile.myProfile') }}</span>
@@ -116,6 +126,17 @@
               }
             </div>
 
+            <div class="profile-coach-list">
+              @for (tip of profileCoachTips(); track tip.key) {
+                <span [class.is-complete]="tip.key === 'ready'">
+                  <ion-icon
+                    [name]="tip.key === 'ready' ? 'checkmark-circle-outline' : 'sparkles-outline'"
+                  ></ion-icon>
+                  {{ t('profile.completion.coach.' + tip.key, tip.params) }}
+                </span>
+              }
+            </div>
+
             @if (!profileReadyForDiscovery()) {
               <ion-button
                 class="profile-completion-button"
@@ -127,54 +148,49 @@
             }
           </section>
 
-          <section
-            class="profile-verification-card"
-            [class.is-approved]="profileVerificationStatus() === 'approved'"
-            [class.is-pending]="profileVerificationStatus() === 'pending'"
-            [class.is-rejected]="profileVerificationStatus() === 'rejected'"
-          >
-            <div class="profile-verification-icon">
-              <ion-icon
-                [name]="
-                  profileVerificationStatus() === 'approved'
-                    ? 'shield-checkmark-outline'
-                    : 'camera-outline'
-                "
-              ></ion-icon>
-            </div>
-            <div class="profile-verification-copy">
-              <small>{{ t('profile.verification.eyebrow') }}</small>
-              <strong>{{ t(profileVerificationTitleKey()) }}</strong>
-              <p>{{ t(profileVerificationTextKey()) }}</p>
-              @if (profileVerificationReviewNote()) {
-                <p class="profile-verification-note">
-                  {{ profileVerificationReviewNote() }}
-                </p>
-              }
-            </div>
-            <input
-              #verificationSelfieInput
-              class="profile-file-input"
-              type="file"
-              accept="image/*"
-              capture="user"
-              [disabled]="!canRequestProfileVerification()"
-              (change)="onVerificationSelfieSelected($event)"
-            />
-            <ion-button
-              type="button"
-              class="profile-verification-button"
-              [disabled]="!canRequestProfileVerification()"
-              (click)="verificationSelfieInput.click()"
+          @if (profileVerificationStatus() !== 'approved') {
+            <section
+              class="profile-verification-card"
+              [class.is-pending]="profileVerificationStatus() === 'pending'"
+              [class.is-rejected]="profileVerificationStatus() === 'rejected'"
             >
-              <ion-icon name="camera-outline" slot="start"></ion-icon>
-              {{
-                verificationSubmitting
-                  ? t('profile.verification.submitting')
-                  : t(profileVerificationCtaKey())
-              }}
-            </ion-button>
-          </section>
+              <div class="profile-verification-icon">
+                <ion-icon name="camera-outline"></ion-icon>
+              </div>
+              <div class="profile-verification-copy">
+                <small>{{ t('profile.verification.eyebrow') }}</small>
+                <strong>{{ t(profileVerificationTitleKey()) }}</strong>
+                <p>{{ t(profileVerificationTextKey()) }}</p>
+                @if (profileVerificationReviewNote()) {
+                  <p class="profile-verification-note">
+                    {{ profileVerificationReviewNote() }}
+                  </p>
+                }
+              </div>
+              <input
+                #verificationSelfieInput
+                class="profile-file-input"
+                type="file"
+                accept="image/*"
+                capture="user"
+                [disabled]="!canRequestProfileVerification()"
+                (change)="onVerificationSelfieSelected($event)"
+              />
+              <ion-button
+                type="button"
+                class="profile-verification-button"
+                [disabled]="!canRequestProfileVerification()"
+                (click)="verificationSelfieInput.click()"
+              >
+                <ion-icon name="camera-outline" slot="start"></ion-icon>
+                {{
+                  verificationSubmitting
+                    ? t('profile.verification.submitting')
+                    : t(profileVerificationCtaKey())
+                }}
+              </ion-button>
+            </section>
+          }
 
           <section class="profile-info-panel">
             <div class="profile-section-heading">
@@ -402,14 +418,14 @@
                         class="profile-file-input"
                         [type]="lab.type"
                         [multiple]="lab.multiple"
-                        [disabled]="!canAddMorePhotos()"
+                        [disabled]="!canAddMorePhotos() || isPictureUploadActive()"
                         accept="image/*"
                         (change)="lab.change($event)"
                       />
                       <ion-button
                         class="profile-choose-file-button"
                         type="button"
-                        [disabled]="!canAddMorePhotos()"
+                        [disabled]="!canAddMorePhotos() || isPictureUploadActive()"
                         (click)="fileInput.click()"
                       >
                         <ion-icon name="images-outline" slot="start"></ion-icon>
@@ -417,11 +433,30 @@
                       </ion-button>
                       <ion-button
                         class="profile-upload-button"
-                        [disabled]="!selectedFiles.length || !canAddMorePhotos()"
+                        [disabled]="!selectedFiles.length || !canAddMorePhotos() || isPictureUploadActive()"
                         (click)="picturesSaved.emit()"
                       >
-                        {{ t('common.upload') }}
+                        {{
+                          isPictureUploadActive()
+                            ? t(pictureUploadStatusKey())
+                            : t('common.upload')
+                        }}
                       </ion-button>
+                      @if (pictureUploadState.phase !== 'idle') {
+                        <div
+                          class="profile-upload-status"
+                          [class.is-error]="pictureUploadState.phase === 'error'"
+                        >
+                          <ion-icon
+                            [name]="
+                              pictureUploadState.phase === 'error'
+                                ? 'alert-circle-outline'
+                                : 'sparkles-outline'
+                            "
+                          ></ion-icon>
+                          <span>{{ t(pictureUploadStatusKey()) }}</span>
+                        </div>
+                      }
                     </div>
 
                     <section class="profile-photo-manager" [class.is-missing]="!hasMinimumPhotos()">

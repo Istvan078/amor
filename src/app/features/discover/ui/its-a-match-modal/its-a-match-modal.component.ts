@@ -60,9 +60,15 @@ export class ItsAMatchModalComponent {
   }
 
   private getPhotoUrl(profile?: UserClass | PublicProfile) {
+    const pictures = profile?.pictures ?? [];
+    const primaryPicture = pictures.find(
+      (picture) => picture.url === profile?.profilePicture
+    );
+
     return (
-      profile?.pictures?.[0]?.url ||
+      primaryPicture?.url ||
       profile?.profilePicture ||
+      pictures[0]?.url ||
       'https://img.freepik.com/free-vector/user-circles-set_78370-4704.jpg?t=st=1741696833~exp=1741700433~hmac=5c4d9770452bab7cb12b3a38cead02ffcd3f50b45d75a0da6324820dc1bd3df2&w=740'
     );
   }

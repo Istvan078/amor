@@ -58,6 +58,22 @@ function normalizeLookingForAge(value: unknown) {
     };
 }
 
+function normalizeGenderValue(value: unknown) {
+    if (value === 'man' || value === 'Ferfi') {
+        return 'man';
+    }
+
+    if (value === 'woman' || value === 'No') {
+        return 'woman';
+    }
+
+    if (value === 'other' || value === 'Egyeb') {
+        return 'other';
+    }
+
+    return undefined;
+}
+
 export function sanitizeProfileForFirestore(
     profile: Partial<UserClass>
 ): FirestoreData {
@@ -82,6 +98,19 @@ export function sanitizeProfileForFirestore(
 
     if (lookingForAge) {
         sanitizedProfile['lookingForAge'] = lookingForAge;
+    }
+
+    const gender = normalizeGenderValue(sanitizedProfile['gender']);
+    const lookingForGender = normalizeGenderValue(
+        sanitizedProfile['lookingForGender']
+    );
+
+    if (gender) {
+        sanitizedProfile['gender'] = gender;
+    }
+
+    if (lookingForGender) {
+        sanitizedProfile['lookingForGender'] = lookingForGender;
     }
 
     return sanitizedProfile;

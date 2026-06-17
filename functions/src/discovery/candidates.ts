@@ -85,6 +85,22 @@ const serializeDiscoveryCursor = (
   });
 };
 
+const normalizeGenderValue = (value: unknown) => {
+  if (value === 'man' || value === 'Ferfi') {
+    return 'man';
+  }
+
+  if (value === 'woman' || value === 'No') {
+    return 'woman';
+  }
+
+  if (value === 'other' || value === 'Egyeb') {
+    return 'other';
+  }
+
+  return '';
+};
+
 export const registerDiscoverCandidatesRoute = (
   app: express.Express,
   options: RegisterDiscoverCandidatesOptions
@@ -156,12 +172,8 @@ export const registerDiscoverCandidatesRoute = (
           ...normalizeUidList(profile.blockedUsers),
           ...normalizeUidList(profile.reportedUsers),
         ]);
-        const lookingForGender =
-          typeof profile.lookingForGender === 'string'
-            ? profile.lookingForGender
-            : '';
-        const profileGender =
-          typeof profile.gender === 'string' ? profile.gender : '';
+        const lookingForGender = normalizeGenderValue(profile.lookingForGender);
+        const profileGender = normalizeGenderValue(profile.gender);
         const preferredAge = normalizeLookingForAgeRange(profile.lookingForAge);
         const lowerAge = preferredAge.lower;
         const upperAge = preferredAge.upper;

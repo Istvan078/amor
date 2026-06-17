@@ -1,4 +1,14 @@
-import { Component, Input, OnInit, computed, inject, signal } from '@angular/core';
+import {
+  Component,
+  ElementRef,
+  Input,
+  OnInit,
+  QueryList,
+  ViewChildren,
+  computed,
+  inject,
+  signal,
+} from '@angular/core';
 import { ModalController } from '@ionic/angular/standalone';
 import { IonIcon } from '@ionic/angular/standalone';
 import { TranslocoDirective, TranslocoService } from '@jsverse/transloco';
@@ -26,6 +36,8 @@ import { BillingStore } from '../../store/billing.store';
 })
 export class PaywallComponent implements OnInit {
   @Input() promotionId?: string;
+  @ViewChildren('packageEntry')
+  private packageEntries?: QueryList<ElementRef<HTMLElement>>;
 
   readonly selectedPackageId = signal<string | null>(null);
   readonly selectedPackage = computed(() => {
@@ -74,6 +86,15 @@ export class PaywallComponent implements OnInit {
 
   selectPackage(packageId: string) {
     this.selectedPackageId.set(packageId);
+    this.scheduleSelectedPackageScroll(packageId);
+  }
+
+  isSelectedPackage(offer: BillingPackage) {
+    return this.selectedPackageIdForTemplate() === offer.id;
+  }
+
+  featureKeysForPackage(offer: BillingPackage) {
+    return offer.featureKeys ?? [];
   }
 
   async purchaseSelectedPackage() {
@@ -119,8 +140,51 @@ export class PaywallComponent implements OnInit {
     );
     const featuredOffer = offers.find((offer) => offer.isFeatured);
 
-    this.selectedPackageId.set(
-      promotedOffer?.id ?? featuredOffer?.id ?? offers[0].id
+    const initialPackageId = promotedOffer?.id ?? featuredOffer?.id ?? offers[0].id;
+
+    this.selectedPackageId.set(initialPackageId);
+
+    if (this.promotionId) {
+      this.scheduleSelectedPackageScroll(initialPackageId, 'auto');
+    }
+  }
+
+  private scheduleSelectedPackageScroll(
+    packageId: string,
+    behavior: ScrollBehavior = 'smooth',
+    attempt = 0
+  ) {
+    if (!packageId || !this.isMobileViewport()) {
+      return;
+    }
+
+    window.setTimeout(() => {
+      const target = this.packageEntries
+        ?.toArray()
+        .find(
+          (entry) => entry.nativeElement.dataset['packageId'] === packageId
+        )?.nativeElement;
+
+      if (!target) {
+        if (attempt < 8) {
+          this.scheduleSelectedPackageScroll(packageId, behavior, attempt + 1);
+        }
+
+        return;
+      }
+
+      target.scrollIntoView({
+        behavior,
+        block: 'center',
+        inline: 'nearest',
+      });
+    }, attempt === 0 ? 0 : 80);
+  }
+
+  private isMobileViewport() {
+    return (
+      typeof window !== 'undefined' &&
+      window.matchMedia('(max-width: 768px)').matches
     );
   }
 }

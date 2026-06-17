@@ -407,18 +407,93 @@ export const AuthStore = signalStore(
                 });
             },
 
-            async deleteUser(uid?: string) {
+            async deleteOwnAccount() {
                 patchState(store, {
                     loading: true,
                     error: null,
                 });
 
                 try {
-                    await repository.deleteUser(uid);
+                    await repository.deleteOwnAccount();
                     patchState(store, {
                         user: null,
                         claims: null,
                         users: [],
+                        loading: false,
+                        error: null,
+                    });
+                } catch (error) {
+                    console.error(error);
+                    patchState(store, {
+                        loading: false,
+                        error: 'Account deletion failed.',
+                    });
+                    throw error;
+                }
+            },
+
+            async adminDeleteUser(uid: string) {
+                patchState(store, {
+                    loading: true,
+                    error: null,
+                });
+
+                try {
+                    await repository.adminDeleteUser(uid);
+                    patchState(store, {
+                        users: store.users().filter((user) => user.uid !== uid),
+                        loading: false,
+                        error: null,
+                    });
+                } catch (error) {
+                    console.error(error);
+                    patchState(store, {
+                        loading: false,
+                        error: 'Account deletion failed.',
+                    });
+                    throw error;
+                }
+            },
+
+            async deleteUser(uid?: string) {
+                const currentUid = store.user()?.uid;
+
+                if (!uid || uid === currentUid) {
+                    patchState(store, {
+                        loading: true,
+                        error: null,
+                    });
+
+                    try {
+                        await repository.deleteOwnAccount();
+                        patchState(store, {
+                            user: null,
+                            claims: null,
+                            users: [],
+                            loading: false,
+                            error: null,
+                        });
+                    } catch (error) {
+                        console.error(error);
+                        patchState(store, {
+                            loading: false,
+                            error: 'Account deletion failed.',
+                        });
+                        throw error;
+                    }
+
+                    return;
+                }
+
+                patchState(store, {
+                    loading: true,
+                    error: null,
+                });
+
+                try {
+                    await repository.adminDeleteUser(uid);
+                    patchState(store, {
+                        users: store.users().filter((user) => user.uid !== uid),
                         loading: false,
                         error: null,
                     });

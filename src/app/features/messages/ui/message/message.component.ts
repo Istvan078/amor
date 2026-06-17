@@ -384,7 +384,17 @@ export class MessageComponent
   }
 
   getProfileImage(profile?: PublicProfile) {
-    return profile?.pictures?.[0]?.url || this.fallbackAvatar;
+    const pictures = profile?.pictures ?? [];
+    const primaryPicture = pictures.find(
+      (picture) => picture.url === profile?.profilePicture
+    );
+
+    return (
+      primaryPicture?.url ||
+      profile?.profilePicture ||
+      pictures[0]?.url ||
+      this.fallbackAvatar
+    );
   }
 
   getDisplayName(profile?: PublicProfile) {
@@ -915,23 +925,45 @@ export class MessageComponent
   getIcebreakerPrompts() {
     const sharedInterest = this.getSharedConversationInterest();
     const place = this.getMatchPlace();
+    const name = this.matchProfile?.firstName || this.getDisplayName(this.matchProfile);
     const prompts = [
-      sharedInterest
-        ? this.transloco.translate('messages.icebreakers.sharedInterest', {
-            interest: sharedInterest,
-          })
-        : this.transloco.translate('messages.icebreakers.fallback'),
-      this.transloco.translate('messages.icebreakers.profile'),
-      place
-        ? this.transloco.translate('messages.icebreakers.place', { place })
-        : this.transloco.translate('messages.icebreakers.fallback'),
+      {
+        styleKey: 'kind',
+        text: this.transloco.translate('messages.icebreakers.kind', { name }),
+      },
+      {
+        styleKey: 'curious',
+        text: sharedInterest
+          ? this.transloco.translate('messages.icebreakers.sharedInterest', {
+              interest: sharedInterest,
+            })
+          : this.transloco.translate('messages.icebreakers.curiousFallback'),
+      },
+      {
+        styleKey: 'playful',
+        text: place
+          ? this.transloco.translate('messages.icebreakers.playfulPlace', {
+              place,
+            })
+          : this.transloco.translate('messages.icebreakers.playful'),
+      },
+      {
+        styleKey: 'short',
+        text: this.transloco.translate('messages.icebreakers.short'),
+      },
     ];
+    const seenPrompts = new Set<string>();
 
     return prompts
-      .filter((prompt, index, allPrompts) =>
-        !!prompt && allPrompts.indexOf(prompt) === index
-      )
-      .slice(0, 3);
+      .filter((prompt) => {
+        if (!prompt.text || seenPrompts.has(prompt.text)) {
+          return false;
+        }
+
+        seenPrompts.add(prompt.text);
+        return true;
+      })
+      .slice(0, 4);
   }
 
   selectIcebreakerPrompt(prompt: string) {

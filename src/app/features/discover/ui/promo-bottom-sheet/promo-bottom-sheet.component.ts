@@ -110,7 +110,17 @@ export class PromoBottomSheetComponent implements OnChanges {
   }
 
   getLikedByProfileImage(profile?: PublicProfile) {
-    return profile?.pictures?.[0]?.url || this.fallbackAvatar;
+    const pictures = profile?.pictures ?? [];
+    const primaryPicture = pictures.find(
+      (picture) => picture.url === profile?.profilePicture
+    );
+
+    return (
+      primaryPicture?.url ||
+      profile?.profilePicture ||
+      pictures[0]?.url ||
+      this.fallbackAvatar
+    );
   }
 
   openOtherOffers() {

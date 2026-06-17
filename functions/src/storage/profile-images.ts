@@ -405,7 +405,7 @@ export const processProfileImageObject = async (event: StorageEvent) => {
   const [originalBuffer] = await file.download();
   const moderation = await detectUnsafeImage(originalBuffer);
 
-  if (moderation.status === 'rejected') {
+  if (moderation.status !== 'approved') {
     await rejectImageUpload({
       bucket,
       file,
@@ -415,6 +415,36 @@ export const processProfileImageObject = async (event: StorageEvent) => {
       originalMetadata: customMetadata,
       contentType,
     });
+    return;
+  }
+
+  if (imagePath.kind === 'verificationSelfie') {
+    const processedBuffer = await processMainImage(originalBuffer);
+    const sourceDownloadToken = getDownloadToken(customMetadata);
+    const processedAt = new Date().toISOString();
+
+    await file.save(processedBuffer, {
+      resumable: false,
+      metadata: {
+        contentType: 'image/jpeg',
+        metadata: {
+          ...customMetadata,
+          originalPath: imagePath.objectPath,
+          processedAt,
+          processedBy: IMAGE_PROCESSOR,
+          moderationStatus: moderation.status,
+          moderationReason: moderation.reason ?? '',
+          firebaseStorageDownloadTokens: sourceDownloadToken,
+        },
+      },
+    });
+
+    await writeModerationRecord({
+      bucketName: bucket.name,
+      imagePath,
+      moderation,
+    });
+
     return;
   }
 
@@ -487,7 +517,10 @@ export const processProfileImageObject = async (event: StorageEvent) => {
     thumbnailDownloadToken
   );
 
-  if (imagePath.kind === 'publicProfile') {
+  if (
+    imagePath.kind === 'publicProfile' ||
+    imagePath.kind === 'privateProfile'
+  ) {
     await updateUserPictureThumbnail(
       imagePath.uid,
       publicFileName,

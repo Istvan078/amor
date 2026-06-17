@@ -24,25 +24,61 @@
           offer of billingStore.offerings();
           track packageTrackBy($index, offer)
         ) {
-          <button
-            class="paywall-package"
-            type="button"
+          <div
+            #packageEntry
+            class="paywall-package-entry"
             role="listitem"
-            [class.is-selected]="selectedPackageIdForTemplate() === offer.id"
-            [class.is-featured]="offer.isFeatured"
-            (click)="selectPackage(offer.id)"
+            [attr.data-package-id]="offer.id"
+            [class.is-selected-entry]="isSelectedPackage(offer)"
           >
-            <span class="paywall-package__main">
-              @if (offer.isFeatured) {
-                <span class="paywall-package__pill">
-                  {{ t('billing.paywall.bestValue') }}
-                </span>
-              }
-              <strong>{{ t(offer.titleKey) }}</strong>
-              <small>{{ t(offer.descriptionKey) }}</small>
-            </span>
-            <span class="paywall-package__price">{{ offer.priceLabel }}</span>
-          </button>
+            <button
+              class="paywall-package"
+              type="button"
+              [class.is-selected]="isSelectedPackage(offer)"
+              [class.is-featured]="offer.isFeatured"
+              (click)="selectPackage(offer.id)"
+            >
+              <span class="paywall-package__main">
+                @if (offer.isFeatured) {
+                  <span class="paywall-package__pill">
+                    {{ t('billing.paywall.bestValue') }}
+                  </span>
+                }
+                <strong>{{ t(offer.titleKey) }}</strong>
+                <small>{{ t(offer.descriptionKey) }}</small>
+              </span>
+              <span class="paywall-package__price">{{ offer.priceLabel }}</span>
+            </button>
+
+            @if (isSelectedPackage(offer)) {
+              <article class="paywall-benefits paywall-benefits--inline">
+                <div class="paywall-benefits__header">
+                  <ion-icon name="shield-checkmark-outline" aria-hidden="true"></ion-icon>
+                  <div>
+                    <p>{{ t('billing.paywall.includedEyebrow') }}</p>
+                    <h3>{{ t('billing.paywall.includedTitle') }}</h3>
+                  </div>
+                </div>
+
+                <ul>
+                  @for (
+                    featureKey of featureKeysForPackage(offer);
+                    track featureKey
+                  ) {
+                    <li>
+                      <ion-icon name="checkmark-circle" aria-hidden="true"></ion-icon>
+                      <span>{{ t(featureKey) }}</span>
+                    </li>
+                  } @empty {
+                    <li>
+                      <ion-icon name="checkmark-circle" aria-hidden="true"></ion-icon>
+                      <span>{{ t('billing.features.privateCheckout') }}</span>
+                    </li>
+                  }
+                </ul>
+              </article>
+            }
+          </div>
         } @empty {
           <div class="paywall-empty">
             <ion-icon name="sparkles-outline" aria-hidden="true"></ion-icon>
@@ -51,7 +87,7 @@
         }
       </div>
 
-      <article class="paywall-benefits">
+      <article class="paywall-benefits paywall-benefits--side">
         <div class="paywall-benefits__header">
           <ion-icon name="shield-checkmark-outline" aria-hidden="true"></ion-icon>
           <div>

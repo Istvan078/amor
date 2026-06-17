@@ -149,7 +149,15 @@
       "photoVerified": "Fot\u00f3val ellen\u0151rz\u00f6tt",
       "distanceKm": "{{count}} km-re van",
       "previousPhoto": "El\u0151z\u0151 fot\u00f3",
-      "nextPhoto": "K\u00f6vetkez\u0151 fot\u00f3"
+      "nextPhoto": "K\u00f6vetkez\u0151 fot\u00f3",
+      "compatibilityScore": "{{count}}% kompatibilit\u00e1s",
+      "compatibility": {
+        "sharedInterests": "{{count}} k\u00f6z\u00f6s \u00e9rdekl\u0151d\u00e9s",
+        "similarGoal": "Hasonl\u00f3 kapcsolatc\u00e9l",
+        "nearby": "K\u00f6zel van",
+        "recentlyActive": "Mostan\u00e1ban akt\u00edv",
+        "verified": "Ellen\u0151rz\u00f6tt"
+      }
     },
     "locationFallback": {
       "title": "Location nélkül is mutatunk ajánlásokat",
@@ -205,7 +213,8 @@
     "boost": {
       "active": "Boost aktív",
       "minutesLeft": "{{count}} perc van hátra",
-      "shownHigher": "El\u0151r\u00e9bb jelenik meg"
+      "shownHigher": "El\u0151r\u00e9bb jelenik meg",
+      "analytics": "{{multiplier}} t\u00f6bb megjelen\u00e9s \u00b7 {{likes}} \u00faj like \u00b7 {{views}} profilmegtekint\u00e9s"
     },
     "profile": {
       "myProfile": "Profilom",
@@ -494,7 +503,19 @@
       "delete": "Kép törlése",
       "open": "Kép megnyitása",
       "reorder": "Kép sorrendezése",
-      "empty": "Adj hozzá legalább egy képet a folytatáshoz"
+      "empty": "Adj hozzá legalább egy képet a folytatáshoz",
+      "uploadStates": {
+        "uploading": "Feltöltés...",
+        "processing": "Feldolgozás...",
+        "finalizing": "Véglegesítés...",
+        "error": "A feltöltés figyelmet igényel"
+      },
+      "errors": {
+        "processingTimeout": "A feldolgozás túl sokáig tartott. Próbálj másik képet vagy ismételd meg később.",
+        "moderationRejected": "Ez a kép nem publikálható, mert fennakadt a moderáción.",
+        "moderationReviewRequired": "Ez a kép publikálás előtt ellenőrzést igényel.",
+        "uploadFailed": "A képfeltöltés nem sikerült. Próbáld újra."
+      }
     },
     "fields": {
       "pictures": "Képeim",
@@ -650,6 +671,13 @@
         "bio": "Bemutatkozás",
         "interests": "Érdeklődések",
         "location": "Lokáció"
+      },
+      "coach": {
+        "photos": "Adj hozzá még {{count}} képet az erősebb első benyomáshoz.",
+        "bio": "Írj rövid bemutatkozást, hogy legyen mire reagálni.",
+        "interests": "Válassz pár érdeklődést a jobb kompatibilitási jelekhez.",
+        "verification": "Ellenőrizd a profilod, hogy jobban kitűnj a felfedezésben.",
+        "ready": "A profilodban megvannak az alapok. Apró frissítések még javíthatják a matcheket."
       }
     },
     "verification": {
@@ -759,7 +787,18 @@
     "startText": "Egy rövid, személyes nyitás jobban működik.",
     "icebreakers": {
       "title": "Pr\u00f3b\u00e1lj egy nyit\u00f3t",
+      "styles": {
+        "kind": "Kedves",
+        "curious": "K\u00edv\u00e1ncsi",
+        "playful": "Humoros",
+        "short": "R\u00f6vid"
+      },
+      "kind": "Szia {{name}}, nyugodt \u00e9s figyelmes hangulata van a profilodnak. Mi tette jobb\u00e1 a heted?",
       "sharedInterest": "L\u00e1ttam, hogy te is szereted ezt: {{interest}}. Hogyan kezdt\u00e9l bele?",
+      "curiousFallback": "Mir\u0151l tudn\u00e1l \u00f3r\u00e1kig besz\u00e9lgetni?",
+      "playful": "K\u00e9t igazs\u00e1g \u00e9s egy apr\u00f3 dating-app t\u00falz\u00e1s?",
+      "playfulPlace": "Ha {{place}} k\u00f6rny\u00e9k\u00e9n lenne egy t\u00f6k\u00e9letes laza randi\u00fatvonal, hol indulna?",
+      "short": "Megfogott a profilod. Milyen napod van?",
       "profile": "Mi az az egy dolog a profilodb\u00f3l, amir\u0151l j\u00f3 lenne, ha k\u00e9rdezn\u00e9nek?",
       "place": "Milyen lenne egy laza els\u0151 randi {{place}} k\u00f6rny\u00e9k\u00e9n?",
       "fallback": "Mit\u0151l lenne neked k\u00f6nnyed egy els\u0151 randi?"
