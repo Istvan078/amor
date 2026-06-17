@@ -15,6 +15,27 @@ export enum LookingFor {
 
 export type GenderValue = 'man' | 'woman' | 'other' | 'Ferfi' | 'No' | 'Egyeb';
 
+export type RelationshipGoalValue =
+  | 'seriousRelationship'
+  | 'seriousOpenMinded'
+  | 'casualOpenToSerious'
+  | 'casualRelationship'
+  | 'newFriends'
+  | 'stillFiguringItOut';
+
+export type SexualOrientationValue =
+  | 'heterosexual'
+  | 'gay'
+  | 'lesbian'
+  | 'bisexual'
+  | 'asexual'
+  | 'demisexual'
+  | 'pansexual'
+  | 'queer'
+  | 'questioning'
+  | 'aromantic'
+  | 'omnisexual';
+
 interface Study {
   location: string;
   topic: string;
@@ -98,7 +119,9 @@ export class UserClass {
   public highestSchool?: string;
   public lookingForGender?: LookingFor | GenderValue;
   public aboutMe?: string;
-  public lookingForType?: string;
+  public lookingForType?: RelationshipGoalValue | string;
+  public sexualOrientation?: SexualOrientationValue;
+  public hideAge?: boolean;
 
   public profilePicture?: string;
   public pictures?: {

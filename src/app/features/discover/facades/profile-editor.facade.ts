@@ -63,6 +63,8 @@ export class ProfileEditorFacade {
 
       aboutMe: profile.aboutMe,
       lookingForType: profile.lookingForType,
+      sexualOrientation: profile.sexualOrientation,
+      hideAge: profile.hideAge === true,
       lookingForGender: profile.lookingForGender,
       lookingForAge: this.normalizeLookingForAge(profile.lookingForAge),
       lookingForDistance: profile.lookingForDistance,

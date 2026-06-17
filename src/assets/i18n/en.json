@@ -226,10 +226,11 @@
       "editing": "Edit profile",
       "gender": "Gender",
       "lookingFor": "Looking for",
+      "sexualOrientation": "Sexual orientation",
       "age": "Age",
       "distance": "Distance",
       "aboutMe": "About me",
-      "lookingForType": "What I am looking for",
+      "lookingForType": "I'm looking for",
       "interests": "Interests",
       "freeTime": "Free time"
     },
@@ -482,7 +483,8 @@
       "copy": "Premium unlocks stronger discovery tools without changing the core dating experience.",
       "likes": "See who likes you",
       "rewind": "Rewind",
-      "boost": "Profile boost"
+      "boost": "Profile boost",
+      "hideAge": "Hide your age"
     },
     "support": {
       "eyebrow": "Support",
@@ -520,8 +522,10 @@
     "fields": {
       "pictures": "My photos",
       "aboutMe": "About me",
-      "lookingForType": "What kind of partner are you looking for?",
-      "lookingForGender": "Who are you looking for?",
+      "lookingForType": "I'm looking for",
+      "lookingForGender": "Gender preference",
+      "sexualOrientation": "Sexual orientation",
+      "hideAge": "Hide age",
       "lookingForAge": "Preferred age range:",
       "gender": "Gender",
       "firstName": "First name",
@@ -555,12 +559,66 @@
     "placeholders": {
       "pictures": "Upload photos of yourself",
       "aboutMe": "Tell people about yourself",
-      "lookingForType": "Describe the kind of person you want to meet"
+      "lookingForType": "Choose what you want to find"
     },
     "values": {
       "man": "Man",
       "woman": "Woman",
       "other": "Other",
+      "relationshipGoal": {
+        "seriousRelationship": "Serious relationship",
+        "seriousOpenMinded": "Serious, but open-minded",
+        "casualOpenToSerious": "Casual, open to serious",
+        "casualRelationship": "Casual relationship",
+        "newFriends": "New friends",
+        "stillFiguringItOut": "Still figuring it out"
+      },
+      "sexualOrientation": {
+        "heterosexual": {
+          "title": "Heterosexual",
+          "description": "Attracted exclusively to people of the opposite gender"
+        },
+        "gay": {
+          "title": "Gay",
+          "description": "An umbrella term for someone attracted to their own gender"
+        },
+        "lesbian": {
+          "title": "Lesbian",
+          "description": "A woman who is emotionally, romantically or sexually attracted to other women"
+        },
+        "bisexual": {
+          "title": "Bisexual",
+          "description": "Attracted to people of the same gender and different genders"
+        },
+        "asexual": {
+          "title": "Asexual",
+          "description": "A person who does not experience sexual attraction"
+        },
+        "demisexual": {
+          "title": "Demisexual",
+          "description": "A person who experiences sexual attraction only after a strong emotional bond forms"
+        },
+        "pansexual": {
+          "title": "Pansexual",
+          "description": "Attracted emotionally, romantically or sexually to people regardless of gender"
+        },
+        "queer": {
+          "title": "Queer",
+          "description": "An inclusive term for sexual orientation and gender diversity"
+        },
+        "questioning": {
+          "title": "Questioning",
+          "description": "A person exploring their sexual orientation and/or gender"
+        },
+        "aromantic": {
+          "title": "Aromantic",
+          "description": "A person who does not experience romantic attraction, though they may experience sexual attraction"
+        },
+        "omnisexual": {
+          "title": "Omnisexual",
+          "description": "Attracted emotionally, romantically or sexually to people of all genders"
+        }
+      },
       "football": "Football",
       "handball": "Handball",
       "meditation": "Meditation",
@@ -649,6 +707,12 @@
     },
     "edit": {
       "delete": "Delete profile"
+    },
+    "premium": {
+      "goldOnly": "Gold",
+      "hideAge": {
+        "description": "Premium members can keep their age off the public profile while matching still respects age preferences."
+      }
     },
     "deleteConfirm": {
       "title": "Delete profile?",
@@ -925,6 +989,7 @@
       "readReceipts": "See when your messages are read",
       "rewind": "Rewind your last pass",
       "profileBoost": "Boost your profile visibility",
+      "hideAge": "Hide your age from your public profile",
       "advancedFilters": "Use advanced discovery filters",
       "superLikes": "Send stronger Super Like signals",
       "privateCheckout": "Private, secure checkout"

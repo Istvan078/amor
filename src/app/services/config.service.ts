@@ -6,6 +6,8 @@ import { UserClass } from '../shared/models/user.model';
 type ProfileSelectOption = {
   value: string;
   labelKey: string;
+  descriptionKey?: string;
+  emoji?: string;
 };
 
 @Injectable({
@@ -51,6 +53,97 @@ export class ConfigService {
     { value: 'Words of affirmation', labelKey: 'profile.values.loveStyle.wordsOfAffirmation' },
     { value: 'Physical touch', labelKey: 'profile.values.loveStyle.physicalTouch' },
     { value: 'Acts of service', labelKey: 'profile.values.loveStyle.actsOfService' },
+  ];
+
+  private readonly relationshipGoalOptions: ProfileSelectOption[] = [
+    {
+      value: 'seriousRelationship',
+      labelKey: 'profile.values.relationshipGoal.seriousRelationship',
+      emoji: '💘',
+    },
+    {
+      value: 'seriousOpenMinded',
+      labelKey: 'profile.values.relationshipGoal.seriousOpenMinded',
+      emoji: '😍',
+    },
+    {
+      value: 'casualOpenToSerious',
+      labelKey: 'profile.values.relationshipGoal.casualOpenToSerious',
+      emoji: '🥂',
+    },
+    {
+      value: 'casualRelationship',
+      labelKey: 'profile.values.relationshipGoal.casualRelationship',
+      emoji: '🎉',
+    },
+    {
+      value: 'newFriends',
+      labelKey: 'profile.values.relationshipGoal.newFriends',
+      emoji: '👋',
+    },
+    {
+      value: 'stillFiguringItOut',
+      labelKey: 'profile.values.relationshipGoal.stillFiguringItOut',
+      emoji: '🫠',
+    },
+  ];
+
+  private readonly sexualOrientationOptions: ProfileSelectOption[] = [
+    {
+      value: 'heterosexual',
+      labelKey: 'profile.values.sexualOrientation.heterosexual.title',
+      descriptionKey: 'profile.values.sexualOrientation.heterosexual.description',
+    },
+    {
+      value: 'gay',
+      labelKey: 'profile.values.sexualOrientation.gay.title',
+      descriptionKey: 'profile.values.sexualOrientation.gay.description',
+    },
+    {
+      value: 'lesbian',
+      labelKey: 'profile.values.sexualOrientation.lesbian.title',
+      descriptionKey: 'profile.values.sexualOrientation.lesbian.description',
+    },
+    {
+      value: 'bisexual',
+      labelKey: 'profile.values.sexualOrientation.bisexual.title',
+      descriptionKey: 'profile.values.sexualOrientation.bisexual.description',
+    },
+    {
+      value: 'asexual',
+      labelKey: 'profile.values.sexualOrientation.asexual.title',
+      descriptionKey: 'profile.values.sexualOrientation.asexual.description',
+    },
+    {
+      value: 'demisexual',
+      labelKey: 'profile.values.sexualOrientation.demisexual.title',
+      descriptionKey: 'profile.values.sexualOrientation.demisexual.description',
+    },
+    {
+      value: 'pansexual',
+      labelKey: 'profile.values.sexualOrientation.pansexual.title',
+      descriptionKey: 'profile.values.sexualOrientation.pansexual.description',
+    },
+    {
+      value: 'queer',
+      labelKey: 'profile.values.sexualOrientation.queer.title',
+      descriptionKey: 'profile.values.sexualOrientation.queer.description',
+    },
+    {
+      value: 'questioning',
+      labelKey: 'profile.values.sexualOrientation.questioning.title',
+      descriptionKey: 'profile.values.sexualOrientation.questioning.description',
+    },
+    {
+      value: 'aromantic',
+      labelKey: 'profile.values.sexualOrientation.aromantic.title',
+      descriptionKey: 'profile.values.sexualOrientation.aromantic.description',
+    },
+    {
+      value: 'omnisexual',
+      labelKey: 'profile.values.sexualOrientation.omnisexual.title',
+      descriptionKey: 'profile.values.sexualOrientation.omnisexual.description',
+    },
   ];
 
   private readonly petsOptions: ProfileSelectOption[] = [
@@ -133,27 +226,22 @@ export class ConfigService {
         },
         {
           key: 'lookingForType',
-          value: 'Milyen tarsat keresel?',
+          value: "I'm looking for",
           valueKey: 'profile.fields.lookingForType',
-          type: 'text-area',
-          placeholder: 'Milyen tipusu embert keresel?',
-          placeholderKey: 'profile.placeholders.lookingForType',
+          type: 'relationship-goal',
+          choices: this.relationshipGoalOptions,
           setLaterInProf: true,
           inMatch: true,
           listNum: 1,
         },
         {
-          key: 'lookingForGender',
-          value: 'Kit keresel?',
-          valueKey: 'profile.fields.lookingForGender',
+          key: 'sexualOrientation',
+          value: 'Szexualis orientacio',
+          valueKey: 'profile.fields.sexualOrientation',
           type: 'select',
-          options: ['man', 'woman', 'other'],
-          values: ['man', 'woman', 'other'],
-          optionLabelKeys: [
-            'profile.values.man',
-            'profile.values.woman',
-            'profile.values.other',
-          ],
+          options: this.selectValues(this.sexualOrientationOptions),
+          values: this.selectValues(this.sexualOrientationOptions),
+          optionLabelKeys: this.selectLabelKeys(this.sexualOrientationOptions),
           inMatch: true,
           listNum: 1,
         },
@@ -201,6 +289,14 @@ export class ConfigService {
           value: 'Szuletesi Datum',
           valueKey: 'profile.fields.birthDate',
           type: 'date',
+        },
+        {
+          key: 'hideAge',
+          value: 'Eletkor elrejtese',
+          valueKey: 'profile.fields.hideAge',
+          type: 'premium-toggle',
+          descriptionKey: 'profile.premium.hideAge.description',
+          premiumLabelKey: 'profile.premium.goldOnly',
         },
         {
           key: 'currentPlace',

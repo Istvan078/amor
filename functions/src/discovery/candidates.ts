@@ -101,6 +101,59 @@ const normalizeGenderValue = (value: unknown) => {
   return '';
 };
 
+const normalizeSexualOrientationValue = (value: unknown) => {
+  const normalizedValue = typeof value === 'string' ? value : '';
+
+  return [
+    'heterosexual',
+    'gay',
+    'lesbian',
+    'bisexual',
+    'asexual',
+    'demisexual',
+    'pansexual',
+    'queer',
+    'questioning',
+    'aromantic',
+    'omnisexual',
+  ].includes(normalizedValue)
+    ? normalizedValue
+    : '';
+};
+
+const getSingleGenderPreferenceFromOrientation = (
+  profile: Record<string, unknown>
+) => {
+  const orientation = normalizeSexualOrientationValue(profile.sexualOrientation);
+  const gender = normalizeGenderValue(profile.gender);
+
+  if (orientation === 'heterosexual') {
+    if (gender === 'man') {
+      return 'woman';
+    }
+
+    if (gender === 'woman') {
+      return 'man';
+    }
+  }
+
+  if (orientation === 'gay') {
+    if (gender === 'man' || gender === 'woman') {
+      return gender;
+    }
+  }
+
+  if (orientation === 'lesbian') {
+    return 'woman';
+  }
+
+  return '';
+};
+
+const getGenderPreference = (profile: Record<string, unknown>) =>
+  normalizeGenderValue(profile.lookingForGender) ||
+  getSingleGenderPreferenceFromOrientation(profile);
+
 export const registerDiscoverCandidatesRoute = (
   app: express.Express,
   options: RegisterDiscoverCandidatesOptions
@@ -172,7 +225,7 @@ export const registerDiscoverCandidatesRoute = (
           ...normalizeUidList(profile.blockedUsers),
           ...normalizeUidList(profile.reportedUsers),
         ]);
-        const lookingForGender = normalizeGenderValue(profile.lookingForGender);
+        const lookingForGender = getGenderPreference(profile);
         const profileGender = normalizeGenderValue(profile.gender);
         const preferredAge = normalizeLookingForAgeRange(profile.lookingForAge);
         const lowerAge = preferredAge.lower;
@@ -215,10 +268,6 @@ export const registerDiscoverCandidatesRoute = (
 
           if (lookingForGender) {
             queryRef = queryRef.where('gender', '==', lookingForGender);
-          }
-
-          if (profileGender) {
-            queryRef = queryRef.where('lookingForGender', '==', profileGender);
           }
 
           if (useRankedOrder) {
@@ -334,6 +383,15 @@ export const registerDiscoverCandidatesRoute = (
           });
         const candidates = scannedCandidates
           .filter((candidate) => !excludedUids.has(candidate.uid))
+          .filter((candidate) => {
+            const candidateGenderPreference = getGenderPreference(candidate.claims);
+
+            return (
+              !profileGender ||
+              !candidateGenderPreference ||
+              candidateGenderPreference === profileGender
+            );
+          })
           .filter((candidate) => {
             const age = Number(candidate.claims['age']);
 

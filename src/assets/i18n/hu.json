@@ -226,10 +226,11 @@
       "editing": "Adatok szerkesztése",
       "gender": "Nem",
       "lookingFor": "Keresek",
+      "sexualOrientation": "Szexu\u00e1lis orient\u00e1ci\u00f3",
       "age": "Kor",
       "distance": "Táv",
       "aboutMe": "Rólam",
-      "lookingForType": "Milyen társat keresek?",
+      "lookingForType": "Mit keresek?",
       "interests": "Érdeklődési körök",
       "freeTime": "Szabadidő"
     },
@@ -482,7 +483,8 @@
       "copy": "A prémium erősebb felfedezési eszközöket ad, miközben az alap társkereső élmény megmarad.",
       "likes": "Lásd, kik kedveltek",
       "rewind": "Visszahozás",
-      "boost": "Profil boost"
+      "boost": "Profil boost",
+      "hideAge": "\u00c9letkor elrejt\u00e9se"
     },
     "support": {
       "eyebrow": "Támogatás",
@@ -520,8 +522,10 @@
     "fields": {
       "pictures": "Képeim",
       "aboutMe": "Rólam",
-      "lookingForType": "Milyen társat keresel?",
-      "lookingForGender": "Kit keresel?",
+      "lookingForType": "Mit keresel?",
+      "lookingForGender": "Nem preferencia",
+      "sexualOrientation": "Szexuális orientáció",
+      "hideAge": "Életkor elrejtése",
       "lookingForAge": "Keresett korosztály:",
       "gender": "Nemed",
       "firstName": "Keresztneved",
@@ -555,12 +559,66 @@
     "placeholders": {
       "pictures": "Tölts fel képeket magadról",
       "aboutMe": "Mesélj magadról",
-      "lookingForType": "Írd le, milyen embert keresel"
+      "lookingForType": "Válaszd ki, mit keresel"
     },
     "values": {
       "man": "Férfi",
       "woman": "Nő",
       "other": "Egyéb",
+      "relationshipGoal": {
+        "seriousRelationship": "Komoly kapcsolat",
+        "seriousOpenMinded": "Komolyat, de nyitott vagyok",
+        "casualOpenToSerious": "Alkalmit, akár komolyat",
+        "casualRelationship": "Alkalmi kapcsolatot",
+        "newFriends": "Új barátok",
+        "stillFiguringItOut": "Még nem tudom pontosan"
+      },
+      "sexualOrientation": {
+        "heterosexual": {
+          "title": "Heteró",
+          "description": "Olyan személy, aki kizárólag az ellenkező nemhez vonzódik"
+        },
+        "gay": {
+          "title": "Meleg",
+          "description": "Egy gyűjtőfogalom, amely egy olyan személy leírására szolgál, aki a saját neméhez vonzódik"
+        },
+        "lesbian": {
+          "title": "Leszbikus",
+          "description": "Olyan nő, aki érzelmileg, romantikusan vagy szexuálisan vonzódik más nőkhöz"
+        },
+        "bisexual": {
+          "title": "Biszexuális",
+          "description": "Olyan személy, aki érzelmileg, romantikusan vagy szexuálisan vonzódik a vele azonos neműekhez, de az eltérő neműekhez is"
+        },
+        "asexual": {
+          "title": "Aszexuális",
+          "description": "Olyan személy, aki nem érez szexuális vonzalmat"
+        },
+        "demisexual": {
+          "title": "Demiszexuális",
+          "description": "Olyan személy, aki nem tapasztal szexuális vonzalmat addig, amíg nem alakul ki erős érzelmi kapcsolat"
+        },
+        "pansexual": {
+          "title": "Pánszexuális",
+          "description": "Olyan személy, aki érzelmileg, romantikusan vagy szexuálisan, nemtől függetlenül vonzódik az emberekhez"
+        },
+        "queer": {
+          "title": "Queer",
+          "description": "A szexuális irányultság és nemek sokszínűségét leíró befogadó kifejezés"
+        },
+        "questioning": {
+          "title": "Megkérdőjelező",
+          "description": "Szexuális irányultságát és/vagy nemét még felfedező személy"
+        },
+        "aromantic": {
+          "title": "Aromantikus",
+          "description": "Olyan személy, aki nem tapasztal romantikus vonzalmat, bár szexuális vonzalmat érezhet"
+        },
+        "omnisexual": {
+          "title": "Omniszexuális",
+          "description": "Olyan személy, aki érzelmileg, romantikusan vagy szexuálisan minden nemű személyhez vonzódik"
+        }
+      },
       "football": "Foci",
       "handball": "Kézilabda",
       "meditation": "Meditáció",
@@ -649,6 +707,12 @@
     },
     "edit": {
       "delete": "Profil törlése"
+    },
+    "premium": {
+      "goldOnly": "Gold",
+      "hideAge": {
+        "description": "A prémium tagok elrejthetik az életkorukat a nyilvános profilról, miközben a korosztály preferenciák továbbra is működnek."
+      }
     },
     "deleteConfirm": {
       "title": "Törlöd a profilod?",
@@ -925,6 +989,7 @@
       "readReceipts": "Láthatod, mikor olvasták el az üzeneteidet",
       "rewind": "Visszahozhatod az előző passt",
       "profileBoost": "Nagyobb profil láthatóság",
+      "hideAge": "Elrejtheted az életkorod a nyilvános profilról",
       "advancedFilters": "Haladó felfedezési szűrők",
       "superLikes": "Erősebb Super Like jelzések",
       "privateCheckout": "Privát, biztonságos fizetés"

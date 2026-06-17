@@ -17,7 +17,8 @@ export function getProfileCompleteness(profile: Partial<UserClass> | null | unde
     const hasCoreIdentity =
         !!profile.birthDate &&
         !!profile.gender &&
-        !!profile.lookingForGender;
+        !!profile.sexualOrientation &&
+        !!profile.lookingForType;
 
     const score =
         (hasPhoto ? 30 : 0) +

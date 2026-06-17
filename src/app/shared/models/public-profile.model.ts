@@ -14,6 +14,8 @@ export type PublicProfile = {
   gender?: string;
   aboutMe?: string;
   lookingForType?: string;
+  sexualOrientation?: string;
+  hideAge?: boolean;
   lookingForGender?: string;
   lookingForAge?: {
     lower: number;

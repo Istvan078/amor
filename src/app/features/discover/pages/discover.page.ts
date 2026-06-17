@@ -1440,6 +1440,10 @@ export class DiscoverPage implements OnInit, OnDestroy {
     this.startUpdUserProf = true;
   }
 
+  openPremiumProfileFeature(_featureKey: string) {
+    this.openActionPromoBottomSheet(this.getPromoById('amorinoGold'));
+  }
+
   async updateUserProf() {
     const uid = this.userProf?.uid ?? this.user?.uid;
 

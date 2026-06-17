@@ -16,6 +16,8 @@ export type MatchIndexEntry = {
   uid: string;
   gender?: string;
   lookingForGender?: string;
+  sexualOrientation?: string;
+  relationshipGoal?: string;
   age?: number;
   currentLocCoords?: {
     lat: number;

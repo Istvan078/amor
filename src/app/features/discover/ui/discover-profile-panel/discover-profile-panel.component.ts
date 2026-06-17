@@ -57,6 +57,7 @@ import {
   heartOutline,
   imagesOutline,
   locationOutline,
+  lockClosedOutline,
   personOutline,
   reorderThreeOutline,
   saveOutline,
@@ -150,6 +151,7 @@ export class DiscoverProfilePanelComponent implements AfterViewChecked, OnChange
   @Output() profileUpdated = new EventEmitter<void>();
   @Output() choicesSelected = new EventEmitter<ProfileChoiceSelectedEvent>();
   @Output() profileVerificationRequested = new EventEmitter<File>();
+  @Output() premiumFeatureRequested = new EventEmitter<string>();
 
   constructor() {
     addIcons({
@@ -161,6 +163,7 @@ export class DiscoverProfilePanelComponent implements AfterViewChecked, OnChange
       heartOutline,
       imagesOutline,
       locationOutline,
+      lockClosedOutline,
       personOutline,
       reorderThreeOutline,
       saveOutline,
@@ -249,7 +252,8 @@ export class DiscoverProfilePanelComponent implements AfterViewChecked, OnChange
           profile?.firstName &&
           profile?.birthDate &&
           profile?.gender &&
-          profile?.lookingForGender
+          profile?.sexualOrientation &&
+          profile?.lookingForType
         ),
       },
       {
@@ -386,6 +390,45 @@ export class DiscoverProfilePanelComponent implements AfterViewChecked, OnChange
 
   selectedFileNames() {
     return this.selectedFiles.map((file) => file.name).join(', ');
+  }
+
+  getChoiceValue(choice: any) {
+    return choice?.value ?? '';
+  }
+
+  isChoiceSelected(key: string, choice: any) {
+    return this.userProfile?.[key] === this.getChoiceValue(choice);
+  }
+
+  selectSingleChoice(key: string, choice: any) {
+    const value = this.getChoiceValue(choice);
+
+    if (!key || !value) {
+      return;
+    }
+
+    this.userProfile[key] = value;
+  }
+
+  isPremiumFieldLocked(lab: any) {
+    return lab?.type === 'premium-toggle' && !this.hasPremiumFeatureAccess();
+  }
+
+  hasPremiumFeatureAccess() {
+    return this.isPremium || this.activeEntitlements.includes('premium');
+  }
+
+  togglePremiumBooleanField(lab: any) {
+    if (!lab?.key) {
+      return;
+    }
+
+    if (this.isPremiumFieldLocked(lab)) {
+      this.premiumFeatureRequested.emit(lab.key);
+      return;
+    }
+
+    this.userProfile[lab.key] = !this.userProfile[lab.key];
   }
 
   primaryProfilePhotoUrl() {

@@ -74,6 +74,33 @@ function normalizeGenderValue(value: unknown) {
     return undefined;
 }
 
+const RELATIONSHIP_GOALS = new Set([
+    'seriousRelationship',
+    'seriousOpenMinded',
+    'casualOpenToSerious',
+    'casualRelationship',
+    'newFriends',
+    'stillFiguringItOut',
+]);
+
+const SEXUAL_ORIENTATIONS = new Set([
+    'heterosexual',
+    'gay',
+    'lesbian',
+    'bisexual',
+    'asexual',
+    'demisexual',
+    'pansexual',
+    'queer',
+    'questioning',
+    'aromantic',
+    'omnisexual',
+]);
+
+function normalizeStringOption(value: unknown, options: Set<string>) {
+    return typeof value === 'string' && options.has(value) ? value : undefined;
+}
+
 export function sanitizeProfileForFirestore(
     profile: Partial<UserClass>
 ): FirestoreData {
@@ -112,6 +139,29 @@ export function sanitizeProfileForFirestore(
     if (lookingForGender) {
         sanitizedProfile['lookingForGender'] = lookingForGender;
     }
+
+    const relationshipGoal = normalizeStringOption(
+        sanitizedProfile['lookingForType'],
+        RELATIONSHIP_GOALS
+    );
+    const sexualOrientation = normalizeStringOption(
+        sanitizedProfile['sexualOrientation'],
+        SEXUAL_ORIENTATIONS
+    );
+
+    if (relationshipGoal) {
+        sanitizedProfile['lookingForType'] = relationshipGoal;
+    } else if (sanitizedProfile['lookingForType'] === '') {
+        delete sanitizedProfile['lookingForType'];
+    }
+
+    if (sexualOrientation) {
+        sanitizedProfile['sexualOrientation'] = sexualOrientation;
+    } else {
+        delete sanitizedProfile['sexualOrientation'];
+    }
+
+    sanitizedProfile['hideAge'] = sanitizedProfile['hideAge'] === true;
 
     return sanitizedProfile;
 }

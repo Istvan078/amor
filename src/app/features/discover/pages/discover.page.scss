@@ -2383,6 +2383,11 @@ app-discover {
     filter: drop-shadow(0 12px 24px rgba(242, 199, 110, 0.1));
   }
 
+  .profile-save-actions {
+    justify-content: flex-end;
+    margin: 0 0 14px;
+  }
+
   .profile-info-panel,
   .profile-completion-card,
   .profile-editor-panel {
@@ -3227,6 +3232,154 @@ app-discover {
     margin-bottom: 14px;
   }
 
+  .profile-editor-goal-grid {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 10px;
+  }
+
+  .profile-goal-option {
+    width: 100%;
+    color: var(--amor-text);
+    font: inherit;
+    text-align: left;
+    background: rgba(9, 13, 25, 0.28);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    cursor: pointer;
+    transition:
+      border-color 160ms ease,
+      background 160ms ease,
+      box-shadow 160ms ease,
+      transform 160ms ease;
+  }
+
+  .profile-goal-option:hover {
+    transform: translateY(-1px);
+    border-color: rgba(255, 93, 143, 0.36);
+    background: rgba(255, 255, 255, 0.075);
+  }
+
+  .profile-goal-option.is-selected {
+    border-color: rgba(255, 93, 143, 0.78);
+    background:
+      linear-gradient(135deg, rgba(255, 93, 143, 0.22), rgba(242, 199, 110, 0.1)),
+      rgba(255, 255, 255, 0.075);
+    box-shadow: 0 16px 34px rgba(255, 93, 143, 0.12);
+  }
+
+  .profile-goal-option {
+    display: grid;
+    min-height: 128px;
+    place-items: center;
+    gap: 9px;
+    padding: 14px 10px;
+    border-radius: 18px;
+    text-align: center;
+  }
+
+  .profile-goal-option > span {
+    font-size: 2rem;
+    line-height: 1;
+  }
+
+  .profile-goal-option strong {
+    color: var(--amor-text);
+    font-size: 0.98rem;
+    line-height: 1.18;
+  }
+
+  .profile-editor-premium-toggle {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 14px;
+    min-height: 88px;
+    padding: 16px;
+    border: 1px solid rgba(242, 199, 110, 0.22);
+    border-radius: 20px;
+    background:
+      radial-gradient(circle at 94% 0%, rgba(242, 199, 110, 0.18), transparent 34%),
+      linear-gradient(135deg, rgba(255, 255, 255, 0.105), rgba(255, 255, 255, 0.052));
+    box-shadow:
+      inset 0 1px 0 rgba(255, 255, 255, 0.08),
+      0 16px 36px rgba(0, 0, 0, 0.18);
+    backdrop-filter: blur(14px);
+  }
+
+  .profile-editor-premium-toggle span {
+    color: var(--amor-gold);
+    font-size: 0.78rem;
+    font-weight: 950;
+    letter-spacing: 0;
+    text-transform: uppercase;
+  }
+
+  .profile-editor-premium-toggle p {
+    max-width: 42ch;
+    margin: 6px 0 0;
+    color: rgba(248, 245, 239, 0.72);
+    font-size: 0.9rem;
+    font-weight: 750;
+    line-height: 1.35;
+  }
+
+  .profile-premium-switch {
+    position: relative;
+    flex: 0 0 auto;
+    display: inline-flex;
+    align-items: center;
+    justify-content: flex-start;
+    gap: 8px;
+    min-width: 68px;
+    height: 38px;
+    padding: 3px;
+    color: var(--amor-text);
+    font: inherit;
+    font-weight: 900;
+    background: rgba(255, 255, 255, 0.14);
+    border: 1px solid rgba(255, 255, 255, 0.16);
+    border-radius: 999px;
+    cursor: pointer;
+  }
+
+  .profile-premium-switch i {
+    display: block;
+    width: 30px;
+    height: 30px;
+    background: #ffffff;
+    border-radius: 50%;
+    box-shadow: 0 8px 18px rgba(0, 0, 0, 0.24);
+    transition: transform 160ms ease;
+  }
+
+  .profile-premium-switch.is-on {
+    justify-content: flex-start;
+    background: linear-gradient(135deg, var(--amor-rose), var(--amor-coral));
+    border-color: rgba(255, 255, 255, 0.22);
+  }
+
+  .profile-premium-switch.is-on i {
+    transform: translateX(30px);
+  }
+
+  .profile-editor-premium-toggle.is-locked .profile-premium-switch {
+    min-width: 118px;
+    justify-content: center;
+    padding: 0 12px;
+    color: var(--amor-gold);
+    background: rgba(9, 13, 25, 0.38);
+    border-color: rgba(242, 199, 110, 0.24);
+  }
+
+  .profile-premium-switch ion-icon {
+    font-size: 17px;
+  }
+
+  .profile-premium-switch span {
+    color: inherit;
+    font-size: 0.72rem;
+  }
+
   .profile-editor-choice-grid {
     display: grid;
     grid-template-columns: repeat(2, minmax(0, 1fr));
@@ -3473,9 +3626,13 @@ app-discover {
     .user-card {
       width: 100%;
       max-width: 460px;
-      height: min(72dvh, 620px);
-      min-height: 420px;
+      height: clamp(520px, calc(100dvh - 150px), 680px);
+      min-height: 0;
       margin: 0 auto;
+    }
+
+    .user-card.is-placeholder-card {
+      height: clamp(540px, calc(100dvh - 128px), 700px);
     }
 
     .photo-nav-button {
@@ -3591,6 +3748,10 @@ app-discover {
       background:
         radial-gradient(circle at 100% 0%, rgba(255, 93, 143, 0.12), transparent 34%),
         rgba(25, 30, 49, 0.9);
+    }
+
+    .profile-editor-panel {
+      padding-bottom: calc(86px + env(safe-area-inset-bottom));
     }
 
     .profile-completion-steps {
@@ -3741,8 +3902,55 @@ app-discover {
       grid-template-columns: 1fr;
     }
 
+    .profile-editor-goal-grid {
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+
+    .profile-goal-option {
+      min-height: 116px;
+      border-radius: 16px;
+    }
+
+    .profile-editor-premium-toggle {
+      align-items: flex-start;
+      flex-direction: column;
+      border-radius: 18px;
+    }
+
+    .profile-premium-switch {
+      align-self: stretch;
+      justify-content: flex-start;
+    }
+
+    .profile-editor-premium-toggle.is-locked .profile-premium-switch {
+      width: 100%;
+    }
+
     .profile-editor-checkbox {
       min-height: 50px;
+    }
+
+    .profile-save-actions {
+      position: sticky;
+      z-index: 12;
+      bottom: calc(72px + env(safe-area-inset-bottom));
+      display: flex;
+      justify-content: center;
+      grid-template-columns: none;
+      width: min(100%, 300px);
+      margin: 0 auto 14px;
+      padding: 8px;
+      border: 1px solid rgba(255, 255, 255, 0.12);
+      border-radius: 999px;
+      background: rgba(3, 6, 15, 0.82);
+      box-shadow: 0 16px 42px rgba(0, 0, 0, 0.42);
+      backdrop-filter: blur(18px);
+    }
+
+    .profile-save-actions .profile-save-button {
+      width: 100%;
+      margin: 0;
+      --box-shadow: none;
     }
 
     .match-quality-card {
@@ -3818,8 +4026,12 @@ app-discover {
     }
 
     .user-card {
-      height: 64dvh;
-      min-height: 380px;
+      height: clamp(500px, calc(100dvh - 150px), 660px);
+      min-height: 0;
+    }
+
+    .user-card.is-placeholder-card {
+      height: clamp(520px, calc(100dvh - 128px), 680px);
     }
 
     .card-content-cont {

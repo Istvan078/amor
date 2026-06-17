@@ -25,6 +25,12 @@
               <span>{{ t('discover.matchDetails.heightCm', { count: getHeightLabel() }) }}</span>
             </div>
           }
+          @if (matchProfile.sexualOrientation) {
+            <div class="match-detail-row">
+              <ion-icon name="heart-outline"></ion-icon>
+              <span>{{ profileValueText(t, matchProfile.sexualOrientation) }}</span>
+            </div>
+          }
           @if (matchProfile.job) {
             <div class="match-detail-row">
               <ion-icon name="briefcase-outline"></ion-icon>

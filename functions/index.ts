@@ -396,7 +396,8 @@ const getProfileCompleteness = (profile: Record<string, unknown>) => {
   const hasCoreIdentity =
     !!profile.birthDate &&
     !!profile.gender &&
-    !!profile.lookingForGender;
+    !!profile.sexualOrientation &&
+    !!profile.lookingForType;
 
   const score =
     (hasProfilePhoto(profile) ? 30 : 0) +
@@ -509,6 +510,59 @@ const normalizeGenderValue = (value: unknown) => {
   return '';
 };
 
+const normalizeSexualOrientationValue = (value: unknown) => {
+  const normalizedValue = typeof value === 'string' ? value : '';
+
+  return [
+    'heterosexual',
+    'gay',
+    'lesbian',
+    'bisexual',
+    'asexual',
+    'demisexual',
+    'pansexual',
+    'queer',
+    'questioning',
+    'aromantic',
+    'omnisexual',
+  ].includes(normalizedValue)
+    ? normalizedValue
+    : '';
+};
+
+const getSingleGenderPreferenceFromOrientation = (
+  profile: Record<string, unknown>
+) => {
+  const orientation = normalizeSexualOrientationValue(profile.sexualOrientation);
+  const gender = normalizeGenderValue(profile.gender);
+
+  if (orientation === 'heterosexual') {
+    if (gender === 'man') {
+      return 'woman';
+    }
+
+    if (gender === 'woman') {
+      return 'man';
+    }
+  }
+
+  if (orientation === 'gay') {
+    if (gender === 'man' || gender === 'woman') {
+      return gender;
+    }
+  }
+
+  if (orientation === 'lesbian') {
+    return 'woman';
+  }
+
+  return '';
+};
+
+const getGenderPreference = (profile: Record<string, unknown>) =>
+  normalizeGenderValue(profile.lookingForGender) ||
+  getSingleGenderPreferenceFromOrientation(profile);
+
 const getProfilePicturesCount = (profile: Record<string, unknown>) =>
   Array.isArray(profile.pictures) ? profile.pictures.length : 0;
 
@@ -608,7 +662,15 @@ const buildMatchIndexEntry = (
   const entry: Record<string, unknown> = {
     uid,
     gender: normalizeGenderValue(profile.gender),
-    lookingForGender: normalizeGenderValue(profile.lookingForGender),
+    lookingForGender: getGenderPreference(profile),
+    sexualOrientation:
+      typeof profile.sexualOrientation === 'string'
+        ? profile.sexualOrientation
+        : undefined,
+    relationshipGoal:
+      typeof profile.lookingForType === 'string'
+        ? profile.lookingForType
+        : undefined,
     age: normalizeProfileAge(profile),
     currentLocCoords: profile.currentLocCoords,
     geohash: createApproximateGeoHash(profile.currentLocCoords),
@@ -737,7 +799,8 @@ const setPublicNumberField = (
 const buildPublicProfileEntry = (
   uid: string,
   profile: Record<string, unknown>,
-  indexEntry = buildMatchIndexEntry(uid, profile)
+  indexEntry = buildMatchIndexEntry(uid, profile),
+  canHideAge = false
 ) => {
   const isVisible = indexEntry.isVisible === true;
   const isBanned = indexEntry.isBanned === true;
@@ -764,7 +827,7 @@ const buildPublicProfileEntry = (
 
   setPublicStringField(publicProfile, profile, 'firstName', 80);
   const gender = normalizeGenderValue(profile.gender);
-  const lookingForGender = normalizeGenderValue(profile.lookingForGender);
+  const lookingForGender = getGenderPreference(profile);
 
   if (gender) {
     publicProfile.gender = gender;
@@ -776,6 +839,7 @@ const buildPublicProfileEntry = (
 
   setPublicStringField(publicProfile, profile, 'aboutMe', 1000);
   setPublicStringField(publicProfile, profile, 'lookingForType', 500);
+  setPublicStringField(publicProfile, profile, 'sexualOrientation', 80);
   setPublicStringField(publicProfile, profile, 'job', 160);
   setPublicNumberField(publicProfile, profile, 'heightCm', 90, 260);
   setPublicStringField(publicProfile, profile, 'currStudy', 160);
@@ -797,7 +861,9 @@ const buildPublicProfileEntry = (
   setPublicStringListField(publicProfile, profile, 'freeTimeAct');
   setPublicStringListField(publicProfile, profile, 'interests');
 
-  if (Number.isFinite(Number(age))) {
+  if (canHideAge && profile.hideAge === true) {
+    publicProfile.hideAge = true;
+  } else if (Number.isFinite(Number(age))) {
     publicProfile.age = age;
   }
 
@@ -845,7 +911,13 @@ const syncProfileSearchDocuments = async (
   profile: Record<string, unknown>
 ) => {
   const indexEntry = buildMatchIndexEntry(uid, profile);
-  const publicProfile = buildPublicProfileEntry(uid, profile, indexEntry);
+  const canHideAge = await getPremiumDiscoveryAccess(db, uid);
+  const publicProfile = buildPublicProfileEntry(
+    uid,
+    profile,
+    indexEntry,
+    canHideAge
+  );
   const publicProfileRef = db.collection('publicProfiles').doc(uid);
 
   await Promise.all([
@@ -2143,6 +2215,8 @@ const getPublicProfileSignature = (profile: Record<string, unknown>) =>
     gender: profile.gender ?? '',
     aboutMe: profile.aboutMe ?? '',
     lookingForType: profile.lookingForType ?? '',
+    sexualOrientation: profile.sexualOrientation ?? '',
+    hideAge: profile.hideAge ?? false,
     lookingForGender: profile.lookingForGender ?? '',
     lookingForAge: profile.lookingForAge ?? null,
     job: profile.job ?? '',

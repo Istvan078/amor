@@ -212,11 +212,11 @@
                   <strong>{{ profileValueText(t, matchProfile.gender) }}</strong>
                 </article>
               }
-              @if (matchProfile.lookingForGender) {
+              @if (matchProfile.sexualOrientation) {
                 <article>
                   <ion-icon name="heart-outline" aria-hidden="true"></ion-icon>
-                  <span>{{ t('discover.profile.lookingFor') }}</span>
-                  <strong>{{ profileValueText(t, matchProfile.lookingForGender) }}</strong>
+                  <span>{{ t('discover.profile.sexualOrientation') }}</span>
+                  <strong>{{ profileValueText(t, matchProfile.sexualOrientation) }}</strong>
                 </article>
               }
               @if (matchProfile.lookingForAge) {

@@ -34,7 +34,7 @@
                     userProfile.lastName +
                       ' ' +
                       userProfile.firstName +
-                      (userProfile.age ? ' ' + userProfile.age : '')
+                      (!userProfile.hideAge && userProfile.age ? ' ' + userProfile.age : '')
                   }}
                 </ion-text>
               </ion-card-content>
@@ -207,10 +207,10 @@
                   <strong>{{ profileValueText(t, userProfile.gender) }}</strong>
                 </div>
               }
-              @if (userProfile.lookingForGender) {
+              @if (userProfile.sexualOrientation) {
                 <div class="profile-stat">
-                  <small>{{ t('discover.profile.lookingFor') }}</small>
-                  <strong>{{ profileValueText(t, userProfile.lookingForGender) }}</strong>
+                  <small>{{ t('discover.profile.sexualOrientation') }}</small>
+                  <strong>{{ profileValueText(t, userProfile.sexualOrientation) }}</strong>
                 </div>
               }
               @if (userProfile.lookingForAge) {
@@ -240,7 +240,7 @@
             @if (userProfile.lookingForType) {
               <article class="profile-copy-block">
                 <small>{{ t('discover.profile.lookingForType') }}</small>
-                <p>{{ userProfile.lookingForType }}</p>
+                <p>{{ profileValueText(t, userProfile.lookingForType) }}</p>
               </article>
             }
 
@@ -277,6 +277,17 @@
                 <span>{{ t('discover.profile.editing') }}</span>
               </div>
 
+              <div class="profile-actions profile-save-actions">
+                <ion-button
+                  class="profile-save-button"
+                  [disabled]="!hasMinimumPhotos()"
+                  (click)="profileUpdated.emit()"
+                >
+                  <ion-icon name="save-outline" slot="start"></ion-icon>
+                  {{ t('common.save') }}
+                </ion-button>
+              </div>
+
               <ion-list>
                 @for (lab of labels.userProfLabels; track $index) {
                   @if (lab.type === 'text-area') {
@@ -301,6 +312,8 @@
                     lab.type !== 'file' &&
                     lab.type !== 'range' &&
                     lab.type !== 'select' &&
+                    lab.type !== 'relationship-goal' &&
+                    lab.type !== 'premium-toggle' &&
                     lab.type !== 'date' &&
                     lab.type !== 'checkbox'
                   ) {
@@ -331,6 +344,50 @@
                         }
                       </ion-select>
                     </ion-item>
+                  }
+
+                  @if (lab.type === 'relationship-goal') {
+                    <section class="profile-editor-choice-card profile-editor-goal-card">
+                      <div class="profile-editor-choice-title">{{ fieldLabel(t, lab) }}</div>
+                      <div class="profile-editor-goal-grid">
+                        @for (choice of lab.choices; track choice.value) {
+                          <button
+                            class="profile-goal-option"
+                            type="button"
+                            [class.is-selected]="isChoiceSelected(lab.key, choice)"
+                            (click)="selectSingleChoice(lab.key, choice)"
+                          >
+                            <span aria-hidden="true">{{ choice.emoji }}</span>
+                            <strong>{{ choiceLabel(t, choice) }}</strong>
+                          </button>
+                        }
+                      </div>
+                    </section>
+                  }
+
+                  @if (lab.type === 'premium-toggle') {
+                    <section
+                      class="profile-editor-premium-toggle"
+                      [class.is-locked]="isPremiumFieldLocked(lab)"
+                    >
+                      <div>
+                        <span>{{ fieldLabel(t, lab) }}</span>
+                        <p>{{ lab.descriptionKey ? t(lab.descriptionKey) : '' }}</p>
+                      </div>
+                      <button
+                        type="button"
+                        class="profile-premium-switch"
+                        [class.is-on]="userProfile[lab.key] && !isPremiumFieldLocked(lab)"
+                        (click)="togglePremiumBooleanField(lab)"
+                      >
+                        @if (isPremiumFieldLocked(lab)) {
+                          <ion-icon name="lock-closed-outline" aria-hidden="true"></ion-icon>
+                          <span>{{ lab.premiumLabelKey ? t(lab.premiumLabelKey) : 'Gold' }}</span>
+                        } @else {
+                          <i aria-hidden="true"></i>
+                        }
+                      </button>
+                    </section>
                   }
 
                   @if (lab.type === 'date') {
@@ -570,17 +627,6 @@
                   }
                 }
               </ion-list>
-
-              <div class="profile-actions profile-save-actions">
-                <ion-button
-                  class="profile-save-button"
-                  [disabled]="!hasMinimumPhotos()"
-                  (click)="profileUpdated.emit()"
-                >
-                  <ion-icon name="save-outline" slot="start"></ion-icon>
-                  {{ t('common.save') }}
-                </ion-button>
-              </div>
             </section>
           }
         </section>
