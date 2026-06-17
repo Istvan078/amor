@@ -146,6 +146,11 @@
               <small>{{ t('profile.verification.eyebrow') }}</small>
               <strong>{{ t(profileVerificationTitleKey()) }}</strong>
               <p>{{ t(profileVerificationTextKey()) }}</p>
+              @if (profileVerificationReviewNote()) {
+                <p class="profile-verification-note">
+                  {{ profileVerificationReviewNote() }}
+                </p>
+              }
             </div>
             <input
               #verificationSelfieInput
@@ -166,7 +171,7 @@
               {{
                 verificationSubmitting
                   ? t('profile.verification.submitting')
-                  : t('profile.verification.cta')
+                  : t(profileVerificationCtaKey())
               }}
             </ion-button>
           </section>

@@ -285,6 +285,16 @@ export class DiscoverProfilePanelComponent implements AfterViewChecked, OnChange
     return `profile.verification.status.${this.profileVerificationStatus()}.text`;
   }
 
+  profileVerificationReviewNote() {
+    return this.userProfile?.profileVerificationReviewNote?.trim() ?? '';
+  }
+
+  profileVerificationCtaKey() {
+    return this.profileVerificationStatus() === 'rejected'
+      ? 'profile.verification.retakeCta'
+      : 'profile.verification.cta';
+  }
+
   canRequestProfileVerification() {
     return (
       this.hasMinimumPhotos() &&

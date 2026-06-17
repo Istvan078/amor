@@ -58,17 +58,29 @@ export class DiscoverRepository {
     }
 
     async getMatchProfiles(matchUids: string[]): Promise<PublicProfile[]> {
-        const profiles: PublicProfile[] = [];
+        const uniqueMatchUids = matchUids.filter(
+            (uid, index, allUids) =>
+                typeof uid === 'string' && !!uid && allUids.indexOf(uid) === index
+        );
+        const profilesByUid = new Map<string, PublicProfile>();
+        const chunkSize = 10;
 
-        for (const uid of matchUids) {
-            const profile = await this.getPublicProfile(uid);
+        for (let index = 0; index < uniqueMatchUids.length; index += chunkSize) {
+            const uidChunk = uniqueMatchUids.slice(index, index + chunkSize);
+            const profiles = await Promise.all(
+                uidChunk.map((uid) => this.getPublicProfile(uid))
+            );
 
-            if (profile) {
-                profiles.push(profile);
-            }
+            profiles.forEach((profile) => {
+                if (profile?.uid) {
+                    profilesByUid.set(profile.uid, profile);
+                }
+            });
         }
 
-        return profiles;
+        return uniqueMatchUids
+            .map((uid) => profilesByUid.get(uid))
+            .filter((profile): profile is PublicProfile => !!profile);
     }
 
     async updateUserProfile(uid: string, profile: Partial<UserClass>) {

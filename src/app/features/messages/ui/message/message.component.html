@@ -605,6 +605,22 @@
                 <p>{{ t('messages.startText') }}</p>
               </div>
             }
+
+            @if (shouldShowIcebreakers()) {
+              <section class="icebreaker-prompts" aria-label="Conversation starters">
+                <small>{{ t('messages.icebreakers.title') }}</small>
+                <div>
+                  @for (prompt of getIcebreakerPrompts(); track prompt) {
+                    <button
+                      type="button"
+                      (click)="selectIcebreakerPrompt(prompt)"
+                    >
+                      {{ prompt }}
+                    </button>
+                  }
+                </div>
+              </section>
+            }
           }
 
           @if (!messagesStore.loading() && messagesStore.isMatchTyping() && matchProfile) {
@@ -686,7 +702,7 @@
 
           <ion-textarea
             #composerTextarea
-            ngModel
+            [(ngModel)]="draftMessage"
             name="message"
             id="message"
             [placeholder]="isCurrentMatchBlocked ? t('messages.blockedPlaceholder') : t('messages.placeholder')"

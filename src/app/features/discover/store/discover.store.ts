@@ -354,7 +354,7 @@ export const DiscoverStore = signalStore(
                     patchState(store, {
                         loggedUser: authStore.user(),
                         userProfile,
-                        possibleMatchIds: shuffleArray(possibleMatchIds),
+                        possibleMatchIds,
                         matches,
                         progress: 35,
                         error: null,
@@ -450,7 +450,7 @@ export const DiscoverStore = signalStore(
                     patchState(store, {
                         loggedUser: authStore.user(),
                         userProfile,
-                        possibleMatchIds: shuffleArray(possibleMatchIds),
+                        possibleMatchIds,
                         matches,
                         progress: 100,
                         loading: false,
@@ -563,18 +563,3 @@ export const DiscoverStore = signalStore(
         };
     })
 );
-
-function shuffleArray<T>(array: T[]): T[] {
-    const shuffled = [...array];
-
-    for (let i = shuffled.length - 1; i > 0; i--) {
-        const randomIndex = Math.floor(Math.random() * (i + 1));
-
-        [shuffled[i], shuffled[randomIndex]] = [
-            shuffled[randomIndex],
-            shuffled[i],
-        ];
-    }
-
-    return shuffled;
-}

@@ -204,7 +204,8 @@
     },
     "boost": {
       "active": "Boost active",
-      "minutesLeft": "{{count}} minutes left"
+      "minutesLeft": "{{count}} minutes left",
+      "shownHigher": "Shown higher"
     },
     "profile": {
       "myProfile": "My profile",
@@ -654,6 +655,7 @@
     "verification": {
       "eyebrow": "Trust badge",
       "cta": "Verify with selfie",
+      "retakeCta": "Retake selfie",
       "submitting": "Submitting...",
       "status": {
         "none": {
@@ -755,6 +757,13 @@
     "deleteMessageConfirmButton": "Delete message",
     "startTitle": "Start the conversation",
     "startText": "A short, personal opener works best.",
+    "icebreakers": {
+      "title": "Try an opener",
+      "sharedInterest": "I saw you are into {{interest}} too. What got you into it?",
+      "profile": "What is one thing from your profile you wish people asked about?",
+      "place": "What is your favorite low-key date idea around {{place}}?",
+      "fallback": "What would make a first date feel easy for you?"
+    },
     "placeholder": "Write your message...",
     "sendAria": "Send message",
     "openEmojiPanel": "Open emoji panel",

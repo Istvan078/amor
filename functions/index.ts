@@ -7,8 +7,28 @@ import * as bodyParser from 'body-parser';
 import {
   createApproximateGeoHash,
   createGeoBucket,
-  getNearbyGeoBuckets,
 } from './src/discovery/geohash';
+import { registerDiscoverCandidatesRoute } from './src/discovery/candidates';
+import {
+  DiscoveryFeedMode,
+  isBoostedIndexEntry,
+} from './src/discovery/ranking';
+import {
+  buildLikeMatchParts,
+  buildPassMatchParts,
+  buildRemoveMatchParts,
+  buildRewindMatchParts,
+  normalizeMatchParts,
+  normalizeUidList,
+  ServerMatchAction,
+  ServerMatchActionResult,
+  withoutUid,
+} from './src/matching/match-actions';
+import {
+  removeIncomingLike,
+  upsertIncomingLike,
+} from './src/matching/incoming-likes';
+import { buildMutualMatchParts } from './src/matching/mutual-match';
 import { normalizeLookingForAgeRange } from './src/shared/age-range';
 import { toTimestampMillis } from './src/shared/time';
 
@@ -16,21 +36,6 @@ admin.initializeApp();
 
 type AuthenticatedRequest = express.Request & {
   user?: admin.auth.DecodedIdToken;
-};
-
-type ServerMatchParts = {
-  matches: string[];
-  liked: string[];
-  notLiked: string[];
-  superLiked: string[];
-};
-
-type ServerMatchAction = 'like' | 'pass' | 'superLike' | 'rewind' | 'remove';
-
-type ServerMatchActionResult = {
-  matched: boolean;
-  created: boolean;
-  matchParts: ServerMatchParts;
 };
 
 type ServerBillingConsumables = {
@@ -65,25 +70,6 @@ type NotificationPreferenceKey =
   | 'promotions';
 
 type NotificationDeliveryKey = 'inApp' | 'push';
-
-type DiscoveryFeedMode =
-  | 'recommended'
-  | 'nearby'
-  | 'recentlyActive'
-  | 'newProfiles';
-
-type DiscoveryPremiumFilters = {
-  maxDistanceKm?: number;
-  recentlyActiveOnly?: boolean;
-  verifiedOnly?: boolean;
-  minSharedInterests?: number;
-};
-
-type DiscoveryCursor = {
-  id: string;
-  rankingScore?: number;
-  lastActiveAtMillis?: number;
-};
 
 type ProfileVerificationStatus = 'none' | 'pending' | 'approved' | 'rejected';
 
@@ -173,42 +159,6 @@ const sanitizeUserClaims = (claims: any): Record<string, unknown> => {
   }
 
   return safeClaims;
-};
-
-const withoutUid = (values: unknown, uid: string): string[] =>
-  Array.isArray(values)
-    ? values.filter(
-        (value): value is string => typeof value === 'string' && value !== uid
-      )
-    : [];
-
-const withUniqueUid = (values: unknown, uid: string): string[] => {
-  const nextValues = normalizeUidList(values);
-
-  if (!nextValues.includes(uid)) {
-    nextValues.push(uid);
-  }
-
-  return nextValues;
-};
-
-const normalizeUidList = (values: unknown): string[] =>
-  Array.isArray(values)
-    ? values.filter((value): value is string => typeof value === 'string')
-    : [];
-
-const normalizeMatchParts = (value: unknown): ServerMatchParts => {
-  const matchParts =
-    value && typeof value === 'object'
-      ? (value as Record<string, unknown>)
-      : {};
-
-  return {
-    matches: normalizeUidList(matchParts.matches),
-    liked: normalizeUidList(matchParts.liked),
-    notLiked: normalizeUidList(matchParts.notLiked),
-    superLiked: normalizeUidList(matchParts.superLiked),
-  };
 };
 
 const normalizeBillingConsumables = (value: unknown): ServerBillingConsumables => {
@@ -399,16 +349,6 @@ const consumeSuperLikeAllowance = async (
 
   throw new Error('super_like_unavailable');
 };
-
-const buildMutualMatchParts = (
-  matchParts: ServerMatchParts,
-  otherUid: string
-): ServerMatchParts => ({
-  ...matchParts,
-  matches: withUniqueUid(matchParts.matches, otherUid),
-  liked: withoutUid(matchParts.liked, otherUid),
-  notLiked: withoutUid(matchParts.notLiked, otherUid),
-});
 
 const getRequestedActionUid = (
   req: AuthenticatedRequest,
@@ -900,50 +840,6 @@ const syncProfileSearchDocuments = async (
   };
 };
 
-const buildLikeMatchParts = (
-  matchParts: ServerMatchParts,
-  otherUid: string,
-  isSuperLike = false
-): ServerMatchParts => ({
-  ...matchParts,
-  liked: withUniqueUid(matchParts.liked, otherUid),
-  notLiked: withoutUid(matchParts.notLiked, otherUid),
-  superLiked: isSuperLike
-    ? withUniqueUid(matchParts.superLiked, otherUid)
-    : matchParts.superLiked,
-});
-
-const buildPassMatchParts = (
-  matchParts: ServerMatchParts,
-  otherUid: string
-): ServerMatchParts => ({
-  ...matchParts,
-  liked: withoutUid(matchParts.liked, otherUid),
-  notLiked: withUniqueUid(matchParts.notLiked, otherUid),
-  superLiked: withoutUid(matchParts.superLiked, otherUid),
-});
-
-const buildRewindMatchParts = (
-  matchParts: ServerMatchParts,
-  otherUid: string
-): ServerMatchParts => {
-  return {
-    ...matchParts,
-    notLiked: withoutUid(matchParts.notLiked, otherUid),
-  };
-};
-
-const buildRemoveMatchParts = (
-  matchParts: ServerMatchParts,
-  otherUid: string
-): ServerMatchParts => ({
-  ...matchParts,
-  matches: withoutUid(matchParts.matches, otherUid),
-  liked: withoutUid(matchParts.liked, otherUid),
-  superLiked: withoutUid(matchParts.superLiked, otherUid),
-  notLiked: withUniqueUid(matchParts.notLiked, otherUid),
-});
-
 const runMatchActionTransaction = async (
   myUid: string,
   otherUid: string,
@@ -969,6 +865,7 @@ const runMatchActionTransaction = async (
     const otherMatchParts = normalizeMatchParts(
       otherProfileSnapshot.data()?.matchParts
     );
+    const myProfile = myProfileSnapshot.data() ?? {};
 
     if (action === 'remove') {
       const nextMyMatchParts = buildRemoveMatchParts(myMatchParts, otherUid);
@@ -976,6 +873,8 @@ const runMatchActionTransaction = async (
       transaction.update(myProfileRef, {
         matchParts: nextMyMatchParts,
       });
+      removeIncomingLike(transaction, db, otherUid, myUid);
+      removeIncomingLike(transaction, db, myUid, otherUid);
 
       if (otherProfileSnapshot.exists) {
         transaction.update(otherProfileRef, {
@@ -996,6 +895,7 @@ const runMatchActionTransaction = async (
       transaction.update(myProfileRef, {
         matchParts: nextMyMatchParts,
       });
+      removeIncomingLike(transaction, db, otherUid, myUid);
 
       return {
         matched: false,
@@ -1035,6 +935,7 @@ const runMatchActionTransaction = async (
       transaction.update(myProfileRef, {
         matchParts: nextMyMatchParts,
       });
+      removeIncomingLike(transaction, db, otherUid, myUid);
 
       return {
         matched: true,
@@ -1055,6 +956,14 @@ const runMatchActionTransaction = async (
       transaction.update(myProfileRef, {
         matchParts: nextMyDecisionMatchParts,
       });
+      upsertIncomingLike(
+        transaction,
+        db,
+        otherUid,
+        myUid,
+        myProfile,
+        action === 'superLike' ? 'superLike' : 'like'
+      );
 
       return {
         matched: false,
@@ -1075,6 +984,8 @@ const runMatchActionTransaction = async (
     transaction.update(otherProfileRef, {
       matchParts: nextOtherMatchParts,
     });
+    removeIncomingLike(transaction, db, otherUid, myUid);
+    removeIncomingLike(transaction, db, myUid, otherUid);
 
     return {
       matched: true,
@@ -1336,6 +1247,7 @@ type AccountDeletionResult = {
   uid: string;
   userDocumentDeleted: boolean;
   matchIndexDeleted: boolean;
+  incomingLikesDeleted: boolean;
   storageFilesDeleted: number;
   conversationsDeleted: number;
   userReferencesCleaned: number;
@@ -1594,6 +1506,7 @@ const deleteAccountData = async (uid: string): Promise<AccountDeletionResult> =>
   const userRef = db.collection('users').doc(uid);
   const matchIndexRef = db.collection('matchIndex').doc(uid);
   const publicProfileRef = db.collection('publicProfiles').doc(uid);
+  const incomingLikesRef = db.collection('incomingLikes').doc(uid);
 
   const [
     retentionResult,
@@ -1609,8 +1522,9 @@ const deleteAccountData = async (uid: string): Promise<AccountDeletionResult> =>
     deleteStoragePrefix(`publicPictures/${uid}/`),
   ]);
 
-  const [userDocumentDeleted, matchIndexSnapshot] = await Promise.all([
+  const [userDocumentDeleted, incomingLikesDeleted, matchIndexSnapshot] = await Promise.all([
     deleteDocumentTree(db, userRef),
+    deleteDocumentTree(db, incomingLikesRef),
     matchIndexRef.get(),
     publicProfileRef.delete(),
   ]);
@@ -1635,6 +1549,7 @@ const deleteAccountData = async (uid: string): Promise<AccountDeletionResult> =>
     uid,
     userDocumentDeleted,
     matchIndexDeleted: matchIndexSnapshot.exists,
+    incomingLikesDeleted,
     storageFilesDeleted: storageFilesDeleted + publicStorageFilesDeleted,
     conversationsDeleted,
     userReferencesCleaned,
@@ -1868,156 +1783,6 @@ const applyRevenueCatBillingEvent = async (event: RevenueCatBillingEvent) => {
   });
 };
 
-const parseDiscoveryCursor = (value: unknown): DiscoveryCursor | null => {
-  if (typeof value !== 'string' || !value.trim()) {
-    return null;
-  }
-
-  try {
-    const cursor = JSON.parse(value) as Partial<DiscoveryCursor>;
-
-    if (typeof cursor.id === 'string' && cursor.id) {
-      return {
-        id: cursor.id,
-        ...(Number.isFinite(Number(cursor.rankingScore))
-          ? { rankingScore: Number(cursor.rankingScore) }
-          : {}),
-        ...(Number.isFinite(Number(cursor.lastActiveAtMillis))
-          ? { lastActiveAtMillis: Number(cursor.lastActiveAtMillis) }
-          : {}),
-      };
-    }
-  } catch {
-    return {
-      id: value,
-    };
-  }
-
-  return null;
-};
-
-const serializeDiscoveryCursor = (
-  snapshot: admin.firestore.QueryDocumentSnapshot,
-  rankedCursor: boolean
-) => {
-  if (!rankedCursor) {
-    return snapshot.id;
-  }
-
-  const data = snapshot.data() as Record<string, unknown>;
-  const rankingScore = Number(data.rankingScore ?? 0);
-  const lastActiveAtMillis = toTimestampMillis(data.lastActiveAt);
-
-  return JSON.stringify({
-    id: snapshot.id,
-    rankingScore: Number.isFinite(rankingScore) ? rankingScore : 0,
-    lastActiveAtMillis,
-  });
-};
-
-const toRadians = (value: number) => (value * Math.PI) / 180;
-
-const getDistanceKm = (
-  originLat: number,
-  originLon: number,
-  candidateLat: number,
-  candidateLon: number
-) => {
-  const earthRadiusKm = 6371;
-  const latDelta = toRadians(candidateLat - originLat);
-  const lonDelta = toRadians(candidateLon - originLon);
-  const a =
-    Math.sin(latDelta / 2) * Math.sin(latDelta / 2) +
-    Math.cos(toRadians(originLat)) *
-      Math.cos(toRadians(candidateLat)) *
-      Math.sin(lonDelta / 2) *
-      Math.sin(lonDelta / 2);
-
-  return earthRadiusKm * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
-};
-
-const getDistanceBetweenCoordsKm = (origin: unknown, candidate: unknown) => {
-  const originCoords =
-    origin && typeof origin === 'object'
-      ? (origin as Record<string, unknown>)
-      : {};
-  const candidateCoords =
-    candidate && typeof candidate === 'object'
-      ? (candidate as Record<string, unknown>)
-      : {};
-  const originLat = Number(originCoords.lat);
-  const originLon = Number(originCoords.lon);
-  const candidateLat = Number(candidateCoords.lat);
-  const candidateLon = Number(candidateCoords.lon);
-
-  if (
-    !Number.isFinite(originLat) ||
-    !Number.isFinite(originLon) ||
-    !Number.isFinite(candidateLat) ||
-    !Number.isFinite(candidateLon)
-  ) {
-    return null;
-  }
-
-  return getDistanceKm(originLat, originLon, candidateLat, candidateLon);
-};
-
-const hasValidLocationCoords = (value: unknown) => {
-  const coords =
-    value && typeof value === 'object'
-      ? (value as Record<string, unknown>)
-      : {};
-
-  return (
-    Number.isFinite(Number(coords.lat)) &&
-    Number.isFinite(Number(coords.lon))
-  );
-};
-
-const distanceKmPasses = (distanceKm: number | null, maxDistanceKm: number) =>
-  distanceKm === null || !Number.isFinite(maxDistanceKm) || distanceKm <= maxDistanceKm;
-
-const isBoostedIndexEntry = (entry: Record<string, unknown>) =>
-  toTimestampMillis(entry.boostedUntil) > Date.now();
-
-const normalizeDiscoveryFeedMode = (value: unknown): DiscoveryFeedMode => {
-  if (
-    value === 'nearby' ||
-    value === 'recentlyActive' ||
-    value === 'newProfiles'
-  ) {
-    return value;
-  }
-
-  return 'recommended';
-};
-
-const normalizeDiscoveryPremiumFilters = (
-  value: unknown,
-  hasPremiumAccess: boolean
-): DiscoveryPremiumFilters => {
-  if (!hasPremiumAccess || !value || typeof value !== 'object') {
-    return {};
-  }
-
-  const filters = value as Record<string, unknown>;
-  const maxDistanceKm = Number(filters.maxDistanceKm);
-  const minSharedInterests = Number(filters.minSharedInterests);
-
-  return {
-    ...(Number.isFinite(maxDistanceKm) && maxDistanceKm > 0
-      ? { maxDistanceKm: Math.min(Math.max(maxDistanceKm, 1), 500) }
-      : {}),
-    ...(filters.recentlyActiveOnly === true
-      ? { recentlyActiveOnly: true }
-      : {}),
-    ...(filters.verifiedOnly === true ? { verifiedOnly: true } : {}),
-    ...(Number.isFinite(minSharedInterests) && minSharedInterests > 0
-      ? { minSharedInterests: Math.min(Math.max(Math.floor(minSharedInterests), 1), 10) }
-      : {}),
-  };
-};
-
 const getPremiumDiscoveryAccess = async (
   db: admin.firestore.Firestore,
   uid: string
@@ -2030,140 +1795,6 @@ const getPremiumDiscoveryAccess = async (
     billing.entitlement === BILLING_ENTITLEMENT_ID ||
     billing.activeEntitlements.includes(BILLING_ENTITLEMENT_ID)
   );
-};
-
-const getSharedInterestCount = (
-  profile: Record<string, unknown>,
-  candidate: Record<string, unknown>
-) => {
-  const profileInterests = new Set(
-    normalizeStringListValue(profile.interests).map((interest) =>
-      interest.toLowerCase()
-    )
-  );
-
-  if (!profileInterests.size) {
-    return 0;
-  }
-
-  return normalizeStringListValue(candidate.interests).filter((interest) =>
-    profileInterests.has(interest.toLowerCase())
-  ).length;
-};
-
-const normalizePlaceText = (value: unknown) =>
-  typeof value === 'string'
-    ? value
-      .trim()
-      .toLowerCase()
-      .normalize('NFD')
-      .replace(/[\u0300-\u036f]/g, '')
-      .replace(/[^a-z0-9]+/g, ' ')
-      .trim()
-    : '';
-
-const getPlaceAffinityScore = (
-  originPlace: unknown,
-  candidatePlace: unknown
-) => {
-  const origin = normalizePlaceText(originPlace);
-  const candidate = normalizePlaceText(candidatePlace);
-
-  if (!origin || !candidate) {
-    return 0;
-  }
-
-  if (origin === candidate) {
-    return 60;
-  }
-
-  if (
-    origin.length > 2 &&
-    candidate.length > 2 &&
-    (origin.includes(candidate) || candidate.includes(origin))
-  ) {
-    return 38;
-  }
-
-  const originTokens = new Set(
-    origin.split(' ').filter((token) => token.length > 2)
-  );
-  const sharedTokenCount = candidate
-    .split(' ')
-    .filter((token) => originTokens.has(token)).length;
-
-  return Math.min(sharedTokenCount * 14, 42);
-};
-
-const getDiscoveryRankScore = (
-  feedMode: DiscoveryFeedMode,
-  profile: Record<string, unknown>,
-  candidate: Record<string, unknown>,
-  distanceKm: number | null,
-  createdAtMillis: number,
-  sharedInterestCount: number,
-  placeAffinityScore = 0
-) => {
-  const now = Date.now();
-  const completeness = Math.min(
-    Math.max(Number(candidate.profileCompleteness ?? 0), 0),
-    100
-  );
-  const profileQualityScore = Math.min(
-    Math.max(Number(candidate.profileQualityScore ?? completeness), 0),
-    100
-  );
-  const moderationRiskScore = Math.min(
-    Math.max(Number(candidate.moderationRiskScore ?? 0), 0),
-    100
-  );
-  const lastActiveAtMillis = toTimestampMillis(candidate.lastActiveAt);
-  const activeAgeHours = lastActiveAtMillis
-    ? Math.max((now - lastActiveAtMillis) / 36e5, 0)
-    : 24 * 60;
-  const createdAgeHours = createdAtMillis
-    ? Math.max((now - createdAtMillis) / 36e5, 0)
-    : 24 * 180;
-  const maxDistanceKm = Math.max(Number(profile.lookingForDistance ?? 50), 1);
-  const distanceScore =
-    distanceKm === null
-      ? 45
-      : Math.max(0, 100 - (distanceKm / maxDistanceKm) * 100);
-  const activityScore = Math.max(0, 100 - Math.min(activeAgeHours, 24 * 30) / 7.2);
-  const newProfileScore = Math.max(
-    0,
-    100 - Math.min(createdAgeHours, 24 * 45) / 10.8
-  );
-  const boostScore = isBoostedIndexEntry(candidate) ? 120 : 0;
-  const sharedInterestScore = Math.min(sharedInterestCount, 6) * 18;
-  const verificationScore = candidate.profileVerified === true ? 22 : 0;
-  const riskPenalty = moderationRiskScore * 0.8;
-
-  const baseScore =
-    boostScore +
-    verificationScore +
-    distanceScore * 0.28 +
-    activityScore * 0.24 +
-    profileQualityScore * 0.26 +
-    completeness * 0.12 +
-    sharedInterestScore +
-    placeAffinityScore +
-    newProfileScore * 0.08 -
-    riskPenalty;
-
-  if (feedMode === 'nearby') {
-    return baseScore + distanceScore * 0.9;
-  }
-
-  if (feedMode === 'recentlyActive') {
-    return baseScore + activityScore * 1.05;
-  }
-
-  if (feedMode === 'newProfiles') {
-    return baseScore + newProfileScore * 1.1;
-  }
-
-  return baseScore;
 };
 
 const getProfileDisplayName = (profile: Record<string, unknown>, uid: string) =>
@@ -2539,333 +2170,12 @@ app.post('/revenueCatWebhook', async (req: express.Request, res: express.Respons
   }
 });
 
-app.post('/discoverCandidates', verifyToken, async (req: AuthenticatedRequest, res: express.Response) => {
-  const { uid, startAfter } = req.body;
-  const myUid = getRequestedActionUid(req, uid);
-  const resultLimit = Math.min(Math.max(Number(req.body.limit ?? 20), 1), 20);
-  const cursor = parseDiscoveryCursor(startAfter);
-  const feedMode = normalizeDiscoveryFeedMode(req.body.feedMode);
-
-  if (!myUid) {
-    res.sendStatus(403);
-    return;
-  }
-
-  try {
-    const db = admin.firestore();
-    const profileSnapshot = await db.collection('users').doc(myUid).get();
-
-    if (!profileSnapshot.exists) {
-      res.sendStatus(404);
-      return;
-    }
-
-    const profile = profileSnapshot.data() ?? {};
-    const hasPremiumAccess = await getPremiumDiscoveryAccess(db, myUid);
-    const premiumFilters = normalizeDiscoveryPremiumFilters(
-      req.body.premiumFilters,
-      hasPremiumAccess
-    );
-    const requestCoords =
-      req.body.currentLocCoords && typeof req.body.currentLocCoords === 'object'
-        ? (req.body.currentLocCoords as Record<string, unknown>)
-        : {};
-    const requestHasCoords =
-      Number.isFinite(Number(requestCoords.lat)) &&
-      Number.isFinite(Number(requestCoords.lon));
-    const requestedLocationFallback = req.body.locationFallback === true;
-    const currentLocCoords =
-      !requestedLocationFallback && requestHasCoords
-        ? {
-          lat: Number(requestCoords.lat),
-          lon: Number(requestCoords.lon),
-        }
-        : !requestedLocationFallback
-          ? profile.currentLocCoords
-          : null;
-    const hasUsableLocation = hasValidLocationCoords(currentLocCoords);
-    const fallbackPlace =
-      typeof req.body.fallbackPlace === 'string' && req.body.fallbackPlace.trim()
-        ? req.body.fallbackPlace.trim()
-        : typeof profile.currentPlace === 'string'
-          ? profile.currentPlace.trim()
-          : '';
-    const effectiveFeedMode =
-      hasUsableLocation || feedMode !== 'nearby'
-        ? feedMode
-        : DEFAULT_LOCATION_FALLBACK_FEED_MODE;
-    const matchParts = normalizeMatchParts(profile.matchParts);
-    const excludedUids = new Set([
-      myUid,
-      ...matchParts.matches,
-      ...matchParts.liked,
-      ...matchParts.notLiked,
-      ...normalizeUidList(profile.blockedUsers),
-      ...normalizeUidList(profile.reportedUsers),
-    ]);
-    const lookingForGender =
-      typeof profile.lookingForGender === 'string'
-        ? profile.lookingForGender
-        : '';
-    const profileGender =
-      typeof profile.gender === 'string' ? profile.gender : '';
-    const preferredAge = normalizeLookingForAgeRange(profile.lookingForAge);
-    const lowerAge = preferredAge.lower;
-    const upperAge = preferredAge.upper;
-    const profileDistanceKm = Number(profile.lookingForDistance ?? 50);
-    const maxDistanceKm = Number.isFinite(premiumFilters.maxDistanceKm)
-      ? Number(premiumFilters.maxDistanceKm)
-      : profileDistanceKm;
-    const activeThresholdMillis = Date.now() - 1000 * 60 * 60 * 24 * 7;
-    const geoBuckets = hasUsableLocation
-      ? getNearbyGeoBuckets(currentLocCoords, maxDistanceKm)
-      : [];
-    const useGeoBucketQuery = geoBuckets.length > 0;
-    const scanLimit = Math.min(
-      resultLimit * (useGeoBucketQuery ? 3 : 5),
-      useGeoBucketQuery ? 60 : 100
-    );
-    const legacyFallbackScanLimit = Math.min(resultLimit * 5, 100);
-    const canUseRankedCursor =
-      !cursor ||
-      (
-        Number.isFinite(Number(cursor.rankingScore)) &&
-        Number.isFinite(Number(cursor.lastActiveAtMillis))
-      );
-    const buildCandidateQuery = (
-      limitCount: number,
-      geoBucketFilter: string[] = [],
-      useRankedOrder = true
-    ) => {
-      let queryRef: admin.firestore.Query = db
-        .collection('matchIndex')
-        .where('isVisible', '==', true)
-        .where('isBanned', '==', false)
-        .where('profileCompleted', '==', true)
-        .where('hasPhoto', '==', true);
-
-      if (geoBucketFilter.length) {
-        queryRef = queryRef.where('geoBucket', 'in', geoBucketFilter);
-      }
-
-      if (lookingForGender) {
-        queryRef = queryRef.where('gender', '==', lookingForGender);
-      }
-
-      if (profileGender) {
-        queryRef = queryRef.where('lookingForGender', '==', profileGender);
-      }
-
-      if (useRankedOrder) {
-        queryRef = queryRef
-          .orderBy('rankingScore', 'desc')
-          .orderBy('lastActiveAt', 'desc')
-          .orderBy(admin.firestore.FieldPath.documentId());
-
-        if (
-          cursor?.id &&
-          Number.isFinite(Number(cursor.rankingScore)) &&
-          Number.isFinite(Number(cursor.lastActiveAtMillis))
-        ) {
-          queryRef = queryRef.startAfter(
-            Number(cursor.rankingScore),
-            admin.firestore.Timestamp.fromMillis(
-              Number(cursor.lastActiveAtMillis)
-            ),
-            cursor.id
-          );
-        }
-      } else {
-        queryRef = queryRef.orderBy(admin.firestore.FieldPath.documentId());
-
-        if (cursor?.id) {
-          queryRef = queryRef.startAfter(cursor.id);
-        }
-      }
-
-      return queryRef.limit(limitCount);
-    };
-
-    const fetchCandidateDocs = async (
-      limitCount: number,
-      geoBucketFilter: string[] = []
-    ) => {
-      if (canUseRankedCursor) {
-        try {
-          const rankedSnapshot = await buildCandidateQuery(
-            limitCount,
-            geoBucketFilter,
-            true
-          ).get();
-
-          return {
-            docs: rankedSnapshot.docs,
-            ranked: true,
-          };
-        } catch (error) {
-          console.warn('Ranked discovery query failed. Falling back to legacy cursor.', error);
-        }
-      }
-
-      const legacySnapshot = await buildCandidateQuery(
-        limitCount,
-        geoBucketFilter,
-        false
-      ).get();
-
-      return {
-        docs: legacySnapshot.docs,
-        ranked: false,
-      };
-    };
-
-    let activeScanLimit = scanLimit;
-    let candidateSnapshotResult = await fetchCandidateDocs(
-      scanLimit,
-      useGeoBucketQuery ? geoBuckets : []
-    );
-    let snapshotDocs = candidateSnapshotResult.docs;
-    let usedRankedQuery = candidateSnapshotResult.ranked;
-
-    if (useGeoBucketQuery && snapshotDocs.length === 0) {
-      activeScanLimit = legacyFallbackScanLimit;
-      candidateSnapshotResult = await fetchCandidateDocs(legacyFallbackScanLimit);
-      snapshotDocs = candidateSnapshotResult.docs;
-      usedRankedQuery = candidateSnapshotResult.ranked;
-    } else if (usedRankedQuery && snapshotDocs.length === 0 && !cursor) {
-      candidateSnapshotResult = await fetchCandidateDocs(
-        legacyFallbackScanLimit,
-        [],
-      );
-      snapshotDocs = candidateSnapshotResult.docs;
-      usedRankedQuery = candidateSnapshotResult.ranked;
-    }
-
-    const scannedCandidates: Array<{
-        uid: string;
-        claims: Record<string, unknown>;
-        createdAtMillis: number;
-      }> = snapshotDocs.map((candidateSnapshot) => {
-        const claims = candidateSnapshot.data() as Record<string, unknown>;
-        const createdAtMillis =
-          toTimestampMillis(claims.createdAt) ||
-          candidateSnapshot.createTime.toMillis();
-
-        return {
-          uid: candidateSnapshot.id,
-          createdAtMillis,
-          claims: {
-            ...claims,
-            uid: candidateSnapshot.id,
-            createdAt:
-              typeof claims.createdAt === 'string'
-                ? claims.createdAt
-                : candidateSnapshot.createTime.toDate().toISOString(),
-          },
-        };
-      });
-    const candidates = scannedCandidates
-      .filter((candidate) => !excludedUids.has(candidate.uid))
-      .filter((candidate) => {
-        const age = Number(candidate.claims['age']);
-
-        return (
-          !Number.isFinite(age) ||
-          (
-            age >= Number(lowerAge) &&
-            age <= Number(upperAge)
-          )
-        );
-      })
-      .map((candidate) => {
-        const distanceKm = getDistanceBetweenCoordsKm(
-          currentLocCoords,
-          candidate.claims['currentLocCoords']
-        );
-        const sharedInterestCount = getSharedInterestCount(profile, candidate.claims);
-        const placeAffinityScore = hasUsableLocation
-          ? 0
-          : getPlaceAffinityScore(fallbackPlace, candidate.claims['currentPlace']);
-
-        return {
-          ...candidate,
-          distanceKm,
-          sharedInterestCount,
-          rankScore: getDiscoveryRankScore(
-            effectiveFeedMode,
-            profile,
-            candidate.claims,
-            distanceKm,
-            candidate.createdAtMillis,
-            sharedInterestCount,
-            placeAffinityScore
-          ),
-        };
-      })
-      .filter((candidate) => distanceKmPasses(candidate.distanceKm, maxDistanceKm))
-      .filter(
-        (candidate) =>
-          !premiumFilters.recentlyActiveOnly ||
-          toTimestampMillis(candidate.claims['lastActiveAt']) >= activeThresholdMillis
-      )
-      .filter(
-        (candidate) =>
-          !premiumFilters.verifiedOnly ||
-          candidate.claims['profileVerified'] === true
-      )
-      .filter(
-        (candidate) =>
-          !premiumFilters.minSharedInterests ||
-          candidate.sharedInterestCount >= premiumFilters.minSharedInterests
-      )
-      .sort((candidateA, candidateB) => {
-        const scoreDelta = candidateB.rankScore - candidateA.rankScore;
-
-        if (scoreDelta) {
-          return scoreDelta;
-        }
-
-        if (effectiveFeedMode === 'nearby') {
-          return (candidateA.distanceKm ?? Number.MAX_SAFE_INTEGER) -
-            (candidateB.distanceKm ?? Number.MAX_SAFE_INTEGER);
-        }
-
-        if (effectiveFeedMode === 'newProfiles') {
-          return candidateB.createdAtMillis - candidateA.createdAtMillis;
-        }
-
-        return (
-          toTimestampMillis(candidateB.claims['lastActiveAt']) -
-          toTimestampMillis(candidateA.claims['lastActiveAt'])
-        );
-      })
-      .map((candidate) => ({
-        uid: candidate.uid,
-        distanceKm: candidate.distanceKm,
-        sharedInterestCount: candidate.sharedInterestCount,
-      }))
-      .slice(0, resultLimit);
-    const nextCursor =
-      snapshotDocs.length === activeScanLimit
-        ? snapshotDocs[snapshotDocs.length - 1]
-          ? serializeDiscoveryCursor(
-            snapshotDocs[snapshotDocs.length - 1],
-            usedRankedQuery
-          )
-          : null
-        : null;
-
-    res.json({
-      candidates,
-      nextCursor,
-      locationFallback: !hasUsableLocation,
-    });
-  } catch (error) {
-    console.error('Discovery candidate lookup failed:', error);
-    res.sendStatus(500);
-  }
+registerDiscoverCandidatesRoute(app, {
+  verifyToken,
+  getRequestedActionUid,
+  getPremiumDiscoveryAccess,
+  defaultLocationFallbackFeedMode: DEFAULT_LOCATION_FALLBACK_FEED_MODE,
 });
-
 app.post('/likedByProfiles', verifyToken, async (req: AuthenticatedRequest, res: express.Response) => {
   const { uid } = req.body;
   const myUid = getRequestedActionUid(req, uid);
@@ -2879,14 +2189,14 @@ app.post('/likedByProfiles', verifyToken, async (req: AuthenticatedRequest, res:
   try {
     const db = admin.firestore();
     const usersCollection = db.collection('users');
-    const [myProfileSnapshot, likedSnapshot, superLikedSnapshot] = await Promise.all([
+    const incomingLikesCollection = db
+      .collection('incomingLikes')
+      .doc(myUid)
+      .collection('likes');
+    const [myProfileSnapshot, incomingLikesSnapshot] = await Promise.all([
       usersCollection.doc(myUid).get(),
-      usersCollection
-        .where('matchParts.liked', 'array-contains', myUid)
-        .limit(resultLimit)
-        .get(),
-      usersCollection
-        .where('matchParts.superLiked', 'array-contains', myUid)
+      incomingLikesCollection
+        .orderBy('createdAt', 'desc')
         .limit(resultLimit)
         .get(),
     ]);
@@ -2903,14 +2213,49 @@ app.post('/likedByProfiles', verifyToken, async (req: AuthenticatedRequest, res:
       ...normalizeUidList(myProfile.reportedUsers),
     ]);
     const likedByProfiles = new Map<string, Record<string, unknown>>();
+    let likedByUids = incomingLikesSnapshot.docs
+      .map((snapshot) => {
+        const actorUid = snapshot.data().actorUid;
 
-    [...likedSnapshot.docs, ...superLikedSnapshot.docs].forEach((snapshot) => {
-      likedByProfiles.set(snapshot.id, snapshot.data() as Record<string, unknown>);
-    });
+        return typeof actorUid === 'string' && actorUid ? actorUid : snapshot.id;
+      })
+      .filter((likedByUid, index, allUids) =>
+        likedByUid && allUids.indexOf(likedByUid) === index
+      );
 
-    const likedByUids = Array.from(likedByProfiles.entries())
-      .filter(([likedByUid, likedByProfile]) => {
-        if (excludedUids.has(likedByUid)) {
+    if (likedByUids.length) {
+      const likedByUserSnapshots = await Promise.all(
+        likedByUids.map((likedByUid) => usersCollection.doc(likedByUid).get())
+      );
+
+      likedByUserSnapshots.forEach((snapshot) => {
+        if (snapshot.exists) {
+          likedByProfiles.set(snapshot.id, snapshot.data() as Record<string, unknown>);
+        }
+      });
+    } else {
+      const [likedSnapshot, superLikedSnapshot] = await Promise.all([
+        usersCollection
+          .where('matchParts.liked', 'array-contains', myUid)
+          .limit(resultLimit)
+          .get(),
+        usersCollection
+          .where('matchParts.superLiked', 'array-contains', myUid)
+          .limit(resultLimit)
+          .get(),
+      ]);
+
+      [...likedSnapshot.docs, ...superLikedSnapshot.docs].forEach((snapshot) => {
+        likedByProfiles.set(snapshot.id, snapshot.data() as Record<string, unknown>);
+      });
+      likedByUids = Array.from(likedByProfiles.keys());
+    }
+
+    const visibleLikedByUids = likedByUids
+      .filter((likedByUid) => {
+        const likedByProfile = likedByProfiles.get(likedByUid);
+
+        if (!likedByProfile || excludedUids.has(likedByUid)) {
           return false;
         }
 
@@ -2923,10 +2268,9 @@ app.post('/likedByProfiles', verifyToken, async (req: AuthenticatedRequest, res:
 
         return !normalizeUidList(likedByProfile.blockedUsers).includes(myUid);
       })
-      .map(([likedByUid]) => likedByUid)
       .slice(0, resultLimit);
     const publicProfileSnapshots = await Promise.all(
-      likedByUids.map((likedByUid) =>
+      visibleLikedByUids.map((likedByUid) =>
         db.collection('publicProfiles').doc(likedByUid).get()
       )
     );
@@ -2989,30 +2333,6 @@ app.post('/syncProfileIndex', verifyToken, async (req: AuthenticatedRequest, res
     });
   } catch (error) {
     console.error('Profile index sync failed:', error);
-    res.sendStatus(500);
-  }
-});
-
-app.post('/setCustomClaims', verifyToken, async (req: AuthenticatedRequest, res: express.Response) => {
-  const { uid } = req.body;
-
-  if (!uid || !canAccessUser(req, uid)) {
-    res.sendStatus(403);
-    return;
-  }
-
-  try {
-    const userRecord = await admin.auth().getUser(uid);
-    const existingClaims = userRecord.customClaims ?? {};
-    const preservedAccessClaims = sanitizeUserClaims(existingClaims);
-
-    await admin.auth().setCustomUserClaims(uid, {
-      ...preservedAccessClaims,
-    });
-
-    res.json({ message: 'OK' });
-  } catch (error) {
-    console.error('Hiba történt a felhasználó claimsek beállításakor:', error);
     res.sendStatus(500);
   }
 });
@@ -3114,6 +2434,7 @@ app.post('/requestProfileVerification', verifyToken, async (req: AuthenticatedRe
           profileVerificationStatus: 'pending',
           profileVerificationRequestedAt:
             admin.firestore.FieldValue.serverTimestamp(),
+          profileVerificationReviewNote: admin.firestore.FieldValue.delete(),
         },
         { merge: true }
       ),
@@ -3189,6 +2510,7 @@ app.post('/reviewProfileVerification', verifyToken, async (req: AuthenticatedReq
           profileVerificationReviewedAt:
             admin.firestore.FieldValue.serverTimestamp(),
           profileVerificationReviewedBy: req.user?.uid ?? '',
+          profileVerificationReviewNote: note,
           ...(approved
             ? {
                 profileVerifiedAt:
@@ -3394,6 +2716,8 @@ app.post('/createMutualMatch', verifyToken, async (req: AuthenticatedRequest, re
       transaction.update(otherProfileRef, {
         matchParts: nextOtherMatchParts,
       });
+      removeIncomingLike(transaction, db, otherUid, myUid);
+      removeIncomingLike(transaction, db, myUid, otherUid);
 
       return {
         matched: true,

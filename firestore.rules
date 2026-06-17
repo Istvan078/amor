@@ -74,6 +74,7 @@ service cloud.firestore {
           'profileVerificationRequestedAt',
           'profileVerificationReviewedAt',
           'profileVerificationReviewedBy',
+          'profileVerificationReviewNote',
           'profileQualityScore',
           'moderationRiskScore',
           'moderationRiskReasons',
@@ -114,6 +115,7 @@ service cloud.firestore {
           'profileVerificationRequestedAt',
           'profileVerificationReviewedAt',
           'profileVerificationReviewedBy',
+          'profileVerificationReviewNote',
           'profileQualityScore',
           'moderationRiskScore',
           'moderationRiskReasons',
@@ -403,6 +405,21 @@ service cloud.firestore {
         );
       allow delete: if isAdminOrModerator()
         || (isOwner(uid) && userIsNotBanned(uid));
+    }
+
+    match /incomingLikes/{targetUid}/likes/{actorUid} {
+      allow read: if isOwner(targetUid) || isAdminOrModerator();
+      allow update: if isOwner(targetUid)
+        && request.resource.data.diff(resource.data).affectedKeys().hasOnly([
+          'seen',
+          'seenAt'
+        ])
+        && request.resource.data.seen is bool
+        && (
+          !request.resource.data.keys().hasAny(['seenAt'])
+          || request.resource.data.seenAt is timestamp
+        );
+      allow create, delete: if false;
     }
 
     match /reports/{reportId} {

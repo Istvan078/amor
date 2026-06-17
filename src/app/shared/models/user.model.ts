@@ -120,6 +120,7 @@ export class UserClass {
   public profileVerificationStatus?: 'none' | 'pending' | 'approved' | 'rejected';
   public profileVerifiedAt?: unknown;
   public profileVerificationRequestedAt?: unknown;
+  public profileVerificationReviewNote?: string;
   public profileQualityScore?: number;
   public moderationRiskScore?: number;
   public moderationRiskReasons?: string[];

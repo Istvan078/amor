@@ -204,7 +204,8 @@
     },
     "boost": {
       "active": "Boost aktív",
-      "minutesLeft": "{{count}} perc van hátra"
+      "minutesLeft": "{{count}} perc van hátra",
+      "shownHigher": "El\u0151r\u00e9bb jelenik meg"
     },
     "profile": {
       "myProfile": "Profilom",
@@ -654,6 +655,7 @@
     "verification": {
       "eyebrow": "Bizalmi jelvény",
       "cta": "Ellenőrzés selfie-vel",
+      "retakeCta": "\u00daj selfie k\u00fcld\u00e9se",
       "submitting": "Beküldés...",
       "status": {
         "none": {
@@ -755,6 +757,13 @@
     "deleteMessageConfirmButton": "Üzenet törlése",
     "startTitle": "Kezdj beszélgetést",
     "startText": "Egy rövid, személyes nyitás jobban működik.",
+    "icebreakers": {
+      "title": "Pr\u00f3b\u00e1lj egy nyit\u00f3t",
+      "sharedInterest": "L\u00e1ttam, hogy te is szereted ezt: {{interest}}. Hogyan kezdt\u00e9l bele?",
+      "profile": "Mi az az egy dolog a profilodb\u00f3l, amir\u0151l j\u00f3 lenne, ha k\u00e9rdezn\u00e9nek?",
+      "place": "Milyen lenne egy laza els\u0151 randi {{place}} k\u00f6rny\u00e9k\u00e9n?",
+      "fallback": "Mit\u0151l lenne neked k\u00f6nnyed egy els\u0151 randi?"
+    },
     "placeholder": "Írd ide az üzeneted...",
     "sendAria": "Üzenet küldése",
     "openEmojiPanel": "Emoji panel megnyitása",

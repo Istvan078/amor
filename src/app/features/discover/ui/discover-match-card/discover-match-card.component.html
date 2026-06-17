@@ -25,8 +25,11 @@
       @if (isProfileBoostActive) {
         <div class="profile-boost-active-badge">
           <ion-icon name="flash-outline"></ion-icon>
-          <strong>{{ t('discover.boost.active') }}</strong>
-          <span>{{ t('discover.boost.minutesLeft', { count: profileBoostMinutesLeft }) }}</span>
+          <div>
+            <strong>{{ t('discover.boost.active') }}</strong>
+            <span>{{ t('discover.boost.minutesLeft', { count: profileBoostMinutesLeft }) }}</span>
+            <small>{{ t('discover.boost.shownHigher') }}</small>
+          </div>
         </div>
       }
 

@@ -72,6 +72,7 @@ export function sanitizeProfileForFirestore(
     delete sanitizedProfile['profileVerificationRequestedAt'];
     delete sanitizedProfile['profileVerificationReviewedAt'];
     delete sanitizedProfile['profileVerificationReviewedBy'];
+    delete sanitizedProfile['profileVerificationReviewNote'];
     delete sanitizedProfile['profileQualityScore'];
     delete sanitizedProfile['moderationRiskScore'];
     delete sanitizedProfile['moderationRiskReasons'];

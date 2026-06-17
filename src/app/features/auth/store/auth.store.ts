@@ -10,7 +10,7 @@ import {
 import { firstValueFrom, Subscription } from 'rxjs';
 
 import { AuthRepository } from '../data-access/auth.repository';
-import { AuthUser, initialState, UserClaims } from './auth.slice';
+import { AuthUser, initialState } from './auth.slice';
 
 function getFirebaseAuthErrorKey(error: unknown, fallbackKey: string) {
     const code =
@@ -386,37 +386,6 @@ export const AuthStore = signalStore(
                 }
 
                 return loadUsersForUser(user);
-            },
-
-            async setCustomClaims(uid: string) {
-                const user = store.user();
-
-                if (!user?.idToken) {
-                    return;
-                }
-
-                await firstValueFrom(
-                    repository.setCustomClaims(uid, user.idToken)
-                );
-
-                const currentClaims = store.claims() ?? user.claims ?? {};
-                const nextClaims: UserClaims = {
-                    ...(currentClaims.admin === true ? { admin: true } : {}),
-                    ...(currentClaims.moderator === true ? { moderator: true } : {}),
-                    ...(currentClaims.premiumAccess === true
-                        ? { premiumAccess: true }
-                        : {}),
-                };
-
-                const nextUser = {
-                    ...user,
-                    claims: nextClaims,
-                };
-
-                patchState(store, {
-                    user: nextUser,
-                    claims: nextClaims,
-                });
             },
 
             setUser(user: AuthUser | null) {

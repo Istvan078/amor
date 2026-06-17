@@ -180,6 +180,7 @@ export class MessageComponent
   reportDialogTextKey = 'messages.reportReasonText';
   reportDialogSelectedReason: ReportReason = 'fakeProfile';
   reportDialogOtherDescription = '';
+  draftMessage = '';
   readonly profileValueText = translatedProfileValue;
   readonly reportReasons: ReportReason[] = [
     'fakeProfile',
@@ -324,6 +325,7 @@ export class MessageComponent
       this.activeReactionPickerMessageId = undefined;
       this.closeMatchPhotoViewer();
       this.moderationNoticeKey = undefined;
+      this.draftMessage = '';
       void this.loadMessages();
     }
 
@@ -577,8 +579,10 @@ export class MessageComponent
 
     const control = form.controls['message'];
     const currentMessage = String(control?.value ?? '');
+    const nextMessage = `${currentMessage}${emoji}`;
 
-    control?.setValue(`${currentMessage}${emoji}`);
+    this.draftMessage = nextMessage;
+    control?.setValue(nextMessage);
     this.onMessageInput();
     this.focusComposer();
   }
@@ -590,6 +594,7 @@ export class MessageComponent
     }
 
     await this.sendComposedMessage('', 'gif', gif);
+    this.draftMessage = '';
     form.controls['message']?.setValue('');
     this.activeComposerPanel = null;
     this.clearLocalTypingStatus();
@@ -877,7 +882,9 @@ export class MessageComponent
   }
 
   async onMessageSend(form: NgForm) {
-    const messageText = form.value.message?.trim();
+    const messageText = String(
+      this.draftMessage || form.value.message || ''
+    ).trim();
 
     if (this.isCurrentMatchBlocked) {
       this.moderationNoticeKey = 'messages.blockedComposerNotice';
@@ -889,10 +896,80 @@ export class MessageComponent
     }
 
     await this.sendComposedMessage(messageText, 'text');
-    form.resetForm();
+    this.draftMessage = '';
+    form.resetForm({ message: '' });
     this.activeComposerPanel = null;
     this.clearLocalTypingStatus();
     this.pendingScrollToBottom = true;
+  }
+
+  shouldShowIcebreakers() {
+    return !!(
+      this.matchProfile?.uid &&
+      !this.isCurrentMatchBlocked &&
+      !this.messagesStore.loading() &&
+      this.messagesStore.messages().length === 0
+    );
+  }
+
+  getIcebreakerPrompts() {
+    const sharedInterest = this.getSharedConversationInterest();
+    const place = this.getMatchPlace();
+    const prompts = [
+      sharedInterest
+        ? this.transloco.translate('messages.icebreakers.sharedInterest', {
+            interest: sharedInterest,
+          })
+        : this.transloco.translate('messages.icebreakers.fallback'),
+      this.transloco.translate('messages.icebreakers.profile'),
+      place
+        ? this.transloco.translate('messages.icebreakers.place', { place })
+        : this.transloco.translate('messages.icebreakers.fallback'),
+    ];
+
+    return prompts
+      .filter((prompt, index, allPrompts) =>
+        !!prompt && allPrompts.indexOf(prompt) === index
+      )
+      .slice(0, 3);
+  }
+
+  selectIcebreakerPrompt(prompt: string) {
+    if (this.isCurrentMatchBlocked) {
+      return;
+    }
+
+    this.draftMessage = prompt;
+    this.activeComposerPanel = null;
+    this.activeReactionPickerMessageId = undefined;
+    this.focusComposer();
+  }
+
+  private getSharedConversationInterest() {
+    const userInterests = new Set([
+      ...(this.userProfile?.interests ?? []),
+      ...(this.userProfile?.freeTimeAct ?? []),
+    ]);
+    const matchInterests = [
+      ...(this.matchProfile?.interests ?? []),
+      ...(this.matchProfile?.freeTimeAct ?? []),
+    ];
+    const sharedInterest = matchInterests.find((interest) =>
+      userInterests.has(interest)
+    );
+
+    return sharedInterest
+      ? translatedProfileValue(
+          (key) => this.transloco.translate(key),
+          sharedInterest
+        )
+      : '';
+  }
+
+  private getMatchPlace() {
+    return String(
+      this.matchProfile?.currentPlace || this.userProfile?.currentPlace || ''
+    ).trim();
   }
 
   private async sendComposedMessage(

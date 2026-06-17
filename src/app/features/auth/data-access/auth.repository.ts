@@ -117,22 +117,6 @@ export class AuthRepository {
         });
     }
 
-    setCustomClaims(uid: string, idToken: string | undefined) {
-        if (!idToken) {
-            return of(null);
-        }
-
-        return this.http.post(
-            this.usersApiUrl + 'setCustomClaims',
-            {
-                uid,
-            },
-            {
-                headers: this.createAuthHeaders(idToken),
-            }
-        );
-    }
-
     async deleteUser(uid?: string) {
         const user = this.auth.currentUser;
         const targetUid = uid ?? user?.uid;
