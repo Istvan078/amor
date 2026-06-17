@@ -1,5 +1,5 @@
 import { HttpClient } from '@angular/common/http';
-import { Injectable } from '@angular/core';
+import { Injectable, inject } from '@angular/core';
 import { Geolocation, Position } from '@capacitor/geolocation';
 import { catchError, firstValueFrom, of, timeout } from 'rxjs';
 
@@ -14,9 +14,7 @@ type GeocodeXyzResponse = {
   providedIn: 'root',
 })
 export class LocationService {
-  constructor(private http: HttpClient) {
-    // this.getCoordsGeocodeXYZ();
-  }
+  private http = inject(HttpClient);
 
   async getLocation(): Promise<Position> {
     let permission = await Geolocation.checkPermissions();

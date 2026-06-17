@@ -44,13 +44,18 @@ const getPreviewPictures = (profile: Record<string, unknown>) => {
       }
 
       const name = getStringField(pictureData, 'name', 120);
+      const thumbnailUrl = getStringField(pictureData, 'thumbnailUrl', 800);
 
       return {
         url,
         ...(name ? { name } : {}),
+        ...(thumbnailUrl ? { thumbnailUrl } : {}),
       };
     })
-    .filter((picture): picture is { url: string; name?: string } => !!picture)
+    .filter(
+      (picture): picture is { url: string; name?: string; thumbnailUrl?: string } =>
+        !!picture
+    )
     .slice(0, 3);
 };
 

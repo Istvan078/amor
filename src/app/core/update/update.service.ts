@@ -1,4 +1,4 @@
-import { Injectable } from '@angular/core';
+import { Injectable, inject } from '@angular/core';
 import { SwUpdate } from '@angular/service-worker';
 import { interval } from 'rxjs';
 import { Platform, ToastController } from '@ionic/angular';
@@ -8,14 +8,10 @@ import { TranslocoService } from '@jsverse/transloco';
   providedIn: 'root'
 })
 export class UpdateService {
-
-  constructor(
-    private swUpdate: SwUpdate,
-    private toastController: ToastController,
-    private platform: Platform,
-    private transloco: TranslocoService
-  ) {
-  }
+  private swUpdate = inject(SwUpdate);
+  private toastController = inject(ToastController);
+  private platform = inject(Platform);
+  private transloco = inject(TranslocoService);
 
   // Frissítés ellenőrzése
   async checkForUpdate(): Promise<void> {

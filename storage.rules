@@ -32,7 +32,7 @@ service firebase.storage {
     match /publicPictures/{uid}/{fileName=**} {
       allow get: if signedIn();
       allow list: if false;
-      allow create, update: if isOwner(uid) && isValidProfileImage();
+      allow create, update: if false;
       allow delete: if isOwner(uid) || isAdminOrModerator();
     }
 

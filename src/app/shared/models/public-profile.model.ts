@@ -1,6 +1,7 @@
 export type PublicProfilePicture = {
   url: string;
   name?: string;
+  thumbnailUrl?: string;
 };
 
 export type PublicProfile = {

@@ -5,7 +5,7 @@ on:
   push:
     branches:
       - main
-      - master
+      - istvan
 
 jobs:
   build-test:
@@ -36,6 +36,9 @@ jobs:
 
       - name: Build app
         run: npm run build
+
+      - name: Lint app
+        run: npm run lint
 
       - name: Test functions
         run: npm run test:functions

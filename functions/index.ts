@@ -2,6 +2,7 @@ import * as admin from 'firebase-admin';
 import { onRequest } from 'firebase-functions/v2/https';
 import { onSchedule } from 'firebase-functions/v2/scheduler';
 import { onDocumentCreated, onDocumentUpdated } from 'firebase-functions/v2/firestore';
+import { onObjectFinalized } from 'firebase-functions/v2/storage';
 import * as express from 'express';
 import * as bodyParser from 'body-parser';
 import {
@@ -29,6 +30,7 @@ import {
   upsertIncomingLike,
 } from './src/matching/incoming-likes';
 import { buildMutualMatchParts } from './src/matching/mutual-match';
+import { processProfileImageObject } from './src/storage/profile-images';
 import { normalizeLookingForAgeRange } from './src/shared/age-range';
 import { toTimestampMillis } from './src/shared/time';
 
@@ -649,6 +651,8 @@ const normalizePublicProfilePictures = (profile: Record<string, unknown>) => {
       const picture = value as Record<string, unknown>;
       const url = typeof picture.url === 'string' ? picture.url : '';
       const name = typeof picture.name === 'string' ? picture.name : '';
+      const thumbnailUrl =
+        typeof picture.thumbnailUrl === 'string' ? picture.thumbnailUrl : '';
 
       if (!url) {
         return null;
@@ -657,9 +661,13 @@ const normalizePublicProfilePictures = (profile: Record<string, unknown>) => {
       return {
         url,
         ...(name ? { name } : {}),
+        ...(thumbnailUrl ? { thumbnailUrl } : {}),
       };
     })
-    .filter((picture): picture is { url: string; name?: string } => !!picture)
+    .filter(
+      (picture): picture is { url: string; name?: string; thumbnailUrl?: string } =>
+        !!picture
+    )
     .slice(0, 6);
 };
 
@@ -2877,6 +2885,14 @@ export const refreshDiscoveryRankingScores = onSchedule(
 
     console.log(`Refreshed discovery ranking scores for ${processedCount} profiles.`);
   }
+);
+
+export const onProfileImageFinalized = onObjectFinalized(
+  {
+    memory: '1GiB',
+    timeoutSeconds: 120,
+  },
+  processProfileImageObject
 );
 
 export const onUserProfileCreated = onDocumentCreated(

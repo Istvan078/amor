@@ -5,6 +5,7 @@ import {
   CUSTOM_ELEMENTS_SCHEMA,
   ElementRef,
   ViewChild,
+  inject,
 } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import {
@@ -75,8 +76,7 @@ export class IonModalPage implements AfterViewInit {
   myPhotos: { name: string; url: string }[] = [];
   chosenIndex: number = 0;
   activePhotoIndex = 0;
-
-  constructor(private modalCtrl: ModalController) { }
+  private modalCtrl = inject(ModalController);
 
   dateTriggerId(key: string) {
     return `auth-date-${key}`;

@@ -102,6 +102,8 @@ export class UserClass {
   public pictures?: {
     name: string;
     url: string;
+    thumbnailUrl?: string;
+    imageModerationStatus?: 'approved' | 'rejected' | 'review_required';
   }[];
 
   public interests?: string[];
