@@ -102,10 +102,16 @@
             </section>
 
             @if(discoverStore.locationFallbackActive()) {
-            <section class="discover-location-fallback-notice" aria-live="polite">
+            <button
+              type="button"
+              class="discover-location-fallback-notice"
+              [disabled]="isRequestingLocationPermission"
+              [attr.aria-busy]="isRequestingLocationPermission"
+              (click)="requestLocationFromFallback()"
+            >
               <strong>{{ 'discover.locationFallback.title' | transloco }}</strong>
               <span>{{ 'discover.locationFallback.text' | transloco }}</span>
-            </section>
+            </button>
             }
 
             <app-discover-match-card

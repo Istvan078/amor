@@ -111,6 +111,7 @@ export class DiscoverPage implements OnInit, OnDestroy {
   verificationSubmitting = false;
   pictureUploadState: PictureUploadState = { phase: 'idle' };
   hideProfileSaveButton = false;
+  isRequestingLocationPermission = false;
 
   readonly discoveryFeedModes: Array<{
     mode: DiscoveryFeedMode;
@@ -982,6 +983,20 @@ export class DiscoverPage implements OnInit, OnDestroy {
     await this.ensureDiscoverData(uid);
   }
 
+  async requestLocationFromFallback() {
+    if (this.isRequestingLocationPermission) {
+      return;
+    }
+
+    this.isRequestingLocationPermission = true;
+
+    try {
+      await this.reloadDiscoveryFeed();
+    } finally {
+      this.isRequestingLocationPermission = false;
+    }
+  }
+
   private async loadMoreMatchProfiles() {
     if (this.isLoadingMoreCandidates) {
       return false;
@@ -1392,7 +1407,6 @@ export class DiscoverPage implements OnInit, OnDestroy {
 
   onProfileScroll(event: CustomEvent) {
     const scrollTop = event.detail.scrollTop ?? 0;
-
     this.hideProfileSaveButton = scrollTop < 2200;
   }
 

@@ -151,12 +151,31 @@
       "previousPhoto": "Previous photo",
       "nextPhoto": "Next photo",
       "compatibilityScore": "{{count}}% match",
+      "compatibilityPanel": {
+        "eyebrow": "Premium match insight",
+        "title": "Match compatibility",
+        "subtitle": "Based on shared profile signals and intent."
+      },
       "compatibility": {
         "sharedInterests": "{{count}} shared interests",
         "similarGoal": "Similar relationship goal",
+        "sexualOrientation": "Same sexual orientation",
+        "zodiac": "Compatible zodiac signs",
+        "familyPlans": "Same family plans",
+        "communicationStyle": "Same communication style",
+        "loveStyle": "Same love style",
+        "freeTimeAct": "{{count}} shared free-time activities",
+        "pets": "Same pet preference",
+        "drinking": "Same drinking style",
+        "smoking": "Same smoking preference",
+        "workout": "Same workout style",
         "nearby": "Nearby",
         "recentlyActive": "Active recently",
         "verified": "Verified"
+      },
+      "mobile": {
+        "basicsLifestyle": "Basics and lifestyle",
+        "showMore": "Show more"
       }
     },
     "locationFallback": {
@@ -249,6 +268,17 @@
       "reasons": {
         "nearby": "Nearby",
         "sharedInterests": "{{count}} shared interests",
+        "similarGoal": "Similar relationship goal",
+        "sexualOrientation": "Same sexual orientation",
+        "zodiac": "Compatible zodiac signs",
+        "familyPlans": "Same family plans",
+        "communicationStyle": "Same communication style",
+        "loveStyle": "Same love style",
+        "freeTimeAct": "{{count}} shared free-time activities",
+        "pets": "Same pet preference",
+        "drinking": "Same drinking style",
+        "smoking": "Same smoking preference",
+        "workout": "Same workout style",
         "ageRange": "Within your age preference",
         "recentlyActive": "Recently active",
         "completeProfile": "Complete profile",

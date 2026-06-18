@@ -1,4 +1,8 @@
 <ng-container *transloco="let t">
+  <div
+    class="discover-match-stage"
+    [class.has-desktop-compatibility]="hasCompatibilityPanel()"
+  >
   <ion-card
     class="user-card"
     [class.is-swipeable]="canSwipeCard()"
@@ -7,6 +11,14 @@
     [class.is-rewind-returning]="isRewindAnimating"
     [class.has-swipe-intent]="!!swipeIntent"
     [class.is-placeholder-card]="isMatchPlaceHolder"
+    [class.is-photo-step-0]="mobilePhotoStep() === 0"
+    [class.is-photo-step-1]="mobilePhotoStep() === 1"
+    [class.is-photo-step-2]="mobilePhotoStep() === 2"
+    [class.is-photo-step-3]="mobilePhotoStep() === 3"
+    [class.is-mobile-photo-step-0]="mobilePhotoStep() === 0"
+    [class.is-mobile-photo-step-1]="mobilePhotoStep() === 1"
+    [class.is-mobile-photo-step-2]="mobilePhotoStep() === 2"
+    [class.is-mobile-photo-step-3]="mobilePhotoStep() === 3"
     [style.--swipe-x]="swipeX + 'px'"
     [style.--swipe-y]="swipeY + 'px'"
     [style.--swipe-rotate]="swipeRotation + 'deg'"
@@ -134,7 +146,7 @@
                     {{ t('discover.card.distanceKm', { count: getDistanceKmLabel() }) }}
                   </span>
                 }
-                @if (getCompatibilityHighlights().length) {
+                @if (hasCompatibilitySignals()) {
                   <div class="compatibility-strip">
                     <strong>
                       {{
@@ -177,15 +189,73 @@
           </ion-card-content>
         </div>
 
+        @if (!isMatchPlaceHolder && mobilePhotoStep() === 1 && getMobileInterests().length) {
+          <ion-card-content class="mobile-photo-detail mobile-photo-interests">
+            <p class="mobile-card-section-title">
+              <ion-icon name="sparkles-outline"></ion-icon>
+              {{ t('discover.interests') }}
+            </p>
+            <div class="mobile-card-chip-group">
+              @for (interest of getMobileInterests(); track $index) {
+                <span
+                  class="mobile-card-chip"
+                  [class.is-shared-interest]="isSharedInterest(interest)"
+                >
+                  {{ profileValueText(t, interest) }}
+                </span>
+              }
+            </div>
+          </ion-card-content>
+        }
+
+        @if (!isMatchPlaceHolder && mobilePhotoStep() === 2 && getMobileLifestyleItems().length) {
+          <ion-card-content class="mobile-photo-detail mobile-photo-lifestyle">
+            <p class="mobile-card-section-title">
+              <ion-icon name="id-card-outline"></ion-icon>
+              {{ t('discover.card.mobile.basicsLifestyle') }}
+            </p>
+            <div class="mobile-card-chip-group is-condensed">
+              @for (item of getMobileLifestyleItems(); track item.key) {
+                <span class="mobile-card-chip">
+                  <ion-icon [name]="item.icon"></ion-icon>
+                  {{ profileValueText(t, item.value) }}
+                </span>
+              }
+            </div>
+          </ion-card-content>
+        }
+
+        @if (!isMatchPlaceHolder && mobilePhotoStep() === 3 && (hasHeight() || matchProfile?.job)) {
+          <ion-card-content class="mobile-photo-detail mobile-photo-basics">
+            <div class="mobile-card-fact-list">
+              @if (hasHeight()) {
+                <span>
+                  <ion-icon name="resize-outline"></ion-icon>
+                  {{ t('discover.matchDetails.heightCm', { count: getHeightLabel() }) }}
+                </span>
+              }
+              @if (matchProfile?.job) {
+                <span>
+                  <ion-icon name="briefcase-outline"></ion-icon>
+                  {{ matchProfile?.job }}
+                </span>
+              }
+            </div>
+          </ion-card-content>
+        }
+
         @if (getVisibleInterests().length) {
-          <ion-card-content class="pos-abs bottom-30 d-flex flex-cols">
+          <ion-card-content class="pos-abs bottom-30 d-flex flex-cols desktop-card-interests">
             <p class="interests-title">
               <ion-icon name="heart-outline"></ion-icon>
               {{ t('discover.interests') }}
             </p>
             <div class="d-flex">
               @for (interest of getVisibleInterests(); track $index) {
-                <span class="interests m-r-1 m-t-1 border-rounded">
+                <span
+                  class="interests m-r-1 m-t-1 border-rounded"
+                  [class.is-shared-interest]="isSharedInterest(interest)"
+                >
                   {{ profileValueText(t, interest) }}
                 </span>
               }
@@ -256,4 +326,39 @@
       </div>
     </div>
   </ion-card>
+
+  @if (hasCompatibilityPanel()) {
+    <aside
+      class="desktop-compatibility-panel"
+      [attr.aria-label]="t('discover.card.compatibilityPanel.title')"
+    >
+      <span class="compatibility-panel-eyebrow">
+        {{ t('discover.card.compatibilityPanel.eyebrow') }}
+      </span>
+
+      <div class="compatibility-panel-score-row">
+        <div
+          class="compatibility-score-orb"
+          [style.--compatibility-score-arc]="getCompatibilityScoreArc()"
+        >
+          <strong>{{ getCompatibilityScore() }}</strong>
+          <span>%</span>
+        </div>
+        <div>
+          <strong>{{ t('discover.card.compatibilityPanel.title') }}</strong>
+          <span>{{ t('discover.card.compatibilityPanel.subtitle') }}</span>
+        </div>
+      </div>
+
+      <div class="compatibility-panel-signals">
+        @for (highlight of getCompatibilityHighlights(); track highlight.key) {
+          <span>
+            <ion-icon [name]="highlight.icon"></ion-icon>
+            {{ t('discover.card.compatibility.' + highlight.key, highlight.params) }}
+          </span>
+        }
+      </div>
+    </aside>
+  }
+  </div>
 </ng-container>

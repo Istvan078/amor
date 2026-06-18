@@ -20,23 +20,36 @@ import { TranslocoDirective } from '@jsverse/transloco';
 import { addIcons } from 'ionicons';
 import {
   arrowDownOutline,
+  atOutline,
+  barbellOutline,
+  briefcaseOutline,
   cameraOutline,
+  chatbubbleEllipsesOutline,
   chevronBackOutline,
   chevronForwardOutline,
   closeOutline,
   flashOutline,
   heartOutline,
+  idCardOutline,
   locationOutline,
   lockClosedOutline,
+  moonOutline,
+  pawOutline,
+  peopleOutline,
   returnUpBackOutline,
-  shieldCheckmarkOutline,
+  resizeOutline,
   sparklesOutline,
   star,
+  wineOutline,
 } from 'ionicons/icons';
 
 import { translatedProfileValue } from '../../../../shared/i18n/profile-value-labels';
 import { PublicProfile } from '../../../../shared/models/public-profile.model';
 import { UserClass } from '../../../../shared/models/user.model';
+import {
+  calculateMatchCompatibility,
+  isSharedProfileInterest,
+} from '../../utils/match-compatibility';
 
 @Component({
   selector: 'app-discover-match-card',
@@ -100,18 +113,27 @@ export class DiscoverMatchCardComponent implements OnChanges {
   constructor() {
     addIcons({
       arrowDownOutline,
+      atOutline,
+      barbellOutline,
+      briefcaseOutline,
       cameraOutline,
+      chatbubbleEllipsesOutline,
       chevronBackOutline,
       chevronForwardOutline,
       closeOutline,
       flashOutline,
       heartOutline,
+      idCardOutline,
       locationOutline,
       lockClosedOutline,
+      moonOutline,
+      pawOutline,
+      peopleOutline,
       returnUpBackOutline,
-      shieldCheckmarkOutline,
+      resizeOutline,
       sparklesOutline,
       star,
+      wineOutline,
     });
   }
 
@@ -259,6 +281,10 @@ export class DiscoverMatchCardComponent implements OnChanges {
     return Math.min(Math.max(this.photoIndex, 0), photoCount - 1);
   }
 
+  mobilePhotoStep() {
+    return Math.min(this.activePhotoIndex(), 3);
+  }
+
   currentPhotoUrl() {
     const photos = this.getMatchPhotos();
 
@@ -358,67 +384,87 @@ export class DiscoverMatchCardComponent implements OnChanges {
     return this.matchProfile?.interests?.slice(0, 3) ?? [];
   }
 
+  getMobileInterests() {
+    return this.matchProfile?.interests?.slice(0, 10) ?? [];
+  }
+
+  isSharedInterest(interest: unknown) {
+    return isSharedProfileInterest(this.userProfile, interest);
+  }
+
+  hasHeight() {
+    return Number.isFinite(Number(this.matchProfile?.heightCm));
+  }
+
+  getHeightLabel() {
+    return String(Math.round(Number(this.matchProfile?.heightCm)));
+  }
+
+  getMobileLifestyleItems() {
+    return [
+      {
+        key: 'pets',
+        icon: 'paw-outline',
+        value: this.matchProfile?.pets,
+      },
+      {
+        key: 'drinking',
+        icon: 'wine-outline',
+        value: this.matchProfile?.drinking,
+      },
+      {
+        key: 'workout',
+        icon: 'barbell-outline',
+        value: this.matchProfile?.workout,
+      },
+      {
+        key: 'socialMedia',
+        icon: 'at-outline',
+        value: this.matchProfile?.socialMedia,
+      },
+      {
+        key: 'smoking',
+        icon: 'sparkles-outline',
+        value: this.matchProfile?.smoking,
+      },
+    ]
+      .filter((item): item is { key: string; icon: string; value: string } => {
+        return typeof item.value === 'string' && !!item.value.trim();
+      })
+      .slice(0, 3);
+  }
+
   getCompatibilityScore() {
     if (this.isMatchPlaceHolder || !this.matchProfile?.uid) {
       return 0;
     }
 
-    const highlights = this.getCompatibilityHighlights();
-    const sharedInterestCount = Number(this.matchProfile.sharedInterestCount ?? 0);
-    const score =
-      56 +
-      highlights.length * 7 +
-      Math.min(sharedInterestCount, 4) * 3 +
-      (this.matchProfile.profileVerified ? 5 : 0);
+    return calculateMatchCompatibility(this.userProfile, this.matchProfile).score;
+  }
 
-    return Math.min(Math.max(score, 58), 96);
+  getCompatibilityScoreArc() {
+    return `${Math.max(0, Math.min(100, this.getCompatibilityScore())) * 3.6}deg`;
+  }
+
+  hasCompatibilitySignals() {
+    if (this.isMatchPlaceHolder || !this.matchProfile?.uid) {
+      return false;
+    }
+
+    return calculateMatchCompatibility(this.userProfile, this.matchProfile)
+      .signals.length > 0;
+  }
+
+  hasCompatibilityPanel() {
+    return !this.isMatchPlaceHolder && !!this.matchProfile?.uid;
   }
 
   getCompatibilityHighlights() {
-    const highlights: Array<{
-      key: string;
-      icon: string;
-      params?: Record<string, unknown>;
-    }> = [];
-    const sharedInterestCount = Number(this.matchProfile?.sharedInterestCount ?? 0);
-
-    if (sharedInterestCount > 0) {
-      highlights.push({
-        key: 'sharedInterests',
-        icon: 'heart-outline',
-        params: { count: sharedInterestCount },
-      });
-    }
-
-    if (this.hasSimilarRelationshipGoal()) {
-      highlights.push({
-        key: 'similarGoal',
-        icon: 'sparkles-outline',
-      });
-    }
-
-    if (this.hasVisibleDistance() && this.isNearbyMatch()) {
-      highlights.push({
-        key: 'nearby',
-        icon: 'location-outline',
-      });
-    }
-
-    if (this.isRecentlyActive()) {
-      highlights.push({
-        key: 'recentlyActive',
-        icon: 'flash-outline',
-      });
-    }
-
-    if (this.matchProfile?.profileVerified) {
-      highlights.push({
-        key: 'verified',
-        icon: 'shield-checkmark-outline',
-      });
-    }
-
-    return highlights.slice(0, 5);
+    return calculateMatchCompatibility(this.userProfile, this.matchProfile)
+      .signals
+      .filter((signal) => signal.ratio > 0)
+      .sort((first, second) => second.weight * second.ratio - first.weight * first.ratio)
+      .slice(0, 5);
   }
 
   getBoostMultiplierLabel() {
@@ -470,30 +516,6 @@ export class DiscoverMatchCardComponent implements OnChanges {
     }
 
     return null;
-  }
-
-  private hasSimilarRelationshipGoal() {
-    const myGoal = this.normalizeText(this.userProfile?.lookingForType);
-    const matchGoal = this.normalizeText(this.matchProfile?.lookingForType);
-
-    return !!myGoal && !!matchGoal && myGoal === matchGoal;
-  }
-
-  private isNearbyMatch() {
-    const distanceKm = Number(this.matchProfile?.distanceKm);
-    const preferredDistanceKm = Number(this.userProfile?.lookingForDistance ?? 50);
-
-    if (!Number.isFinite(distanceKm)) {
-      return false;
-    }
-
-    return distanceKm <= Math.max(Math.min(preferredDistanceKm, 50), 10);
-  }
-
-  private normalizeText(value: unknown) {
-    return typeof value === 'string'
-      ? value.trim().toLowerCase().replace(/\s+/g, ' ')
-      : '';
   }
 
   private getCommittedSwipeAction() {

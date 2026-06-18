@@ -151,12 +151,31 @@
       "previousPhoto": "El\u0151z\u0151 fot\u00f3",
       "nextPhoto": "K\u00f6vetkez\u0151 fot\u00f3",
       "compatibilityScore": "{{count}}% kompatibilit\u00e1s",
+      "compatibilityPanel": {
+        "eyebrow": "Pr\u00e9mium match elemz\u00e9s",
+        "title": "Match kompatibilit\u00e1s",
+        "subtitle": "K\u00f6z\u00f6s profiljelek \u00e9s sz\u00e1nd\u00e9kok alapj\u00e1n."
+      },
       "compatibility": {
         "sharedInterests": "{{count}} k\u00f6z\u00f6s \u00e9rdekl\u0151d\u00e9s",
         "similarGoal": "Hasonl\u00f3 kapcsolatc\u00e9l",
+        "sexualOrientation": "Azonos szexu\u00e1lis orient\u00e1ci\u00f3",
+        "zodiac": "Kompatibilis csillagjegyek",
+        "familyPlans": "Azonos csal\u00e1di tervek",
+        "communicationStyle": "Azonos kommunik\u00e1ci\u00f3s st\u00edlus",
+        "loveStyle": "Azonos szeretetnyelv",
+        "freeTimeAct": "{{count}} k\u00f6z\u00f6s szabadid\u0151s tev\u00e9kenys\u00e9g",
+        "pets": "Azonos kis\u00e1llat preferencia",
+        "drinking": "Azonos alkoholfogyaszt\u00e1si st\u00edlus",
+        "smoking": "Azonos doh\u00e1nyz\u00e1si preferencia",
+        "workout": "Azonos edz\u00e9si szok\u00e1s",
         "nearby": "K\u00f6zel van",
         "recentlyActive": "Mostan\u00e1ban akt\u00edv",
         "verified": "Ellen\u0151rz\u00f6tt"
+      },
+      "mobile": {
+        "basicsLifestyle": "Alapok \u00e9s \u00e9letm\u00f3d",
+        "showMore": "Tov\u00e1bbiak megjelen\u00edt\u00e9se"
       }
     },
     "locationFallback": {
@@ -249,6 +268,17 @@
       "reasons": {
         "nearby": "Közel van",
         "sharedInterests": "{{count}} közös érdeklődés",
+        "similarGoal": "Hasonló kapcsolatcél",
+        "sexualOrientation": "Azonos szexuális orientáció",
+        "zodiac": "Kompatibilis csillagjegyek",
+        "familyPlans": "Azonos családi tervek",
+        "communicationStyle": "Azonos kommunikációs stílus",
+        "loveStyle": "Azonos szeretetnyelv",
+        "freeTimeAct": "{{count}} közös szabadidős tevékenység",
+        "pets": "Azonos kisállat preferencia",
+        "drinking": "Azonos alkoholfogyasztási stílus",
+        "smoking": "Azonos dohányzási preferencia",
+        "workout": "Azonos edzési szokás",
         "ageRange": "Az életkor preferenciádon belül",
         "recentlyActive": "Mostanában aktív",
         "completeProfile": "Teljes profil",

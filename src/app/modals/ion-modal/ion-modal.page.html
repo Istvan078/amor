@@ -63,7 +63,8 @@
 
       <form class="auth-modal-form profile-form" #form="ngForm">
         @for(item of labels.userProfLabels; track $index) { @if(!item.setByApp && item.type !==
-        "select" && !item.setLaterInProf && item.type !== "range" && item.type !== "date") {
+        "select" && !item.setLaterInProf && item.type !== "range" && item.type !== "date" &&
+        item.type !== "premium-toggle") {
         <ion-item class="auth-modal-field">
           <ion-input
             [name]="item.key"

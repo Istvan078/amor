@@ -192,7 +192,9 @@
           </h3>
           <div class="match-detail-chip-group">
             @for (interest of matchProfile.interests; track $index) {
-              <span>{{ profileValueText(t, interest) }}</span>
+              <span [class.is-shared-interest]="isSharedInterest(interest)">
+                {{ profileValueText(t, interest) }}
+              </span>
             }
           </div>
         </section>
