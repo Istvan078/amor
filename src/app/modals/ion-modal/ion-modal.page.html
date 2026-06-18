@@ -3,9 +3,15 @@
   <ion-content class="auth-modal-content">
     <section class="auth-modal-shell account-step">
       <div class="auth-modal-heading">
-        <span>{{ t('auth.modal.accountEyebrow') }}</span>
-        <h2>{{ t('auth.modal.welcome') }}</h2>
+        <span>{{ t('auth.modal.stepLabel', { current: 1, total: 3 }) }}</span>
+        <h2>{{ t('auth.modal.accountTitle') }}</h2>
         <p>{{ t('auth.modal.accountIntro') }}</p>
+      </div>
+
+      <div class="auth-modal-stepper" aria-hidden="true">
+        <span class="is-active">1</span>
+        <span>2</span>
+        <span>3</span>
       </div>
 
       <form class="auth-modal-form" #accountForm="ngForm">
@@ -35,6 +41,24 @@
             type="password"
           ></ion-input>
         </ion-item>
+        <ion-item class="auth-modal-field">
+          <ion-input
+            name="passwordConfirm"
+            required
+            minlength="6"
+            labelPlacement="stacked"
+            [label]="t('auth.modal.repeatPasswordLabel')"
+            [(ngModel)]="passwordConfirm"
+            [placeholder]="t('auth.modal.repeatPasswordPlaceholder')"
+            autocomplete="new-password"
+            type="password"
+          ></ion-input>
+        </ion-item>
+        @if (passwordConfirm && !accountPasswordsMatch()) {
+        <p class="auth-modal-inline-error">
+          {{ t('auth.modal.passwordMismatch') }}
+        </p>
+        }
       </form>
     </section>
   </ion-content>
@@ -46,7 +70,7 @@
       </ion-button>
     </ion-buttons>
     <ion-buttons slot="end">
-      <ion-button class="primary-action" (click)="confirm()" [disabled]="accountForm.invalid">
+      <ion-button class="primary-action" (click)="confirm()" [disabled]="!canSubmitAccount(accountForm.invalid)">
         {{ t('auth.modal.createAccount') }}
         <ion-icon name="arrow-forward-outline" slot="end"></ion-icon>
       </ion-button>
@@ -56,19 +80,30 @@
   <ion-content class="auth-modal-content">
     <section class="auth-modal-shell profile-step">
       <div class="auth-modal-heading">
-        <span>{{ t('auth.modal.profileEyebrow') }}</span>
-        <h2>{{ t('auth.modal.basicData') }}</h2>
-        <p>{{ t('auth.modal.profileIntro') }}</p>
+        <span>
+          {{ t('auth.modal.stepLabel', { current: profileStepNumber, total: 3 }) }}
+          @if (profileStepOptionalKey) {
+          <em>{{ t(profileStepOptionalKey) }}</em>
+          }
+        </span>
+        <h2>{{ t(profileStepTitleKey) }}</h2>
+        <p>{{ t(profileStepIntroKey) }}</p>
+      </div>
+
+      <div class="auth-modal-stepper" aria-hidden="true">
+        <span class="is-complete">1</span>
+        <span [class.is-active]="profileStep === 'basic'" [class.is-complete]="profileStep === 'lifestyle'">2</span>
+        <span [class.is-active]="profileStep === 'lifestyle'">3</span>
       </div>
 
       <form class="auth-modal-form profile-form" #form="ngForm">
-        @for(item of labels.userProfLabels; track $index) { @if(!item.setByApp && item.type !==
+        @for(item of profileFieldsForActiveStep(); track item.key) { @if(!item.setByApp && item.type !==
         "select" && !item.setLaterInProf && item.type !== "range" && item.type !== "date" &&
         item.type !== "premium-toggle") {
         <ion-item class="auth-modal-field">
           <ion-input
             [name]="item.key"
-            required
+            [required]="profileStep === 'basic'"
             labelPlacement="stacked"
             [label]="fieldLabel(t, item)"
             [(ngModel)]="userProf[item.key]"
@@ -82,7 +117,7 @@
             toggleIcon="chevron-down-outline"
             [interfaceOptions]="selectInterfaceOptions"
             [name]="item.key"
-            required
+            [required]="profileStep === 'basic'"
             (ionChange)="userProf[item.key] = $event.detail.value"
             labelPlacement="stacked"
             [label]="fieldLabel(t, item)"
@@ -99,7 +134,7 @@
         <input
           class="auth-hidden-control"
           [name]="item.key"
-          required
+          [required]="profileStep === 'basic'"
           [(ngModel)]="userProf[item.key]"
         />
         <ion-item
@@ -161,16 +196,37 @@
   </ion-content>
   <ion-toolbar class="auth-modal-toolbar">
     <ion-buttons slot="start">
-      <ion-button class="secondary-action" (click)="cancel()">
-        <ion-icon name="close-outline" slot="start"></ion-icon>
-        {{ t('common.cancel') }}
+      <ion-button
+        class="secondary-action"
+        (click)="profileStep === 'lifestyle' ? goToBasicStep() : cancel()"
+      >
+        <ion-icon
+          [name]="profileStep === 'lifestyle' ? 'arrow-back-outline' : 'close-outline'"
+          slot="start"
+        ></ion-icon>
+        {{ profileStep === 'lifestyle' ? t('common.back') : t('common.cancel') }}
       </ion-button>
     </ion-buttons>
     <ion-buttons slot="end">
-      <ion-button class="primary-action" [disabled]="!form.valid" (click)="confirm()">
-        {{ t('auth.modal.next') }}
+      @if (profileStep === 'basic') {
+      <ion-button
+        class="primary-action"
+        [disabled]="!form.valid || !isBasicProfileStepValid()"
+        (click)="goToLifestyleStep()"
+      >
+        {{ t('auth.modal.continueToLifestyle') }}
         <ion-icon name="arrow-forward-outline" slot="end"></ion-icon>
       </ion-button>
+      } @else {
+      <ion-button
+        class="primary-action"
+        [disabled]="!isBasicProfileStepValid()"
+        (click)="confirm()"
+      >
+        {{ t('auth.modal.finishProfile') }}
+        <ion-icon name="checkmark-outline" slot="end"></ion-icon>
+      </ion-button>
+      }
     </ion-buttons>
   </ion-toolbar>
   } @if(myPhotos.length) {
