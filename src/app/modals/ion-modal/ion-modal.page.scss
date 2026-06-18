@@ -4,43 +4,71 @@
   height: 100%;
   min-height: 0;
   color: #ffffff;
-  background:
-    radial-gradient(circle at 14% 0%, rgba(255, 93, 143, 0.18), transparent 38%),
-    radial-gradient(circle at 100% 14%, rgba(255, 122, 89, 0.14), transparent 34%),
-    linear-gradient(135deg, #111729 0%, #171d33 56%, #101526 100%);
-  --modal-bg: #101526;
-  --modal-panel: rgba(255, 255, 255, 0.075);
-  --modal-line: rgba(255, 255, 255, 0.14);
-  --modal-muted: rgba(255, 255, 255, 0.66);
+  background: var(--modal-bg-gradient);
+  --modal-bg-gradient:
+    radial-gradient(circle at 12% -4%, rgba(255, 93, 143, 0.2), transparent 38%),
+    radial-gradient(circle at 96% 10%, rgba(142, 86, 210, 0.16), transparent 34%),
+    radial-gradient(circle at 48% 110%, rgba(126, 30, 65, 0.25), transparent 42%),
+    linear-gradient(135deg, #101426 0%, #191a35 52%, #130f22 100%);
+  --modal-bg: #130f22;
+  --modal-panel: rgba(255, 255, 255, 0.088);
+  --modal-panel-strong: rgba(255, 255, 255, 0.118);
+  --modal-line: rgba(255, 255, 255, 0.16);
+  --modal-muted: rgba(255, 255, 255, 0.76);
+  --modal-muted-strong: rgba(255, 255, 255, 0.84);
   --modal-rose: #ff5d8f;
   --modal-coral: #ff7a59;
   --modal-gold: #f2c76e;
+  --modal-error: #ff8aa9;
+  --modal-error-soft: rgba(255, 105, 145, 0.14);
 }
 
 ion-content.auth-modal-content {
   flex: 1 1 auto;
   min-height: 0;
   height: auto;
-  --background:
-    radial-gradient(circle at 14% 0%, rgba(255, 93, 143, 0.18), transparent 38%),
-    radial-gradient(circle at 100% 14%, rgba(255, 122, 89, 0.14), transparent 34%),
-    linear-gradient(135deg, #111729 0%, #171d33 56%, #101526 100%);
+  --background: var(--modal-bg-gradient);
   --color: #ffffff;
 }
 
 ion-content.auth-modal-content::part(background) {
-  background:
-    radial-gradient(circle at 14% 0%, rgba(255, 93, 143, 0.18), transparent 38%),
-    radial-gradient(circle at 100% 14%, rgba(255, 122, 89, 0.14), transparent 34%),
-    linear-gradient(135deg, #111729 0%, #171d33 56%, #101526 100%);
+  background: var(--modal-bg-gradient);
+}
+
+ion-content.auth-modal-content::part(scroll) {
+  scrollbar-color: rgba(255, 93, 143, 0.52) rgba(255, 255, 255, 0.055);
+  scrollbar-gutter: stable;
+  scrollbar-width: thin;
+}
+
+ion-content.auth-modal-content::part(scroll)::-webkit-scrollbar {
+  width: 10px;
+}
+
+ion-content.auth-modal-content::part(scroll)::-webkit-scrollbar-track {
+  background: rgba(255, 255, 255, 0.045);
+  border-radius: 999px;
+}
+
+ion-content.auth-modal-content::part(scroll)::-webkit-scrollbar-thumb {
+  border: 2px solid rgba(17, 18, 34, 0.92);
+  border-radius: 999px;
+  background: linear-gradient(180deg, rgba(255, 93, 143, 0.78), rgba(255, 122, 89, 0.64));
 }
 
 .auth-modal-shell {
+  position: relative;
   min-height: 100%;
   padding: clamp(22px, 4vw, 38px);
 }
 
+.profile-step {
+  padding-bottom: calc(clamp(22px, 4vw, 38px) + 92px);
+}
+
 .auth-modal-heading {
+  position: relative;
+  z-index: 1;
   max-width: 560px;
   margin-bottom: 24px;
 }
@@ -71,6 +99,8 @@ ion-content.auth-modal-content::part(background) {
 }
 
 .auth-modal-form {
+  position: relative;
+  z-index: 1;
   display: grid;
   gap: 14px;
 }
@@ -94,34 +124,79 @@ ion-content.auth-modal-content::part(background) {
 }
 
 .auth-modal-field {
+  position: relative;
+  isolation: isolate;
   min-height: 76px;
   overflow: hidden;
   border: 1px solid var(--modal-line);
   border-radius: 18px;
-  --background: var(--modal-panel);
+  background: rgba(20, 23, 42, 0.9);
+  --background: transparent;
+  --background-activated: transparent;
+  --background-activated-opacity: 0;
+  --background-focused: transparent;
+  --background-focused-opacity: 0;
+  --background-hover: transparent;
+  --background-hover-opacity: 0;
   --border-color: transparent;
   --border-radius: 18px;
   --color: #ffffff;
   --highlight-color-focused: var(--modal-rose);
+  --highlight-color-invalid: var(--modal-error);
   --inner-padding-end: 16px;
   --padding-bottom: 6px;
   --padding-end: 4px;
   --padding-start: 16px;
   --padding-top: 6px;
+  --ripple-color: rgba(255, 93, 143, 0.16);
   backdrop-filter: blur(14px);
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.08),
+    0 14px 30px rgba(0, 0, 0, 0.14);
+  transition:
+    border-color 160ms ease,
+    box-shadow 160ms ease,
+    transform 160ms ease;
 }
 
 .auth-modal-field::part(native) {
-  background: linear-gradient(135deg, rgba(255, 255, 255, 0.11), rgba(255, 255, 255, 0.055));
-  border-radius: 18px;
+  position: relative;
+  z-index: 0;
+  overflow: hidden;
+  border-radius: inherit;
+  background:
+    radial-gradient(circle at 0% 0%, rgba(255, 93, 143, 0.055), transparent 34%),
+    linear-gradient(135deg, rgba(255, 255, 255, 0.13), rgba(255, 255, 255, 0.065));
+}
+
+.auth-modal-field:hover {
+  border-color: rgba(255, 209, 220, 0.3);
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.1),
+    0 18px 38px rgba(0, 0, 0, 0.2);
+}
+
+.auth-modal-field:hover::part(native) {
+  background:
+    radial-gradient(circle at 12% 0%, rgba(255, 93, 143, 0.095), transparent 32%),
+    linear-gradient(135deg, rgba(255, 255, 255, 0.145), rgba(255, 255, 255, 0.075));
 }
 
 .auth-modal-field ion-input,
 .auth-modal-field ion-select {
+  position: relative;
+  z-index: 1;
   --color: #ffffff;
   --highlight-color-focused: var(--modal-rose);
-  --placeholder-color: rgba(255, 255, 255, 0.38);
+  --highlight-color-invalid: var(--modal-error);
+  --highlight-color-valid: #9bf0e6;
+  --placeholder-color: rgba(255, 255, 255, 0.52);
   font-weight: 700;
+}
+
+.auth-modal-field ion-icon {
+  position: relative;
+  z-index: 1;
 }
 
 .auth-modal-field ion-select::part(icon) {
@@ -136,16 +211,21 @@ ion-content.auth-modal-content::part(background) {
 }
 
 .auth-modal-field ion-select::part(placeholder) {
-  color: rgba(255, 255, 255, 0.38);
+  color: rgba(255, 255, 255, 0.54);
   opacity: 1;
 }
 
 .auth-modal-field ion-input::part(label),
 .auth-modal-field ion-select::part(label) {
-  color: rgba(255, 255, 255, 0.7);
-  font-size: 12px;
+  color: var(--modal-muted-strong);
+  font-size: 12.5px;
   font-weight: 900;
   letter-spacing: 0;
+}
+
+.auth-modal-field ion-input::part(error-text),
+.auth-modal-field ion-select::part(error-text) {
+  color: var(--modal-error);
 }
 
 .auth-modal-date-field {
@@ -158,6 +238,8 @@ ion-content.auth-modal-content::part(background) {
 }
 
 .auth-modal-date-value {
+  position: relative;
+  z-index: 1;
   display: grid;
   gap: 7px;
   min-width: 0;
@@ -166,8 +248,8 @@ ion-content.auth-modal-content::part(background) {
 
 .auth-modal-date-value span,
 .auth-modal-range-head span {
-  color: rgba(255, 255, 255, 0.7);
-  font-size: 12px;
+  color: var(--modal-muted-strong);
+  font-size: 12.5px;
   font-weight: 900;
 }
 
@@ -180,25 +262,32 @@ ion-content.auth-modal-content::part(background) {
 }
 
 .auth-modal-date-value strong.is-placeholder {
-  color: rgba(255, 255, 255, 0.38);
+  color: rgba(255, 255, 255, 0.56);
 }
 
 .auth-modal-range-card {
+  position: relative;
+  isolation: isolate;
   grid-column: 1 / -1;
   display: grid;
   gap: 16px;
   min-height: 124px;
   padding: 18px;
+  overflow: hidden;
   border: 1px solid var(--modal-line);
   border-radius: 20px;
-  background: linear-gradient(135deg, rgba(255, 255, 255, 0.11), rgba(255, 255, 255, 0.055));
+  background:
+    radial-gradient(circle at 100% 0%, rgba(242, 199, 110, 0.095), transparent 32%),
+    linear-gradient(135deg, rgba(255, 255, 255, 0.13), rgba(255, 255, 255, 0.066));
   box-shadow:
-    inset 0 1px 0 rgba(255, 255, 255, 0.08),
-    0 16px 36px rgba(0, 0, 0, 0.18);
+    inset 0 1px 0 rgba(255, 255, 255, 0.1),
+    0 16px 36px rgba(0, 0, 0, 0.2);
   backdrop-filter: blur(14px);
 }
 
 .auth-modal-range-head {
+  position: relative;
+  z-index: 1;
   display: flex;
   align-items: baseline;
   justify-content: space-between;
@@ -206,6 +295,8 @@ ion-content.auth-modal-content::part(background) {
 }
 
 .auth-modal-range {
+  position: relative;
+  z-index: 1;
   width: 100%;
   padding-inline: 0;
 }
@@ -234,11 +325,12 @@ ion-range ion-icon {
   flex: 0 0 auto;
   position: relative;
   z-index: 2;
-  --background: rgba(13, 18, 36, 0.96);
-  --border-color: rgba(255, 255, 255, 0.12);
+  --background: rgba(15, 15, 31, 0.97);
+  --border-color: rgba(255, 255, 255, 0.14);
   --color: #ffffff;
   border-top: 1px solid rgba(255, 255, 255, 0.1);
   padding: 12px clamp(14px, 3vw, 28px);
+  box-shadow: 0 -16px 34px rgba(5, 6, 14, 0.28);
 }
 
 .auth-modal-toolbar ion-buttons {
@@ -263,8 +355,13 @@ ion-range ion-icon {
   min-width: 140px;
 }
 
-.auth-modal-toolbar .primary-action[disabled] {
-  opacity: 0.42;
+.auth-modal-toolbar .primary-action[disabled],
+.auth-modal-toolbar .primary-action.button-disabled {
+  --background: linear-gradient(135deg, rgba(255, 255, 255, 0.11), rgba(255, 255, 255, 0.06));
+  --background-hover: linear-gradient(135deg, rgba(255, 255, 255, 0.11), rgba(255, 255, 255, 0.06));
+  --box-shadow: none;
+  --color: rgba(255, 255, 255, 0.48);
+  opacity: 1;
 }
 
 .auth-modal-toolbar .secondary-action {

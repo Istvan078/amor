@@ -262,7 +262,10 @@ ion-modal.amor-auth-modal {
 ion-modal.amor-auth-modal::part(content) {
   overflow: hidden;
   border: 1px solid rgba(255, 255, 255, 0.16);
-  background: #101526;
+  background:
+    radial-gradient(circle at 12% -4%, rgba(255, 93, 143, 0.16), transparent 38%),
+    radial-gradient(circle at 96% 10%, rgba(142, 86, 210, 0.12), transparent 34%),
+    linear-gradient(135deg, #101426 0%, #191a35 52%, #130f22 100%);
 }
 
 ion-popover.amor-auth-select-popover {
@@ -277,8 +280,9 @@ ion-popover.amor-auth-date-popover::part(content) {
   border: 1px solid rgba(255, 255, 255, 0.16);
   border-radius: 22px;
   background:
-    radial-gradient(circle at 0% 0%, rgba(255, 93, 143, 0.16), transparent 42%),
-    linear-gradient(135deg, #171d31, #101526);
+    radial-gradient(circle at 0% 0%, rgba(255, 93, 143, 0.17), transparent 42%),
+    radial-gradient(circle at 100% 0%, rgba(142, 86, 210, 0.12), transparent 34%),
+    linear-gradient(135deg, #191a35, #130f22);
   color: #ffffff;
   box-shadow: 0 24px 70px rgba(0, 0, 0, 0.48);
 }
