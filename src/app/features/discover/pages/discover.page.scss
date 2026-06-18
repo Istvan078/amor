@@ -122,8 +122,7 @@ app-discover {
     border: 1px solid rgba(255, 255, 255, 0.11);
     border-radius: 8px;
     background:
-      linear-gradient(135deg, rgba(255, 93, 143, 0.16), transparent 48%),
-      rgba(16, 20, 35, 0.72);
+      linear-gradient(135deg, rgba(255, 93, 143, 0.16), transparent 48%), rgba(16, 20, 35, 0.72);
     box-shadow: 0 18px 48px rgba(4, 8, 18, 0.3);
     pointer-events: auto;
     backdrop-filter: blur(18px);
@@ -3931,15 +3930,15 @@ app-discover {
     }
 
     .profile-save-actions {
-      position: sticky;
+      position: fixed;
       z-index: 12;
-      bottom: calc(72px + env(safe-area-inset-bottom));
+      bottom: 0.2rem;
       display: flex;
       justify-content: center;
       grid-template-columns: none;
       width: min(100%, 300px);
-      margin: 0 auto 14px;
-      padding: 8px;
+      margin: 0 auto 0;
+      padding: 8px 8px 0 8px;
       border: 1px solid rgba(255, 255, 255, 0.12);
       border-radius: 999px;
       background: rgba(3, 6, 15, 0.82);
@@ -4028,6 +4027,7 @@ app-discover {
     .user-card {
       height: clamp(500px, calc(100dvh - 150px), 660px);
       min-height: 0;
+      margin-top: 0.5rem;
     }
 
     .user-card.is-placeholder-card {

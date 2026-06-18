@@ -1,6 +1,7 @@
 import {
   Component,
   HostListener,
+  Input,
   OnDestroy,
   OnInit,
   ViewEncapsulation,
@@ -109,43 +110,44 @@ export class DiscoverPage implements OnInit, OnDestroy {
   isLoadingMoreCandidates = false;
   verificationSubmitting = false;
   pictureUploadState: PictureUploadState = { phase: 'idle' };
+  hideProfileSaveButton = false;
 
   readonly discoveryFeedModes: Array<{
     mode: DiscoveryFeedMode;
     labelKey: string;
   }> = [
-    { mode: 'recommended', labelKey: 'discover.feed.recommended' },
-    { mode: 'nearby', labelKey: 'discover.feed.nearby' },
-    { mode: 'recentlyActive', labelKey: 'discover.feed.recentlyActive' },
-    { mode: 'newProfiles', labelKey: 'discover.feed.newProfiles' },
-  ];
+      { mode: 'recommended', labelKey: 'discover.feed.recommended' },
+      { mode: 'nearby', labelKey: 'discover.feed.nearby' },
+      { mode: 'recentlyActive', labelKey: 'discover.feed.recentlyActive' },
+      { mode: 'newProfiles', labelKey: 'discover.feed.newProfiles' },
+    ];
 
   readonly premiumDiscoveryFilterButtons: Array<{
     key: keyof DiscoveryPremiumFilters;
     labelKey: string;
     value: number | boolean;
   }> = [
-    {
-      key: 'maxDistanceKm',
-      labelKey: 'discover.feed.filters.closeRange',
-      value: 25,
-    },
-    {
-      key: 'recentlyActiveOnly',
-      labelKey: 'discover.feed.filters.active',
-      value: true,
-    },
-    {
-      key: 'verifiedOnly',
-      labelKey: 'discover.feed.filters.verified',
-      value: true,
-    },
-    {
-      key: 'minSharedInterests',
-      labelKey: 'discover.feed.filters.sharedInterests',
-      value: 2,
-    },
-  ];
+      {
+        key: 'maxDistanceKm',
+        labelKey: 'discover.feed.filters.closeRange',
+        value: 25,
+      },
+      {
+        key: 'recentlyActiveOnly',
+        labelKey: 'discover.feed.filters.active',
+        value: true,
+      },
+      {
+        key: 'verifiedOnly',
+        labelKey: 'discover.feed.filters.verified',
+        value: true,
+      },
+      {
+        key: 'minSharedInterests',
+        labelKey: 'discover.feed.filters.sharedInterests',
+        value: 2,
+      },
+    ];
 
   hasPremiumAccess = false;
   hasRewindCandidate = false;
@@ -383,8 +385,8 @@ export class DiscoverPage implements OnInit, OnDestroy {
     this.routeQueryParamSubscription?.unsubscribe();
     this.routeQueryParamSubscription = this.chatFacade.listenForDeepLinks({
       messageMatchUid: (matchUid) => {
-          this.pendingMessageMatchUid = matchUid;
-          void this.resolvePendingMessageDeepLink();
+        this.pendingMessageMatchUid = matchUid;
+        void this.resolvePendingMessageDeepLink();
       },
       targetProfileUid: (targetUid) => {
         this.pendingTargetProfileUid = targetUid;
@@ -1386,6 +1388,12 @@ export class DiscoverPage implements OnInit, OnDestroy {
       lastMessage: this.getSentMessagePreviewText(event.message),
       unreadCount: existingPreview?.unreadCount ?? 0,
     });
+  }
+
+  onProfileScroll(event: CustomEvent) {
+    const scrollTop = event.detail.scrollTop ?? 0;
+
+    this.hideProfileSaveButton = scrollTop < 2200;
   }
 
   private getSentMessagePreviewText(message: Message) {

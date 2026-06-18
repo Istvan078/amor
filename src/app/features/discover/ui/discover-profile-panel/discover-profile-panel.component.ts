@@ -124,6 +124,7 @@ export class DiscoverProfilePanelComponent implements AfterViewChecked, OnChange
   };
   readonly minimumDatingAge = 18;
 
+
   @Input() userProfile!: UserClass;
   @Input() labels: any = {};
   @Input() options = new Options();
@@ -131,6 +132,7 @@ export class DiscoverProfilePanelComponent implements AfterViewChecked, OnChange
   @Input() startUpdate = false;
   @Input() billingCurrent: BillingCurrent | null = null;
   @Input() isPremium = false;
+  @Input() hideSaveButton = false;
   @Input() activeEntitlements: string[] = [];
   @Input() superLikesBalance = 0;
   @Input() isProfileBoostActive = false;

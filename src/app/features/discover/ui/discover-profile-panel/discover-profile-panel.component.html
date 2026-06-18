@@ -42,11 +42,7 @@
           </ion-card>
 
           <div class="profile-actions">
-            <ion-button
-              class="profile-edit-button"
-              (click)="requestProfileEdit()"
-              fill="solid"
-            >
+            <ion-button class="profile-edit-button" (click)="requestProfileEdit()" fill="solid">
               <ion-icon name="create-outline" slot="start"></ion-icon>
               {{ t('discover.profile.edit') }}
             </ion-button>
@@ -85,10 +81,7 @@
             </section>
           }
 
-          <section
-            class="profile-completion-card"
-            [class.is-ready]="profileReadyForDiscovery()"
-          >
+          <section class="profile-completion-card" [class.is-ready]="profileReadyForDiscovery()">
             <div class="profile-completion-head">
               <div>
                 <small>{{ t('profile.completion.eyebrow') }}</small>
@@ -277,17 +270,18 @@
                 <span>{{ t('discover.profile.editing') }}</span>
               </div>
 
-              <div class="profile-actions profile-save-actions">
-                <ion-button
-                  class="profile-save-button"
-                  [disabled]="!hasMinimumPhotos()"
-                  (click)="profileUpdated.emit()"
-                >
-                  <ion-icon name="save-outline" slot="start"></ion-icon>
-                  {{ t('common.save') }}
-                </ion-button>
-              </div>
-
+              @if (!hideSaveButton) {
+                <div class="profile-actions profile-save-actions">
+                  <ion-button
+                    class="profile-save-button"
+                    [disabled]="!hasMinimumPhotos()"
+                    (click)="profileUpdated.emit()"
+                  >
+                    <ion-icon name="save-outline" slot="start"></ion-icon>
+                    {{ t('common.save') }}
+                  </ion-button>
+                </div>
+              }
               <ion-list>
                 @for (lab of labels.userProfLabels; track $index) {
                   @if (lab.type === 'text-area') {
@@ -452,7 +446,9 @@
                     <div class="profile-editor-upload-card" [class.is-maxed]="!canAddMorePhotos()">
                       <div class="profile-editor-upload-copy">
                         <span>{{ fieldLabel(t, lab) }}</span>
-                        <strong [class.is-placeholder]="!selectedFiles.length && canAddMorePhotos()">
+                        <strong
+                          [class.is-placeholder]="!selectedFiles.length && canAddMorePhotos()"
+                        >
                           {{
                             selectedFiles.length
                               ? selectedFileNames()
@@ -465,7 +461,7 @@
                           {{
                             t('profile.photos.count', {
                               count: photoCount(),
-                              max: maxPhotos
+                              max: maxPhotos,
                             })
                           }}
                         </small>
@@ -490,13 +486,13 @@
                       </ion-button>
                       <ion-button
                         class="profile-upload-button"
-                        [disabled]="!selectedFiles.length || !canAddMorePhotos() || isPictureUploadActive()"
+                        [disabled]="
+                          !selectedFiles.length || !canAddMorePhotos() || isPictureUploadActive()
+                        "
                         (click)="picturesSaved.emit()"
                       >
                         {{
-                          isPictureUploadActive()
-                            ? t(pictureUploadStatusKey())
-                            : t('common.upload')
+                          isPictureUploadActive() ? t(pictureUploadStatusKey()) : t('common.upload')
                         }}
                       </ion-button>
                       @if (pictureUploadState.phase !== 'idle') {
@@ -524,7 +520,7 @@
                             {{
                               t('profile.photos.count', {
                                 count: photoCount(),
-                                max: maxPhotos
+                                max: maxPhotos,
                               })
                             }}
                           </strong>
@@ -578,7 +574,9 @@
                                   [disabled]="isPrimaryPhoto(i)"
                                   [attr.aria-label]="t('profile.photos.makePrimary')"
                                   [title]="t('profile.photos.makePrimary')"
-                                  (click)="$event.stopPropagation(); profilePhotoPrimarySelected.emit(i)"
+                                  (click)="
+                                    $event.stopPropagation(); profilePhotoPrimarySelected.emit(i)
+                                  "
                                 >
                                   <ion-icon name="star-outline"></ion-icon>
                                 </ion-button>

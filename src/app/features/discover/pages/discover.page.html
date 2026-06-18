@@ -1,4 +1,4 @@
-<ion-content [fullscreen]="true">
+<ion-content [scrollEvents]="true" (ionScroll)="onProfileScroll($event)" [fullscreen]="true">
   @if(user?.uid){
   <div id="main-container">
     <app-discover-sidebar
@@ -154,6 +154,7 @@
         [canOpenAdmin]="canOpenAdminPanelResult"
         [verificationSubmitting]="verificationSubmitting"
         [pictureUploadState]="pictureUploadState"
+        [hideSaveButton]="hideProfileSaveButton"
         (startUpdateRequested)="startUpdateUserProf()"
         (profilePictureOpened)="showProfPics($event)"
         (picturesSaved)="savePictures()"
