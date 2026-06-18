@@ -450,14 +450,44 @@ export class DiscoverPage implements OnInit, OnDestroy {
     }
 
     const targetUid = this.pendingTargetProfileUid;
+    const myUid = this.userProf?.uid ?? this.authStore.user()?.uid;
 
-    if (!targetUid || targetUid === this.userProf?.uid) {
+    if (!targetUid || targetUid === this.userProf?.uid || !myUid) {
       return;
     }
 
     this.resolvingTargetProfileDeepLink = true;
 
     try {
+      const isAlreadyMatch = await this.ensureDeepLinkedMatchIsAvailable(
+        myUid,
+        targetUid
+      );
+
+      if (isAlreadyMatch) {
+        let match = this.matches.find(
+          (matchProfile) => matchProfile.uid === targetUid
+        );
+
+        if (!match) {
+          match = await this.discoverFacade.getPossibleMatchProfile(targetUid);
+
+          if (match?.uid) {
+            this.matches = this.addMatchLocally(this.matches, match);
+            this.discoverFacade.addMatch(match);
+          }
+        }
+
+        if (match?.uid) {
+          this.removeCandidateLocally(targetUid);
+          this.matchConversationPreviewsStore.start(this.userProf, this.matches);
+          this.openMessWithMatch(match);
+        }
+
+        this.pendingTargetProfileUid = null;
+        await this.chatFacade.clearDiscoverDeepLink();
+        return;
+      }
       const targetProfile =
         await this.discoverFacade.getPossibleMatchProfile(targetUid);
 
@@ -1201,12 +1231,17 @@ export class DiscoverPage implements OnInit, OnDestroy {
 
     await this.changeMatchProf();
 
+    if (likedProfile.uid) {
+      this.removeCandidateLocally(likedProfile.uid);
+    }
+
     if (newMatch) {
       await this.openItsAMatchModal(newMatch);
     }
   }
 
   async dislikeCurrentMatch() {
+    const dislikedUid = this.matchProf?.uid;
     if (this.matchProf?.uid) {
       this.rewindStack = [
         this.matchProf,
@@ -1219,6 +1254,9 @@ export class DiscoverPage implements OnInit, OnDestroy {
     await this.likeOrDontUser(this.matchProf, false, true);
     this.removeLikedByProfile(this.matchProf?.uid);
     await this.changeMatchProf();
+    if (dislikedUid) {
+      this.removeCandidateLocally(dislikedUid);
+    }
     this.syncMatchActionState();
   }
 
@@ -1310,6 +1348,9 @@ export class DiscoverPage implements OnInit, OnDestroy {
     );
 
     await this.changeMatchProf();
+    if (superLikedProfile.uid) {
+      this.removeCandidateLocally(superLikedProfile.uid);
+    }
     this.syncMatchActionState();
 
     if (newMatch) {
@@ -1422,6 +1463,13 @@ export class DiscoverPage implements OnInit, OnDestroy {
     }
 
     return '';
+  }
+
+  private removeCandidateLocally(uid: string) {
+    this.discoverStore.removeCandidate(uid);
+    this.matchProfiles = this.matchProfiles.filter((profile) => profile.uid !== uid);
+    this.possibleMatchIds = this.possibleMatchIds.filter((candidateUid) => candidateUid !== uid);
+    this.loadedMatchProfileUids.delete(uid);
   }
 
   handleMatchRemoved(matchProfile: PublicProfile) {

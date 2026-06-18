@@ -479,6 +479,15 @@ export const DiscoverStore = signalStore(
                 });
             },
 
+            removeCandidate(uid: string) {
+                const { [uid]: _removed, ...candidateSummaries } = store.candidateSummaries();
+
+                patchState(store, {
+                    possibleMatchIds: store.possibleMatchIds().filter((candidateUid) => candidateUid !== uid),
+                    candidateSummaries,
+                });
+            },
+
             async loadMoreCandidates() {
                 if (store.loadingMoreCandidates() || !store.candidateHasMore()) {
                     return false;
