@@ -9,9 +9,18 @@
       </div>
 
       <div class="auth-modal-stepper" aria-hidden="true">
-        <span class="is-active">1</span>
-        <span>2</span>
-        <span>3</span>
+        <span class="auth-modal-step is-active">
+          <strong>1</strong>
+          <small>{{ t('auth.modal.stepAccountShort') }}</small>
+        </span>
+        <span class="auth-modal-step">
+          <strong>2</strong>
+          <small>{{ t('auth.modal.stepBasicShort') }}</small>
+        </span>
+        <span class="auth-modal-step">
+          <strong>3</strong>
+          <small>{{ t('auth.modal.stepLifestyleShort') }}</small>
+        </span>
       </div>
 
       <form class="auth-modal-form" #accountForm="ngForm">
@@ -91,13 +100,76 @@
       </div>
 
       <div class="auth-modal-stepper" aria-hidden="true">
-        <span class="is-complete">1</span>
-        <span [class.is-active]="profileStep === 'basic'" [class.is-complete]="profileStep === 'lifestyle'">2</span>
-        <span [class.is-active]="profileStep === 'lifestyle'">3</span>
+        <span class="auth-modal-step is-complete">
+          <strong>1</strong>
+          <small>{{ t('auth.modal.stepAccountShort') }}</small>
+        </span>
+        <span
+          class="auth-modal-step"
+          [class.is-active]="profileStep === 'basic'"
+          [class.is-complete]="profileStep === 'lifestyle'"
+        >
+          <strong>2</strong>
+          <small>{{ t('auth.modal.stepBasicShort') }}</small>
+        </span>
+        <span class="auth-modal-step" [class.is-active]="profileStep === 'lifestyle'">
+          <strong>3</strong>
+          <small>{{ t('auth.modal.stepLifestyleShort') }}</small>
+        </span>
       </div>
 
       <form class="auth-modal-form profile-form" #form="ngForm">
-        @for(item of profileFieldsForActiveStep(); track item.key) { @if(!item.setByApp && item.type !==
+        @for(item of profileFieldsForActiveStep(); track item.key) {
+        @if(item.key === "currentPlace") {
+        <ion-item class="auth-modal-field auth-modal-location-field">
+          <ion-input
+            [name]="item.key"
+            required
+            labelPlacement="stacked"
+            [label]="fieldLabel(t, item)"
+            [(ngModel)]="userProf[item.key]"
+            [placeholder]="locationLoading ? t('auth.modal.locationDetecting') : t('auth.modal.locationPlaceholder')"
+            type="text"
+          ></ion-input>
+          <ion-button
+            class="auth-modal-field-icon-button"
+            fill="clear"
+            slot="end"
+            type="button"
+            [attr.aria-label]="t('auth.modal.detectLocation')"
+            [disabled]="locationLoading"
+            (click)="detectCurrentLocation(true)"
+          >
+            <ion-icon [name]="locationLoading ? 'sync-outline' : 'location-outline'"></ion-icon>
+          </ion-button>
+        </ion-item>
+        @if(locationErrorKey) {
+        <p class="auth-modal-field-note is-error">{{ t(locationErrorKey) }}</p>
+        }
+        } @if(item.key === "lookingForDistance") {
+        <div class="auth-modal-distance-card">
+          <div class="auth-modal-distance-head">
+            <span>{{ fieldLabel(t, item) }}</span>
+            <strong>{{ userProf[item.key] || defaultDatingDistance }} km</strong>
+          </div>
+          <div class="auth-modal-distance-control">
+            <ion-range
+              class="auth-modal-distance-range"
+              [name]="item.key"
+              required
+              [attr.aria-label]="fieldLabel(t, item)"
+              [min]="minimumDatingDistance"
+              [max]="maximumDatingDistance"
+              [step]="5"
+              [pin]="true"
+              [ngModel]="userProf[item.key]"
+              (ngModelChange)="setLookingForDistance($event)"
+            ></ion-range>
+            <ion-icon name="location-outline" aria-hidden="true"></ion-icon>
+            <ion-icon name="chevron-forward-outline" aria-hidden="true"></ion-icon>
+          </div>
+        </div>
+        } @if(item.key !== "currentPlace" && item.key !== "lookingForDistance" && !item.setByApp && item.type !==
         "select" && !item.setLaterInProf && item.type !== "range" && item.type !== "date" &&
         item.type !== "premium-toggle") {
         <ion-item class="auth-modal-field">
@@ -110,7 +182,7 @@
             [type]="item.type"
           ></ion-input>
         </ion-item>
-        } @if(item.type === "select"){
+        } @if(item.key !== "currentPlace" && item.key !== "lookingForDistance" && item.type === "select"){
         <ion-item class="auth-modal-field">
           <ion-select
             interface="popover"
@@ -130,7 +202,7 @@
             }
           </ion-select>
         </ion-item>
-        } @if(item.type === "date" && !item.setLaterInProf){
+        } @if(item.key !== "currentPlace" && item.key !== "lookingForDistance" && item.type === "date" && !item.setLaterInProf){
         <input
           class="auth-hidden-control"
           [name]="item.key"
@@ -169,7 +241,7 @@
             ></ion-datetime>
           </ng-template>
         </ion-popover>
-        } @if(item.type === "range"){
+        } @if(item.key !== "currentPlace" && item.key !== "lookingForDistance" && item.type === "range"){
         <div class="auth-modal-range-card">
           <div class="auth-modal-range-head">
             <span>{{ fieldLabel(t, item) }}</span>
@@ -191,6 +263,17 @@
           </ion-range>
         </div>
         } }
+        @if(profileStep === 'lifestyle') {
+        <aside class="auth-modal-privacy-card">
+          <span>
+            <ion-icon name="heart-outline" aria-hidden="true"></ion-icon>
+          </span>
+          <div>
+            <strong>{{ t('auth.modal.privacyCardTitle') }}</strong>
+            <p>{{ t('auth.modal.privacyCardCopy') }}</p>
+          </div>
+        </aside>
+        }
       </form>
     </section>
   </ion-content>

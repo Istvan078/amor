@@ -4,7 +4,7 @@ import { SwUpdate } from '@angular/service-worker';
 import { IonApp, IonIcon, IonRouterOutlet } from '@ionic/angular/standalone';
 import { TranslocoService } from '@jsverse/transloco';
 import { addIcons } from 'ionicons';
-import { calendarClearOutline, chevronDownOutline, chevronForwardOutline, lockClosedOutline, notificationsOutline, sparklesOutline } from 'ionicons/icons';
+import { calendarClearOutline, checkmarkOutline, chevronDownOutline, chevronForwardOutline, heartOutline, locationOutline, lockClosedOutline, notificationsOutline, sparklesOutline, syncOutline } from 'ionicons/icons';
 
 import { UpdateService } from './core/update/update.service';
 import { AuthStore } from './features/auth/store/auth.store';
@@ -37,6 +37,10 @@ export class AppComponent implements OnInit {
       lockClosedOutline,
       notificationsOutline,
       sparklesOutline,
+      locationOutline,
+      syncOutline,
+      heartOutline,
+      checkmarkOutline
     });
 
     effect(() => {

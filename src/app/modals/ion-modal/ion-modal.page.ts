@@ -4,6 +4,7 @@ import {
   Component,
   CUSTOM_ELEMENTS_SCHEMA,
   ElementRef,
+  OnInit,
   ViewChild,
   inject,
 } from '@angular/core';
@@ -32,6 +33,7 @@ import {
   translatedOptionLabel,
 } from '../../shared/i18n/profile-value-labels';
 import { UserClass } from '../../shared/models/user.model';
+import { LocationService } from '../../services/location.service';
 
 type ProfileOnboardingStep = 'basic' | 'lifestyle';
 
@@ -59,7 +61,7 @@ type ProfileOnboardingStep = 'basic' | 'lifestyle';
     IonToolbar,
   ],
 })
-export class IonModalPage implements AfterViewInit {
+export class IonModalPage implements OnInit, AfterViewInit {
   readonly fieldLabel = translatedFieldLabel;
   readonly optionLabel = translatedOptionLabel;
   readonly profileBasicKeys = [
@@ -88,6 +90,9 @@ export class IonModalPage implements AfterViewInit {
     cssClass: 'amor-auth-select-popover',
   };
   readonly minimumDatingAge = 18;
+  readonly defaultDatingDistance = 25;
+  readonly minimumDatingDistance = 1;
+  readonly maximumDatingDistance = 700;
   readonly maxBirthDate = new Date(new Date().setFullYear(new Date().getFullYear() - 18)).toISOString();
 
   @ViewChild('swiperRef') swiperRef?: ElementRef<SwiperContainer>;
@@ -102,7 +107,17 @@ export class IonModalPage implements AfterViewInit {
   myPhotos: { name: string; url: string }[] = [];
   chosenIndex: number = 0;
   activePhotoIndex = 0;
+  locationLoading = false;
+  locationErrorKey = '';
   private modalCtrl = inject(ModalController);
+  private locationService = inject(LocationService);
+
+  ngOnInit() {
+    if (this.regSecondPhase) {
+      this.initializeProfileDefaults();
+      void this.detectCurrentLocation();
+    }
+  }
 
   dateTriggerId(key: string) {
     return `auth-date-${key}`;
@@ -128,6 +143,65 @@ export class IonModalPage implements AfterViewInit {
 
   setDateValue(key: string, value: string | string[] | null | undefined) {
     this.userProf[key] = Array.isArray(value) ? value[0] : value ?? '';
+  }
+
+  setLookingForDistance(value: number | string | null | undefined) {
+    const distance = Number(value);
+
+    if (!Number.isFinite(distance)) {
+      return;
+    }
+
+    this.userProf.lookingForDistance = Math.min(
+      this.maximumDatingDistance,
+      Math.max(this.minimumDatingDistance, Math.round(distance))
+    );
+  }
+
+  async detectCurrentLocation(force = false) {
+    if (this.locationLoading) {
+      return;
+    }
+
+    if (!force && this.userProf.currentPlace && this.userProf.currentLocCoords) {
+      return;
+    }
+
+    this.locationLoading = true;
+    this.locationErrorKey = '';
+
+    try {
+      const position = await this.locationService.getLocation();
+      this.userProf.currentLocCoords = {
+        lat: position.coords.latitude,
+        lon: position.coords.longitude,
+      };
+      const coordinateLabel = this.formatCoordinateLabel(
+        position.coords.latitude,
+        position.coords.longitude
+      );
+
+      if (!this.userProf.currentPlace) {
+        this.userProf.currentPlace = coordinateLabel;
+      }
+
+      let locationDetails: any = await this.locationService.getLocName(position);
+
+      if (locationDetails?.error) {
+        locationDetails = await this.locationService.getLocName(position, true);
+      }
+
+      const locationLabel = this.formatLocationLabel(locationDetails);
+
+      if (locationLabel && this.userProf.currentPlace === coordinateLabel) {
+        this.userProf.currentPlace = locationLabel;
+      }
+    } catch (error) {
+      console.warn('Could not detect registration location.', error);
+      this.locationErrorKey = 'auth.modal.locationError';
+    } finally {
+      this.locationLoading = false;
+    }
   }
 
   accountPasswordsMatch() {
@@ -217,6 +291,7 @@ export class IonModalPage implements AfterViewInit {
       }
 
       this.normalizeLookingForAge();
+      this.normalizeLookingForDistance();
       data = { ...this.userProf };
       return this.modalCtrl.dismiss(data, 'created-successfully');
     }
@@ -229,6 +304,12 @@ export class IonModalPage implements AfterViewInit {
 
     if (key === 'lookingForAge') {
       return Number.isFinite(Number(value?.lower)) && Number.isFinite(Number(value?.upper));
+    }
+
+    if (key === 'lookingForDistance') {
+      const distance = Number(value);
+
+      return Number.isFinite(distance) && distance >= this.minimumDatingDistance;
     }
 
     if (typeof value === 'string') {
@@ -253,5 +334,54 @@ export class IonModalPage implements AfterViewInit {
       lower: normalizedLower,
       upper: Math.max(normalizedLower, normalizedUpper),
     };
+  }
+
+  private normalizeLookingForDistance() {
+    const distance = Number(this.userProf.lookingForDistance);
+
+    this.userProf.lookingForDistance = Number.isFinite(distance)
+      ? Math.min(this.maximumDatingDistance, Math.max(this.minimumDatingDistance, Math.round(distance)))
+      : this.defaultDatingDistance;
+  }
+
+  private initializeProfileDefaults() {
+    if (!Number.isFinite(Number(this.userProf.lookingForDistance))) {
+      this.userProf.lookingForDistance = this.defaultDatingDistance;
+    }
+  }
+
+  private formatLocationLabel(locationDetails: any) {
+    if (!locationDetails || locationDetails.error) {
+      return '';
+    }
+
+    const address = locationDetails.address ?? {};
+    const standard = locationDetails.standard ?? {};
+    const city =
+      locationDetails.city ??
+      standard.city ??
+      address.city ??
+      address.town ??
+      address.village ??
+      address.municipality ??
+      '';
+    const countryCode = (
+      locationDetails.country_code ??
+      address.country_code ??
+      standard.countrycode ??
+      ''
+    ).toString();
+    const fallbackCountry =
+      locationDetails.country ??
+      standard.countryname ??
+      address.country ??
+      '';
+    const country = countryCode ? countryCode.toUpperCase() : fallbackCountry;
+
+    return [city, country].filter(Boolean).join(', ');
+  }
+
+  private formatCoordinateLabel(latitude: number, longitude: number) {
+    return `${latitude.toFixed(3)}, ${longitude.toFixed(3)}`;
   }
 }
