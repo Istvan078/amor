@@ -17,6 +17,7 @@ import { shieldCheckmarkOutline } from 'ionicons/icons';
 type RequiredConsentKey =
     | 'termsAccepted'
     | 'privacyPolicyAccepted'
+    | 'communityGuidelinesAccepted'
     | 'ageConfirmed';
 
 type OptionalConsentKey =
@@ -46,6 +47,7 @@ export class PrivacyPreferencesPage implements OnInit {
 
     termsAccepted = false;
     privacyPolicyAccepted = false;
+    communityGuidelinesAccepted = false;
     ageConfirmed = false;
     analytics = false;
     crashReports = false;
@@ -69,6 +71,7 @@ export class PrivacyPreferencesPage implements OnInit {
 
         this.termsAccepted = this.privacyStore.termsAccepted();
         this.privacyPolicyAccepted = this.privacyStore.privacyPolicyAccepted();
+        this.communityGuidelinesAccepted = this.privacyStore.communityGuidelinesAccepted();
         this.ageConfirmed = this.privacyStore.ageConfirmed();
         this.analytics = this.privacyStore.analytics();
         this.crashReports = this.privacyStore.crashReports();
@@ -88,6 +91,7 @@ export class PrivacyPreferencesPage implements OnInit {
         return (
             this.termsAccepted &&
             this.privacyPolicyAccepted &&
+            this.communityGuidelinesAccepted &&
             this.ageConfirmed &&
             !this.privacyStore.loading()
         );

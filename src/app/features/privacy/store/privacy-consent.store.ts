@@ -26,6 +26,7 @@ export const PrivacyConsentStore = signalStore(
             isPrivacyConsentAccepted({
                 termsAccepted: store.termsAccepted(),
                 privacyPolicyAccepted: store.privacyPolicyAccepted(),
+                communityGuidelinesAccepted: store.communityGuidelinesAccepted(),
                 ageConfirmed: store.ageConfirmed(),
                 consentVersion: store.consentVersion(),
             })
@@ -82,6 +83,7 @@ export const PrivacyConsentStore = signalStore(
                 essential: true,
                 termsAccepted: true,
                 privacyPolicyAccepted: true,
+                communityGuidelinesAccepted: true,
                 ageConfirmed: true,
                 crashReports: options.crashReports,
                 analytics: options.analytics,

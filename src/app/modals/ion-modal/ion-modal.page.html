@@ -68,6 +68,31 @@
           {{ t('auth.modal.passwordMismatch') }}
         </p>
         }
+        <label class="auth-age-gate">
+          <ion-checkbox
+            name="ageGateConfirmed"
+            [(ngModel)]="ageGateConfirmed"
+          ></ion-checkbox>
+          <span>{{ t('auth.modal.ageGateConfirm') }}</span>
+        </label>
+        <label class="auth-age-gate">
+          <ion-checkbox
+            name="legalConsentConfirmed"
+            [(ngModel)]="legalConsentConfirmed"
+          ></ion-checkbox>
+          <span>{{ t('auth.modal.legalConsentConfirm') }}</span>
+        </label>
+        <div class="auth-legal-links">
+          <a href="/assets/legal/terms-of-use.html" target="_blank" rel="noopener">
+            {{ t('privacy.dataConsent.termsLink') }}
+          </a>
+          <a href="/assets/legal/privacy-policy.html" target="_blank" rel="noopener">
+            {{ t('privacy.dataConsent.policyLink') }}
+          </a>
+          <a href="/assets/legal/community-guidelines.html" target="_blank" rel="noopener">
+            {{ t('privacy.dataConsent.communityGuidelinesLink') }}
+          </a>
+        </div>
       </form>
     </section>
   </ion-content>

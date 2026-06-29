@@ -1213,14 +1213,27 @@ export class DiscoverPage implements OnInit, OnDestroy {
       return;
     }
 
-    const likeResult = await this.likeOrDontUser(likedProfile, true);
+    let likeResult: MatchActionResponse | false;
+
+    try {
+      likeResult = await this.likeOrDontUser(likedProfile, true);
+    } catch (error) {
+      if (this.isDailyLikeLimitError(error)) {
+        await this.billingFacade.loadDailyUsage(uid, true);
+        this.openDailyLikeLimitPromotion();
+        return;
+      }
+
+      console.warn('Failed to like current match.', error);
+      return;
+    }
 
     if (!likeResult) {
       return;
     }
 
     if (Number.isFinite(likeLimit)) {
-      await this.billingFacade.incrementDailyUsage(uid, 'like');
+      await this.billingFacade.loadDailyUsage(uid, true);
     }
 
     const newMatch = this.completeMutualMatchFromAction(
@@ -1463,6 +1476,10 @@ export class DiscoverPage implements OnInit, OnDestroy {
     }
 
     return '';
+  }
+
+  private isDailyLikeLimitError(error: unknown) {
+    return (error as { status?: number })?.status === 429;
   }
 
   private removeCandidateLocally(uid: string) {

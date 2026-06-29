@@ -4,6 +4,52 @@ export type FirestoreData = Record<string, any>;
 
 const MINIMUM_DATING_AGE = 18;
 
+function parseBirthDate(value: unknown): Date | undefined {
+    if (!value) {
+        return undefined;
+    }
+
+    const date = value instanceof Date ? value : new Date(String(value));
+
+    return Number.isNaN(date.getTime()) ? undefined : date;
+}
+
+function normalizeBirthDate(value: unknown) {
+    const date = parseBirthDate(value);
+
+    if (!date) {
+        return undefined;
+    }
+
+    return {
+        date,
+        isoDate: date.toISOString().slice(0, 10),
+    };
+}
+
+function calculateAgeFromBirthDate(value: unknown) {
+    const date = parseBirthDate(value);
+
+    if (!date) {
+        return undefined;
+    }
+
+    const today = new Date();
+    let age = today.getUTCFullYear() - date.getUTCFullYear();
+    const birthdayPassed =
+        today.getUTCMonth() > date.getUTCMonth() ||
+        (
+            today.getUTCMonth() === date.getUTCMonth() &&
+            today.getUTCDate() >= date.getUTCDate()
+        );
+
+    if (!birthdayPassed) {
+        age--;
+    }
+
+    return age;
+}
+
 function sanitizeFirestoreValue(value: unknown): unknown {
     if (value === undefined || typeof value === 'function') {
         return undefined;
@@ -162,6 +208,16 @@ export function sanitizeProfileForFirestore(
     }
 
     sanitizedProfile['hideAge'] = sanitizedProfile['hideAge'] === true;
+
+    const normalizedBirthDate = normalizeBirthDate(sanitizedProfile['birthDate']);
+
+    if (normalizedBirthDate) {
+        sanitizedProfile['birthDate'] = normalizedBirthDate.isoDate;
+        sanitizedProfile['birthDateTimestamp'] = normalizedBirthDate.date;
+        sanitizedProfile['age'] = calculateAgeFromBirthDate(normalizedBirthDate.date);
+    } else {
+        delete sanitizedProfile['birthDateTimestamp'];
+    }
 
     return sanitizedProfile;
 }

@@ -39,7 +39,9 @@ export class ProfileRepository {
         await this.runInFirebaseContext(() => {
             const profileRef = doc(this.firestore, `users/${uid}`);
 
-            return setDoc(profileRef, sanitizeProfileForFirestore(profile));
+            return setDoc(profileRef, sanitizeProfileForFirestore(profile), {
+                merge: true,
+            });
         });
     }
 

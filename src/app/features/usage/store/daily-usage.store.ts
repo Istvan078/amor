@@ -76,34 +76,6 @@ export const DailyUsageStore = signalStore(
       }
     },
 
-    async incrementDailyUsage(uid: string, action: DailyUsageAction) {
-      const date = getDailyUsageDateKey();
-
-      try {
-        const usage = await repository.incrementDailyUsage(uid, action, date);
-
-        patchState(store, {
-          uid,
-          date,
-          likesUsed: usage.likesUsed,
-          superLikesUsed: usage.superLikesUsed,
-          rewindsUsed: usage.rewindsUsed,
-          boostsUsed: usage.boostsUsed,
-          loading: false,
-          error: null,
-        });
-      } catch (error) {
-        console.error(error);
-
-        patchState(store, {
-          loading: false,
-          error: 'Failed to update daily usage.',
-        });
-
-        throw error;
-      }
-    },
-
     getActionCount(uid: string | undefined, action: DailyUsageAction) {
       if (!uid || store.uid() !== uid || store.date() !== getDailyUsageDateKey()) {
         return 0;

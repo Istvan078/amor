@@ -18,6 +18,11 @@ import {
   normalizeMatchParts,
   normalizeUidList,
 } from '../matching/match-actions';
+import {
+  getProfileAge,
+  isAdultProfile,
+  MINIMUM_DATING_AGE,
+} from '../shared/age';
 import { normalizeLookingForAgeRange } from '../shared/age-range';
 import { toTimestampMillis } from '../shared/time';
 
@@ -183,6 +188,12 @@ export const registerDiscoverCandidatesRoute = (
         }
 
         const profile = profileSnapshot.data() ?? {};
+
+        if (!isAdultProfile(profile)) {
+          res.sendStatus(403);
+          return;
+        }
+
         const hasPremiumAccess = await options.getPremiumDiscoveryAccess(db, myUid);
         const premiumFilters = normalizeDiscoveryPremiumFilters(
           req.body.premiumFilters,
@@ -393,13 +404,14 @@ export const registerDiscoverCandidatesRoute = (
             );
           })
           .filter((candidate) => {
-            const age = Number(candidate.claims['age']);
+            const age = getProfileAge(candidate.claims);
 
             return (
-              !Number.isFinite(age) ||
+              Number.isFinite(age) &&
               (
-                age >= Number(lowerAge) &&
-                age <= Number(upperAge)
+                Number(age) >= MINIMUM_DATING_AGE &&
+                Number(age) >= Number(lowerAge) &&
+                Number(age) <= Number(upperAge)
               )
             );
           })

@@ -12,6 +12,7 @@ import { IonModalPage } from '../../../modals/ion-modal/ion-modal.page';
 import { ConfigService } from '../../../services/config.service';
 import { UserClass } from '../../../shared/models/user.model';
 import { ProfileStore } from '../../profile/store/profile.store';
+import { PrivacyConsentStore } from '../../privacy/store/privacy-consent.store';
 import { AuthStore } from '../store/auth.store';
 
 @Component({
@@ -30,6 +31,7 @@ import { AuthStore } from '../store/auth.store';
 export class RegisterPage implements OnInit {
     readonly authStore = inject(AuthStore);
     readonly profileStore = inject(ProfileStore);
+    private privacyStore = inject(PrivacyConsentStore);
     private config = inject(ConfigService);
     private modalCtrl = inject(ModalController);
     private router = inject(Router);
@@ -80,6 +82,7 @@ export class RegisterPage implements OnInit {
                 if (data.role === 'confirm') {
                     const userCredentials = await this.authStore.registerEmail(data.data);
                     this.user = userCredentials.user;
+                    await this.acceptRequiredConsent(this.user.uid);
 
                     const ionModal2 = await this.createModal({
                         regSecondPhase: true,
@@ -138,5 +141,14 @@ export class RegisterPage implements OnInit {
 
         await this.profileStore.createProfile(this.user.uid, userProfile);
         this.profileStore.setProfile(userProfile);
+    }
+
+    private acceptRequiredConsent(uid: string) {
+        return this.privacyStore.acceptConsent(uid, {
+            analytics: false,
+            crashReports: false,
+            personalisation: false,
+            marketingNotifications: false,
+        });
     }
 }

@@ -33,6 +33,18 @@
           <p>{{ t('privacy.dataConsent.subtitle') }}</p>
         </div>
 
+        <div class="privacy-document-links" aria-label="Legal documents">
+          <a href="/assets/legal/terms-of-use.html" target="_blank" rel="noopener">
+            {{ t('privacy.dataConsent.termsLink') }}
+          </a>
+          <a href="/assets/legal/privacy-policy.html" target="_blank" rel="noopener">
+            {{ t('privacy.dataConsent.policyLink') }}
+          </a>
+          <a href="/assets/legal/community-guidelines.html" target="_blank" rel="noopener">
+            {{ t('privacy.dataConsent.communityGuidelinesLink') }}
+          </a>
+        </div>
+
         <div class="privacy-consent-list">
           <button
             class="privacy-consent-row"
@@ -44,6 +56,20 @@
             <span>
               {{ t('privacy.dataConsent.termsPrefix') }}
               <strong>{{ t('privacy.dataConsent.termsLink') }}</strong>
+            </span>
+            <ion-icon name="chevron-forward-outline"></ion-icon>
+          </button>
+
+          <button
+            class="privacy-consent-row"
+            type="button"
+            [class.is-accepted]="communityGuidelinesAccepted"
+            (click)="toggleRequired('communityGuidelinesAccepted')"
+          >
+            <ion-checkbox [checked]="communityGuidelinesAccepted"></ion-checkbox>
+            <span>
+              {{ t('privacy.dataConsent.communityPrefix') }}
+              <strong>{{ t('privacy.dataConsent.communityGuidelinesLink') }}</strong>
             </span>
             <ion-icon name="chevron-forward-outline"></ion-icon>
           </button>

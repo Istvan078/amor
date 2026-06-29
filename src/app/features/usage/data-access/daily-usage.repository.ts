@@ -3,9 +3,6 @@ import {
   Firestore,
   doc,
   getDoc,
-  runTransaction,
-  serverTimestamp,
-  setDoc,
 } from '@angular/fire/firestore';
 
 export type DailyUsageAction = 'like' | 'rewind' | 'super-like' | 'boost';
@@ -36,28 +33,6 @@ function emptyUsage(date = getDailyUsageDateKey()): DailyUsage {
   };
 }
 
-type DailyUsageCountField =
-  | 'likesUsed'
-  | 'superLikesUsed'
-  | 'rewindsUsed'
-  | 'boostsUsed';
-
-function usageFieldForAction(action: DailyUsageAction): DailyUsageCountField {
-  if (action === 'like') {
-    return 'likesUsed';
-  }
-
-  if (action === 'super-like') {
-    return 'superLikesUsed';
-  }
-
-  if (action === 'boost') {
-    return 'boostsUsed';
-  }
-
-  return 'rewindsUsed';
-}
-
 @Injectable({
   providedIn: 'root',
 })
@@ -86,53 +61,6 @@ export class DailyUsageRepository {
       ...data,
       date,
     };
-  }
-
-  async ensureDailyUsage(uid: string, date = getDailyUsageDateKey()) {
-    await this.runInFirebaseContext(() => {
-      const usageRef = doc(this.firestore, `users/${uid}/usage/${date}`);
-
-      return setDoc(
-        usageRef,
-        {
-          ...emptyUsage(date),
-          updatedAt: serverTimestamp(),
-        },
-        { merge: true }
-      );
-    });
-  }
-
-  async incrementDailyUsage(
-    uid: string,
-    action: DailyUsageAction,
-    date = getDailyUsageDateKey()
-  ): Promise<DailyUsage> {
-    return this.runInFirebaseContext(() => {
-      const usageRef = doc(this.firestore, `users/${uid}/usage/${date}`);
-      const field = usageFieldForAction(action);
-
-      return runTransaction(this.firestore, async (transaction) => {
-        const snapshot = await transaction.get(usageRef);
-        const current = snapshot.exists()
-          ? ({
-              ...emptyUsage(date),
-              ...(snapshot.data() as Partial<DailyUsage>),
-              date,
-            } as DailyUsage)
-          : emptyUsage(date);
-
-        const nextUsage: DailyUsage = {
-          ...current,
-          [field]: Number(current[field] ?? 0) + 1,
-          updatedAt: serverTimestamp(),
-        };
-
-        transaction.set(usageRef, nextUsage, { merge: true });
-
-        return nextUsage;
-      });
-    });
   }
 
   private runInFirebaseContext<T>(callback: () => T): T {

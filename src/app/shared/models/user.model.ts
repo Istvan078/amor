@@ -79,6 +79,7 @@ export class UserClass {
   public firstName?: string;
   public lastName?: string;
   public birthDate?: string;
+  public birthDateTimestamp?: unknown;
   public age?: number;
 
   public currentPlace?: string;

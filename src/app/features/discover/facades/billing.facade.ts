@@ -6,7 +6,6 @@ import { AnalyticsService } from '../../analytics/data-access/analytics.service'
 import { PaywallComponent } from '../../billing/ui/paywall/paywall.component';
 import { BillingStore } from '../../billing/store/billing.store';
 import { MatchIndexRepository } from '../../matching/data-access/match-index.repository';
-import { DailyUsageAction } from '../../usage/data-access/daily-usage.repository';
 import { DailyUsageStore } from '../../usage/store/daily-usage.store';
 
 const FREE_DAILY_LIKE_LIMIT = 30;
@@ -30,10 +29,6 @@ export class BillingFacade {
 
   loadDailyUsage(uid: string, force = false) {
     return this.dailyUsageStore.loadDailyUsage(uid, force);
-  }
-
-  incrementDailyUsage(uid: string, action: DailyUsageAction) {
-    return this.dailyUsageStore.incrementDailyUsage(uid, action);
   }
 
   async canUseDailyLike(uid: string, likeLimit: number) {
@@ -86,7 +81,7 @@ export class BillingFacade {
       const boostedUntil = await this.matchIndexRepository.activateProfileBoost(uid);
 
       await this.store.refreshCustomerInfo(uid);
-      await this.dailyUsageStore.incrementDailyUsage(uid, 'boost');
+      await this.dailyUsageStore.loadDailyUsage(uid, true);
       void this.analytics.track(uid, 'boost_started', {
         boostedUntil: boostedUntil.toISOString(),
         durationMinutes: 30,

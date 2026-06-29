@@ -1,9 +1,10 @@
-export const CURRENT_PRIVACY_CONSENT_VERSION = '1.0.0';
+export const CURRENT_PRIVACY_CONSENT_VERSION = '1.1.0';
 
 export interface PrivacyConsent {
     readonly essential: boolean;
     readonly termsAccepted: boolean;
     readonly privacyPolicyAccepted: boolean;
+    readonly communityGuidelinesAccepted: boolean;
     readonly ageConfirmed: boolean;
     readonly crashReports: boolean;
     readonly analytics: boolean;
@@ -24,6 +25,7 @@ export function createInitialPrivacyConsentState(): PrivacyConsentState {
         essential: true,
         termsAccepted: false,
         privacyPolicyAccepted: false,
+        communityGuidelinesAccepted: false,
         ageConfirmed: false,
         crashReports: false,
         analytics: false,
@@ -45,6 +47,7 @@ export function isPrivacyConsentAccepted(
     return !!(
         consent?.termsAccepted &&
         consent.privacyPolicyAccepted &&
+        consent.communityGuidelinesAccepted &&
         consent.ageConfirmed &&
         consent.consentVersion === CURRENT_PRIVACY_CONSENT_VERSION
     );

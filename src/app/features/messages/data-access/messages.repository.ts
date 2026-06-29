@@ -1,11 +1,12 @@
+import { HttpClient, HttpHeaders } from '@angular/common/http';
 import { Injectable, Injector, inject, runInInjectionContext } from '@angular/core';
 import {
     Firestore,
-    addDoc,
     collection,
+    deleteField,
     doc,
+    getDoc,
     getDocs,
-    increment,
     limit,
     onSnapshot,
     orderBy,
@@ -17,12 +18,15 @@ import {
     where,
     writeBatch,
 } from '@angular/fire/firestore';
+import { firstValueFrom } from 'rxjs';
 
+import { environment } from '../../../../environments/environment';
 import {
     Message,
     MessageGif,
     MessageReaction,
 } from '../../../shared/models/message.model';
+import { AuthStore } from '../../auth/store/auth.store';
 
 export type ConversationPreviewData = {
     hasMessages: boolean;
@@ -43,6 +47,8 @@ export const MESSAGE_PAGE_SIZE = 30;
 export class MessagesRepository {
     private injector = inject(Injector);
     private firestore = inject(Firestore);
+    private http = inject(HttpClient);
+    private authStore = inject(AuthStore);
 
     async getMessages(
         myUid: string,
@@ -206,11 +212,27 @@ export class MessagesRepository {
                 this.firestore,
                 `conversations/${conversationId}`
             );
+            const conversationSnapshot = await getDoc(conversationRef);
+
+            if (!conversationSnapshot.exists()) {
+                await setDoc(
+                    conversationRef,
+                    {
+                        participants,
+                        typing: {
+                            [myUid]: isTyping ? serverTimestamp() : null,
+                        },
+                        createdAt: serverTimestamp(),
+                        updatedAt: serverTimestamp(),
+                    },
+                    { merge: true }
+                );
+                return;
+            }
 
             await setDoc(
                 conversationRef,
                 {
-                    participants,
                     typing: {
                         [myUid]: isTyping ? serverTimestamp() : null,
                     },
@@ -220,104 +242,34 @@ export class MessagesRepository {
         });
     }
 
-    async saveMessagesWithMatch(
-        myUid: string,
-        _myEmail: string,
-        matchUid: string,
-        messages: Message[]
-    ) {
-        const conversationId = this.getConversationId(myUid, matchUid);
-        const participants = this.getConversationParticipants(myUid, matchUid);
-        const lastMessage = messages.at(-1);
-
-        return this.runInFirebaseContext(async () => {
-            const conversationRef = doc(
-                this.firestore,
-                `conversations/${conversationId}`
-            );
-            const messagesCollection = collection(conversationRef, 'messages');
-
-            await setDoc(
-                conversationRef,
-                {
-                    participants,
-                    lastMessage: lastMessage
-                        ? {
-                            senderUid: lastMessage.senderUid,
-                            sentToUid: lastMessage.sentToUid,
-                            text: this.getMessagePreviewText(lastMessage),
-                            number: lastMessage.number,
-                            type: lastMessage.messageType ?? 'text',
-                        }
-                        : null,
-                    updatedAt: serverTimestamp(),
-                },
-                { merge: true }
-            );
-
-            const batch = writeBatch(this.firestore);
-
-            for (const [index, message] of messages.entries()) {
-                const messageRef = doc(
-                    messagesCollection,
-                    this.getMessageDocumentId(message, index)
-                );
-
-                batch.set(
-                    messageRef,
-                    this.mapMessageForConversation(message),
-                    { merge: true }
-                );
-            }
-
-            await batch.commit();
-        });
-    }
-
     async sendMessageWithMatch(
         myUid: string,
         matchUid: string,
         message: Message
     ): Promise<string> {
-        const conversationId = this.getConversationId(myUid, matchUid);
-        const participants = this.getConversationParticipants(myUid, matchUid);
+        const idToken = await this.getIdToken();
 
-        return this.runInFirebaseContext(async () => {
-            const conversationRef = doc(
-                this.firestore,
-                `conversations/${conversationId}`
-            );
-            const messagesCollection = collection(conversationRef, 'messages');
-            const sentAt = serverTimestamp();
+        if (!idToken) {
+            throw new Error('messages.authRequired');
+        }
 
-            await setDoc(
-                conversationRef,
+        const response = await firstValueFrom(
+            this.http.post<{ messageId: string }>(
+                `${environment.API_URL}sendMessage`,
                 {
-                    participants,
-                    lastMessage: {
-                        senderUid: message.senderUid,
-                        sentToUid: message.sentToUid,
-                        text: this.getMessagePreviewText(message),
-                        number: message.number,
-                        type: message.messageType ?? 'text',
-                        sentAt,
-                    },
-                    unreadCounts: {
-                        [myUid]: 0,
-                        [matchUid]: increment(1),
-                    },
-                    updatedAt: sentAt,
+                    uid: myUid,
+                    matchUid,
+                    text: message.message,
+                    type: message.messageType ?? 'text',
+                    gif: message.gif ?? null,
                 },
-                { merge: true }
-            );
+                {
+                    headers: new HttpHeaders().set('Authorization', idToken),
+                }
+            )
+        );
 
-            const messageRef = await addDoc(messagesCollection, {
-                ...this.mapMessageForConversation(message),
-                sentAt,
-            });
-
-            return messageRef.id;
-        });
+        return response.messageId;
     }
 
     async markConversationMessagesRead(myUid: string, matchUid: string) {
@@ -391,18 +343,19 @@ export class MessagesRepository {
                 const currentReactions = snapshot.exists()
                     ? this.mapMessageReactions(snapshot.data()['reactions'])
                     : message.reactions ?? [];
-                const reactions = this.toggleReaction(
-                    currentReactions,
-                    myUid,
-                    emoji
+                const hadSelectedReaction = currentReactions.some(
+                    (reaction) =>
+                        reaction.emoji === emoji && reaction.userUids.includes(myUid)
                 );
+                const reactions = this.toggleReaction(currentReactions, myUid, emoji);
 
                 transaction.update(messageRef, {
-                    reactions: reactions.map((reaction) => ({
-                        emoji: reaction.emoji,
-                        userUids: reaction.userUids,
-                        updatedAt: reaction.updatedAt ?? new Date(),
-                    })),
+                    [`reactions.${myUid}`]: hadSelectedReaction
+                        ? deleteField()
+                        : {
+                            emoji,
+                            updatedAt: serverTimestamp(),
+                        },
                 });
 
                 return reactions;
@@ -428,10 +381,6 @@ export class MessagesRepository {
         }
 
         await this.runInFirebaseContext(async () => {
-            const conversationRef = doc(
-                this.firestore,
-                `conversations/${conversationId}`
-            );
             const messageRef = doc(
                 this.firestore,
                 `conversations/${conversationId}/messages/${message.id}`
@@ -439,36 +388,14 @@ export class MessagesRepository {
             const editedAt = serverTimestamp();
 
             await runTransaction(this.firestore, async (transaction) => {
-                const conversationSnapshot = await transaction.get(conversationRef);
-                const lastMessage = this.toRecord(
-                    conversationSnapshot.data()?.['lastMessage']
-                );
-                const isLastMessage =
-                    String(lastMessage['senderUid'] ?? '') === myUid &&
-                    Number(lastMessage['number'] ?? -1) === message.number;
-
                 transaction.update(messageRef, {
                     text: trimmedText,
                     type: 'text',
                     gif: null,
+                    attachments: [],
                     isEdited: true,
                     editedAt,
                 });
-
-                if (isLastMessage) {
-                    transaction.set(
-                        conversationRef,
-                        {
-                            lastMessage: {
-                                ...lastMessage,
-                                text: trimmedText,
-                                type: 'text',
-                            },
-                            updatedAt: editedAt,
-                        },
-                        { merge: true }
-                    );
-                }
             });
         });
     }
@@ -481,10 +408,6 @@ export class MessagesRepository {
         const conversationId = this.getConversationId(myUid, matchUid);
 
         await this.runInFirebaseContext(async () => {
-            const conversationRef = doc(
-                this.firestore,
-                `conversations/${conversationId}`
-            );
             const messageRef = doc(
                 this.firestore,
                 `conversations/${conversationId}/messages/${message.id}`
@@ -492,39 +415,16 @@ export class MessagesRepository {
             const deletedAt = serverTimestamp();
 
             await runTransaction(this.firestore, async (transaction) => {
-                const conversationSnapshot = await transaction.get(conversationRef);
-                const lastMessage = this.toRecord(
-                    conversationSnapshot.data()?.['lastMessage']
-                );
-                const isLastMessage =
-                    String(lastMessage['senderUid'] ?? '') === myUid &&
-                    Number(lastMessage['number'] ?? -1) === message.number;
-
                 transaction.update(messageRef, {
                     text: '',
                     type: 'text',
                     gif: null,
                     attachments: [],
-                    reactions: [],
+                    reactions: {},
                     isDeleted: true,
                     isEdited: false,
                     deletedAt,
                 });
-
-                if (isLastMessage) {
-                    transaction.set(
-                        conversationRef,
-                        {
-                            lastMessage: {
-                                ...lastMessage,
-                                text: 'Message deleted',
-                                type: 'text',
-                            },
-                            updatedAt: deletedAt,
-                        },
-                        { merge: true }
-                    );
-                }
             });
         });
     }
@@ -604,35 +504,6 @@ export class MessagesRepository {
         return participants.find((uid) => uid !== myUid) ?? '';
     }
 
-    private getMessageDocumentId(message: Message, index: number) {
-        return `${message.number || index}_${message.senderUid || 'unknown'}`;
-    }
-
-    private mapMessageForConversation(message: Message) {
-        return {
-            senderUid: message.senderUid,
-            sentToUid: message.sentToUid,
-            text: message.message,
-            type: message.messageType ?? 'text',
-            number: message.number,
-            sentAt: message.sentAt ?? serverTimestamp(),
-            readAt: message.readAt ?? null,
-            isRead: message.isRead ?? false,
-            attachments: message.attachments ?? [],
-            gif: message.gif ? this.mapGifForConversation(message.gif) : null,
-            reactions: (message.reactions ?? []).map((reaction) => ({
-                emoji: reaction.emoji,
-                userUids: reaction.userUids,
-                updatedAt: reaction.updatedAt ?? new Date(),
-            })),
-            isDeleted: message.isDeleted ?? false,
-            isStarred: message.isStarred ?? false,
-            isEdited: message.isEdited ?? false,
-            editedAt: message.editedAt ?? null,
-            deletedAt: message.deletedAt ?? null,
-        };
-    }
-
     private mapConversationMessage(id: string, data: Record<string, unknown>) {
         const message = new Message();
 
@@ -657,33 +528,6 @@ export class MessagesRepository {
         message.reactions = this.mapMessageReactions(data['reactions']);
 
         return message;
-    }
-
-    private getMessagePreviewText(message: Message) {
-        if (message.isDeleted) {
-            return 'Message deleted';
-        }
-
-        if (message.message.trim()) {
-            return message.message.trim();
-        }
-
-        if (message.messageType === 'gif' && message.gif?.title) {
-            return message.gif.title;
-        }
-
-        return 'GIF';
-    }
-
-    private mapGifForConversation(gif: MessageGif) {
-        return {
-            id: gif.id,
-            title: gif.title,
-            url: gif.url,
-            previewUrl: gif.previewUrl ?? gif.url,
-            alt: gif.alt ?? gif.title,
-            source: gif.source,
-        };
     }
 
     private mapMessageGif(value: unknown): MessageGif | undefined {
@@ -717,6 +561,50 @@ export class MessagesRepository {
     }
 
     private mapMessageReactions(value: unknown): MessageReaction[] {
+        if (value && typeof value === 'object' && !Array.isArray(value)) {
+            const groupedReactions = new Map<string, MessageReaction>();
+
+            Object.entries(value as Record<string, unknown>).forEach(([uid, reaction]) => {
+                if (!uid || !reaction || typeof reaction !== 'object') {
+                    return;
+                }
+
+                const reactionData = reaction as Record<string, unknown>;
+                const emoji = String(reactionData['emoji'] ?? '');
+
+                if (!emoji) {
+                    return;
+                }
+
+                const updatedAt = this.toDate(reactionData['updatedAt']);
+                const existingReaction = groupedReactions.get(emoji);
+
+                if (existingReaction) {
+                    existingReaction.userUids = [
+                        ...new Set([...existingReaction.userUids, uid]),
+                    ];
+
+                    if (
+                        updatedAt &&
+                        (!existingReaction.updatedAt ||
+                            updatedAt.getTime() > existingReaction.updatedAt.getTime())
+                    ) {
+                        existingReaction.updatedAt = updatedAt;
+                    }
+
+                    return;
+                }
+
+                groupedReactions.set(emoji, {
+                    emoji,
+                    userUids: [uid],
+                    ...(updatedAt ? { updatedAt } : {}),
+                });
+            });
+
+            return Array.from(groupedReactions.values());
+        }
+
         if (!Array.isArray(value)) {
             return [];
         }
@@ -799,6 +687,19 @@ export class MessagesRepository {
                 updatedAt: new Date(),
             },
         ];
+    }
+
+    private async getIdToken() {
+        const user = this.authStore.user();
+        const rawUser = user?.raw as
+            | { getIdToken?: (forceRefresh?: boolean) => Promise<string> }
+            | undefined;
+
+        if (rawUser?.getIdToken) {
+            return rawUser.getIdToken();
+        }
+
+        return user?.idToken;
     }
 
     private emptyConversationPreview(): ConversationPreviewData {

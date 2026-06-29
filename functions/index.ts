@@ -31,6 +31,10 @@ import {
 } from './src/matching/incoming-likes';
 import { buildMutualMatchParts } from './src/matching/mutual-match';
 import { processProfileImageObject } from './src/storage/profile-images';
+import {
+  getProfileAge,
+  isAdultProfile,
+} from './src/shared/age';
 import { normalizeLookingForAgeRange } from './src/shared/age-range';
 import { toTimestampMillis } from './src/shared/time';
 
@@ -83,6 +87,9 @@ app.use(bodyParser.json());
 
 const BILLING_ENTITLEMENT_ID = 'premium';
 const SUPER_LIKE_PACK_SIZE = 5;
+const FREE_DAILY_LIKES = 30;
+const FIRST_MONTH_DAILY_LIKES = 60;
+const FIRST_MONTH_PRODUCT_ID = 'amorino_gold_first_month';
 const FREE_DAILY_SUPER_LIKES = 1;
 const PREMIUM_DAILY_SUPER_LIKES = 5;
 const FREE_DAILY_REWINDS = 1;
@@ -101,6 +108,16 @@ const PROFILE_FAST_LIKE_THRESHOLD = 25;
 const REPEATED_BIO_MIN_FINGERPRINT_LENGTH = 24;
 const REPEATED_BIO_DUPLICATE_THRESHOLD = 2;
 const DEFAULT_LOCATION_FALLBACK_FEED_MODE: DiscoveryFeedMode = 'recentlyActive';
+const CURRENT_PRIVACY_CONSENT_VERSION = '1.1.0';
+const MESSAGE_TEXT_MAX_LENGTH = 2000;
+const MESSAGE_RATE_LIMIT_WINDOW_MS = 60 * 1000;
+const MESSAGE_RATE_LIMIT_WINDOW_MAX = 20;
+const MESSAGE_DAILY_LIMIT = 500;
+const ALLOWED_LOCAL_GIFS = new Map([
+  ['amor-heartbeat', 'assets/gifs/amor-heartbeat.svg'],
+  ['amor-spark', 'assets/gifs/amor-spark.svg'],
+  ['amor-cheers', 'assets/gifs/amor-cheers.svg'],
+]);
 
 const getIdTokenFromRequest = (req: express.Request): string | null => {
   const authHeader = req.headers.authorization;
@@ -267,7 +284,7 @@ const incrementDailyUsage = (
   transaction: admin.firestore.Transaction,
   usageRef: admin.firestore.DocumentReference,
   usageData: Record<string, unknown>,
-  field: 'superLikesUsed' | 'rewindsUsed'
+  field: 'likesUsed' | 'superLikesUsed' | 'rewindsUsed' | 'boostsUsed'
 ) => {
   transaction.set(
     usageRef,
@@ -411,36 +428,7 @@ const getProfileCompleteness = (profile: Record<string, unknown>) => {
 };
 
 const normalizeProfileAge = (profile: Record<string, unknown>) => {
-  const storedAge = Number(profile.age);
-
-  if (Number.isFinite(storedAge) && storedAge > 0) {
-    return storedAge;
-  }
-
-  if (typeof profile.birthDate !== 'string') {
-    return undefined;
-  }
-
-  const birthDate = new Date(profile.birthDate);
-
-  if (Number.isNaN(birthDate.getTime())) {
-    return undefined;
-  }
-
-  const today = new Date();
-  let age = today.getFullYear() - birthDate.getFullYear();
-  const birthdayPassed =
-    today.getMonth() > birthDate.getMonth() ||
-    (
-      today.getMonth() === birthDate.getMonth() &&
-      today.getDate() >= birthDate.getDate()
-    );
-
-  if (!birthdayPassed) {
-    age--;
-  }
-
-  return age;
+  return getProfileAge(profile);
 };
 
 const getProfilePhotoUrl = (profile: Record<string, unknown>) => {
@@ -656,9 +644,15 @@ const buildMatchIndexEntry = (
   const profileCompleted =
     profileCompleteness >= PROFILE_COMPLETENESS_DISCOVERY_THRESHOLD;
   const hasPhoto = hasProfilePhoto(profile);
+  const profileAge = normalizeProfileAge(profile);
+  const adultProfile = isAdultProfile(profile);
   const isBanned = profile.isBanned === true;
   const isVisible =
-    profile.isVisible !== false && !isBanned && profileCompleted && hasPhoto;
+    profile.isVisible !== false &&
+    !isBanned &&
+    profileCompleted &&
+    hasPhoto &&
+    adultProfile;
   const entry: Record<string, unknown> = {
     uid,
     gender: normalizeGenderValue(profile.gender),
@@ -671,7 +665,7 @@ const buildMatchIndexEntry = (
       typeof profile.lookingForType === 'string'
         ? profile.lookingForType
         : undefined,
-    age: normalizeProfileAge(profile),
+    age: profileAge,
     currentLocCoords: profile.currentLocCoords,
     geohash: createApproximateGeoHash(profile.currentLocCoords),
     geoBucket: createGeoBucket(profile.currentLocCoords),
@@ -971,6 +965,14 @@ const runMatchActionTransaction = async (
       otherProfileSnapshot.data()?.matchParts
     );
     const myProfile = myProfileSnapshot.data() ?? {};
+    const otherProfile = otherProfileSnapshot.data() ?? {};
+
+    if (
+      !isAdultProfile(myProfile) ||
+      (action !== 'remove' && !isAdultProfile(otherProfile))
+    ) {
+      throw new Error('age_restricted');
+    }
 
     if (action === 'remove') {
       const nextMyMatchParts = buildRemoveMatchParts(myMatchParts, otherUid);
@@ -1030,6 +1032,9 @@ const runMatchActionTransaction = async (
       otherUid,
       action === 'superLike'
     );
+    const alreadyLiked =
+      myMatchParts.liked.includes(otherUid) ||
+      myMatchParts.superLiked.includes(otherUid);
     const alreadyMatched =
       nextMyDecisionMatchParts.matches.includes(otherUid) ||
       otherMatchParts.matches.includes(myUid);
@@ -1051,6 +1056,10 @@ const runMatchActionTransaction = async (
 
     if (action === 'superLike') {
       await consumeSuperLikeAllowance(db, transaction, myUid);
+    }
+
+    if (action === 'like' && !alreadyLiked) {
+      await consumeLikeAllowance(db, transaction, myUid);
     }
 
     const otherLikesMe =
@@ -1618,12 +1627,14 @@ const deleteAccountData = async (uid: string): Promise<AccountDeletionResult> =>
     conversationsDeleted,
     storageFilesDeleted,
     publicStorageFilesDeleted,
+    verificationSelfiesDeleted,
   ] = await Promise.all([
     markAccountDeletionRetention(db, uid),
     cleanupUserReferences(db, uid),
     deleteUserConversations(db, uid),
     deleteStoragePrefix(`pictures/${uid}/`),
     deleteStoragePrefix(`publicPictures/${uid}/`),
+    deleteStoragePrefix(`${PROFILE_VERIFICATION_SELFIE_PREFIX}/${uid}/`),
   ]);
 
   const [userDocumentDeleted, incomingLikesDeleted, matchIndexSnapshot] = await Promise.all([
@@ -1654,7 +1665,8 @@ const deleteAccountData = async (uid: string): Promise<AccountDeletionResult> =>
     userDocumentDeleted,
     matchIndexDeleted: matchIndexSnapshot.exists,
     incomingLikesDeleted,
-    storageFilesDeleted: storageFilesDeleted + publicStorageFilesDeleted,
+    storageFilesDeleted:
+      storageFilesDeleted + publicStorageFilesDeleted + verificationSelfiesDeleted,
     conversationsDeleted,
     userReferencesCleaned,
     reportsRetained: retentionResult.reportsRetained,
@@ -1726,6 +1738,16 @@ const createMatchActionHandler =
           return;
         }
 
+        if ((error as Error).message === 'daily_like_limit_reached') {
+          res.sendStatus(429);
+          return;
+        }
+
+        if ((error as Error).message === 'age_restricted') {
+          res.sendStatus(403);
+          return;
+        }
+
         res.sendStatus(500);
       }
     };
@@ -1742,6 +1764,133 @@ type RevenueCatBillingEvent = {
 
 const getStringValue = (value: unknown) =>
   typeof value === 'string' ? value.trim() : '';
+
+const hasRequiredPrivacyConsent = (profile: Record<string, unknown>) => {
+  const consent =
+    profile.privacyConsent && typeof profile.privacyConsent === 'object'
+      ? (profile.privacyConsent as Record<string, unknown>)
+      : {};
+
+  return (
+    consent.essential === true &&
+    consent.termsAccepted === true &&
+    consent.privacyPolicyAccepted === true &&
+    consent.communityGuidelinesAccepted === true &&
+    consent.ageConfirmed === true &&
+    consent.consentVersion === CURRENT_PRIVACY_CONSENT_VERSION
+  );
+};
+
+const getConversationId = (uidA: string, uidB: string) =>
+  [uidA, uidB].sort((a, b) => a.localeCompare(b)).join('_');
+
+const normalizeMessageGif = (value: unknown) => {
+  const gif = value && typeof value === 'object'
+    ? (value as Record<string, unknown>)
+    : {};
+  const id = getStringValue(gif.id);
+  const url = getStringValue(gif.url);
+  const allowedUrl = ALLOWED_LOCAL_GIFS.get(id);
+
+  if (!id || !allowedUrl || url !== allowedUrl) {
+    return null;
+  }
+
+  const previewUrl = getStringValue(gif.previewUrl);
+  const title = getStringValue(gif.title).slice(0, 80) || 'GIF';
+  const alt = getStringValue(gif.alt).slice(0, 120);
+
+  return {
+    id,
+    title,
+    url: allowedUrl,
+    ...(previewUrl === allowedUrl ? { previewUrl } : {}),
+    ...(alt ? { alt } : {}),
+    source: 'local',
+  };
+};
+
+const normalizeMessageInput = (body: Record<string, unknown>) => {
+  const type = body.type === 'gif' ? 'gif' : 'text';
+  const text = getStringValue(body.text).slice(0, MESSAGE_TEXT_MAX_LENGTH);
+  const gif = type === 'gif' ? normalizeMessageGif(body.gif) : null;
+
+  if (type === 'text' && !text) {
+    throw new Error('invalid_message_text');
+  }
+
+  if (type === 'gif' && !gif) {
+    throw new Error('invalid_message_gif');
+  }
+
+  return {
+    text,
+    type,
+    gif,
+  };
+};
+
+const consumeMessageAllowance = (
+  transaction: admin.firestore.Transaction,
+  usageRef: admin.firestore.DocumentReference,
+  usageData: Record<string, unknown>,
+  nowMillis: number
+) => {
+  const rawMessagesSent = Number(usageData.messagesSent ?? 0);
+  const windowStartedAtMillis = Number(usageData.messageWindowStartedAtMillis ?? 0);
+  const rawWindowCount = Number(usageData.messageWindowCount ?? 0);
+  const messagesSent = Number.isFinite(rawMessagesSent) ? rawMessagesSent : 0;
+  const windowCount = Number.isFinite(rawWindowCount) ? rawWindowCount : 0;
+  const withinWindow =
+    Number.isFinite(windowStartedAtMillis) &&
+    nowMillis - windowStartedAtMillis < MESSAGE_RATE_LIMIT_WINDOW_MS;
+  const nextWindowCount = withinWindow ? windowCount + 1 : 1;
+  const nextWindowStartedAtMillis = withinWindow ? windowStartedAtMillis : nowMillis;
+
+  if (messagesSent >= MESSAGE_DAILY_LIMIT || nextWindowCount > MESSAGE_RATE_LIMIT_WINDOW_MAX) {
+    throw new Error('message_rate_limit_reached');
+  }
+
+  transaction.set(
+    usageRef,
+    {
+      date: getDailyUsageDateKey(),
+      messagesSent: messagesSent + 1,
+      messageWindowCount: nextWindowCount,
+      messageWindowStartedAtMillis: nextWindowStartedAtMillis,
+      updatedAt: admin.firestore.FieldValue.serverTimestamp(),
+    },
+    { merge: true }
+  );
+};
+
+const assertMatchedAdultsWithConsent = (
+  myUid: string,
+  otherUid: string,
+  myProfile: Record<string, unknown>,
+  otherProfile: Record<string, unknown>
+) => {
+  const myMatches =
+    myProfile.matchParts && typeof myProfile.matchParts === 'object'
+      ? normalizeUidList((myProfile.matchParts as Record<string, unknown>).matches)
+      : [];
+  const otherMatches =
+    otherProfile.matchParts && typeof otherProfile.matchParts === 'object'
+      ? normalizeUidList((otherProfile.matchParts as Record<string, unknown>).matches)
+      : [];
+
+  if (!isAdultProfile(myProfile) || !isAdultProfile(otherProfile)) {
+    throw new Error('age_restricted');
+  }
+
+  if (!hasRequiredPrivacyConsent(myProfile)) {
+    throw new Error('ugc_consent_required');
+  }
+
+  if (!myMatches.includes(otherUid) || !otherMatches.includes(myUid)) {
+    throw new Error('not_matched');
+  }
+};
 
 const getRevenueCatWebhookEvent = (body: unknown): RevenueCatBillingEvent | null => {
   const payload =
@@ -1899,6 +2048,49 @@ const getPremiumDiscoveryAccess = async (
     billing.entitlement === BILLING_ENTITLEMENT_ID ||
     billing.activeEntitlements.includes(BILLING_ENTITLEMENT_ID)
   );
+};
+
+const isFirstMonthPremiumBilling = (billing: ServerBillingCurrent) => {
+  const productIds = [
+    billing.productId,
+    ...billing.activeSubscriptions,
+  ].filter((productId): productId is string => !!productId);
+
+  return productIds.some(
+    (productId) =>
+      productId === FIRST_MONTH_PRODUCT_ID ||
+      productId.includes('first_month')
+  );
+};
+
+const consumeLikeAllowance = async (
+  db: admin.firestore.Firestore,
+  transaction: admin.firestore.Transaction,
+  uid: string
+) => {
+  const billingRef = db.doc(`users/${uid}/billing/current`);
+  const usageRef = db.doc(`users/${uid}/usage/${getDailyUsageDateKey()}`);
+  const [billingSnapshot, usageSnapshot] = await Promise.all([
+    transaction.get(billingRef),
+    transaction.get(usageRef),
+  ]);
+  const billing = normalizeBillingCurrent(billingSnapshot.data());
+
+  if (billing.isPremium && !isFirstMonthPremiumBilling(billing)) {
+    return;
+  }
+
+  const usageData = usageSnapshot.data() ?? {};
+  const likesUsed = Number(usageData.likesUsed ?? 0);
+  const dailyLikeLimit = isFirstMonthPremiumBilling(billing)
+    ? FIRST_MONTH_DAILY_LIKES
+    : FREE_DAILY_LIKES;
+
+  if (likesUsed >= dailyLikeLimit) {
+    throw new Error('daily_like_limit_reached');
+  }
+
+  incrementDailyUsage(transaction, usageRef, usageData, 'likesUsed');
 };
 
 const getProfileDisplayName = (profile: Record<string, unknown>, uid: string) =>
@@ -2282,6 +2474,139 @@ registerDiscoverCandidatesRoute(app, {
   getPremiumDiscoveryAccess,
   defaultLocationFallbackFeedMode: DEFAULT_LOCATION_FALLBACK_FEED_MODE,
 });
+
+app.post('/sendMessage', verifyToken, async (req: AuthenticatedRequest, res: express.Response) => {
+  const body = req.body && typeof req.body === 'object'
+    ? (req.body as Record<string, unknown>)
+    : {};
+  const myUid = getRequestedActionUid(req, body.uid);
+  const matchUid = getStringValue(body.matchUid);
+
+  if (!myUid || !matchUid || myUid === matchUid) {
+    res.sendStatus(403);
+    return;
+  }
+
+  let normalizedMessage: ReturnType<typeof normalizeMessageInput>;
+
+  try {
+    normalizedMessage = normalizeMessageInput(body);
+  } catch (error) {
+    res.status(400).json({
+      message: (error as Error).message,
+    });
+    return;
+  }
+
+  const db = admin.firestore();
+  const conversationId = getConversationId(myUid, matchUid);
+  const conversationRef = db.collection('conversations').doc(conversationId);
+  const messageRef = conversationRef.collection('messages').doc();
+  const sentAt = admin.firestore.Timestamp.now();
+  const usageRef = db.doc(`users/${myUid}/usage/${getDailyUsageDateKey()}`);
+
+  try {
+    const result = await db.runTransaction(async (transaction) => {
+      const [myProfileSnapshot, otherProfileSnapshot, conversationSnapshot, usageSnapshot] =
+        await Promise.all([
+          transaction.get(db.collection('users').doc(myUid)),
+          transaction.get(db.collection('users').doc(matchUid)),
+          transaction.get(conversationRef),
+          transaction.get(usageRef),
+        ]);
+
+      if (!myProfileSnapshot.exists || !otherProfileSnapshot.exists) {
+        throw new Error('profile_not_found');
+      }
+
+      const myProfile = myProfileSnapshot.data() ?? {};
+      const otherProfile = otherProfileSnapshot.data() ?? {};
+
+      assertMatchedAdultsWithConsent(myUid, matchUid, myProfile, otherProfile);
+      consumeMessageAllowance(
+        transaction,
+        usageRef,
+        usageSnapshot.data() ?? {},
+        sentAt.toMillis()
+      );
+
+      const participants = [myUid, matchUid].sort((a, b) => a.localeCompare(b));
+      const conversationData = conversationSnapshot.data() ?? {};
+      const currentMessageCount = Number(conversationData.messageCount ?? 0);
+      const messageNumber = Number.isFinite(currentMessageCount)
+        ? currentMessageCount + 1
+        : 1;
+
+      transaction.set(
+        conversationRef,
+        {
+          participants,
+          ...(conversationSnapshot.exists ? {} : { createdAt: sentAt, typing: {} }),
+          messageCount: messageNumber,
+          updatedAt: sentAt,
+        },
+        { merge: true }
+      );
+
+      transaction.set(messageRef, {
+        senderUid: myUid,
+        sentToUid: matchUid,
+        text: normalizedMessage.text,
+        type: normalizedMessage.type,
+        number: messageNumber,
+        sentAt,
+        readAt: null,
+        isRead: false,
+        attachments: [],
+        gif: normalizedMessage.gif,
+        reactions: {},
+        isDeleted: false,
+        isStarred: false,
+        isEdited: false,
+        editedAt: null,
+        deletedAt: null,
+      });
+
+      return {
+        messageId: messageRef.id,
+        number: messageNumber,
+        sentAt: sentAt.toDate().toISOString(),
+      };
+    });
+
+    res.json({
+      message: 'OK',
+      conversationId,
+      ...result,
+    });
+  } catch (error) {
+    const errorMessage = (error as Error).message;
+
+    console.error('Failed to send message:', error);
+
+    if (
+      errorMessage === 'age_restricted' ||
+      errorMessage === 'ugc_consent_required' ||
+      errorMessage === 'not_matched'
+    ) {
+      res.sendStatus(403);
+      return;
+    }
+
+    if (errorMessage === 'message_rate_limit_reached') {
+      res.sendStatus(429);
+      return;
+    }
+
+    if (errorMessage === 'profile_not_found') {
+      res.sendStatus(404);
+      return;
+    }
+
+    res.sendStatus(500);
+  }
+});
+
 app.post('/likedByProfiles', verifyToken, async (req: AuthenticatedRequest, res: express.Response) => {
   const { uid } = req.body;
   const myUid = getRequestedActionUid(req, uid);
@@ -2803,8 +3128,155 @@ app.get('/users/:uid/claims', verifyToken, (req: AuthenticatedRequest, res: expr
     .catch((error: unknown) => {
       console.error('Hiba tÃ¶rtÃ©nt a felhasznÃ¡lÃ³ lekÃ©rdezÃ©sekor:', error);
       res.sendStatus(500);
-    });
+  });
 });
+
+const normalizeConversationParticipants = (value: unknown) =>
+  Array.isArray(value)
+    ? value.filter((uid): uid is string => typeof uid === 'string' && !!uid)
+    : [];
+
+const getServerMessagePreviewText = (message: Record<string, unknown>) => {
+  if (message.isDeleted === true) {
+    return 'Message deleted';
+  }
+
+  const text =
+    typeof message.text === 'string'
+      ? message.text
+      : typeof message.message === 'string'
+        ? message.message
+        : '';
+
+  if (text.trim()) {
+    return text.trim().slice(0, 500);
+  }
+
+  const gif =
+    message.gif && typeof message.gif === 'object'
+      ? (message.gif as Record<string, unknown>)
+      : {};
+  const gifTitle = typeof gif.title === 'string' ? gif.title.trim() : '';
+
+  return gifTitle || (message.type === 'gif' ? 'GIF' : '');
+};
+
+const getServerMessagePreviewPayload = (message: Record<string, unknown>) => ({
+  senderUid: typeof message.senderUid === 'string' ? message.senderUid : '',
+  sentToUid: typeof message.sentToUid === 'string' ? message.sentToUid : '',
+  text: getServerMessagePreviewText(message),
+  number: Number(message.number ?? 0),
+  type: message.type === 'gif' ? 'gif' : 'text',
+  sentAt:
+    message.sentAt instanceof admin.firestore.Timestamp ||
+    message.sentAt instanceof Date
+      ? message.sentAt
+      : admin.firestore.FieldValue.serverTimestamp(),
+});
+
+const updateConversationForCreatedMessage = async (
+  conversationId: string,
+  message: Record<string, unknown>
+) => {
+  const db = admin.firestore();
+  const conversationRef = db.collection('conversations').doc(conversationId);
+  const senderUid = typeof message.senderUid === 'string' ? message.senderUid : '';
+  const sentToUid = typeof message.sentToUid === 'string' ? message.sentToUid : '';
+
+  if (!senderUid || !sentToUid || senderUid === sentToUid) {
+    return false;
+  }
+
+  await db.runTransaction(async (transaction) => {
+    const conversationSnapshot = await transaction.get(conversationRef);
+    const conversation = conversationSnapshot.data() ?? {};
+    const participants = normalizeConversationParticipants(conversation.participants);
+
+    if (
+      participants.length !== 2 ||
+      !participants.includes(senderUid) ||
+      !participants.includes(sentToUid)
+    ) {
+      return;
+    }
+
+    const unreadCounts =
+      conversation.unreadCounts && typeof conversation.unreadCounts === 'object'
+        ? (conversation.unreadCounts as Record<string, unknown>)
+        : {};
+    const nextUnreadCount = Number(unreadCounts[sentToUid] ?? 0) + 1;
+    const lastMessage = getServerMessagePreviewPayload(message);
+
+    transaction.set(
+      conversationRef,
+      {
+        lastMessage,
+        unreadCounts: {
+          ...unreadCounts,
+          [senderUid]: 0,
+          [sentToUid]: Number.isFinite(nextUnreadCount) ? nextUnreadCount : 1,
+        },
+        updatedAt:
+          lastMessage.sentAt instanceof admin.firestore.Timestamp ||
+          lastMessage.sentAt instanceof Date
+            ? lastMessage.sentAt
+            : admin.firestore.FieldValue.serverTimestamp(),
+      },
+      { merge: true }
+    );
+  });
+
+  return true;
+};
+
+const updateConversationForChangedMessage = async (
+  conversationId: string,
+  message: Record<string, unknown>
+) => {
+  const db = admin.firestore();
+  const conversationRef = db.collection('conversations').doc(conversationId);
+  const senderUid = typeof message.senderUid === 'string' ? message.senderUid : '';
+  const sentToUid = typeof message.sentToUid === 'string' ? message.sentToUid : '';
+  const messageNumber = Number(message.number ?? 0);
+
+  if (!senderUid || !sentToUid || !Number.isFinite(messageNumber)) {
+    return;
+  }
+
+  await db.runTransaction(async (transaction) => {
+    const conversationSnapshot = await transaction.get(conversationRef);
+
+    if (!conversationSnapshot.exists) {
+      return;
+    }
+
+    const conversation = conversationSnapshot.data() ?? {};
+    const lastMessage =
+      conversation.lastMessage && typeof conversation.lastMessage === 'object'
+        ? (conversation.lastMessage as Record<string, unknown>)
+        : {};
+    const isCurrentPreview =
+      lastMessage.senderUid === senderUid &&
+      lastMessage.sentToUid === sentToUid &&
+      Number(lastMessage.number ?? -1) === messageNumber;
+
+    if (!isCurrentPreview) {
+      return;
+    }
+
+    transaction.set(
+      conversationRef,
+      {
+        lastMessage: {
+          ...lastMessage,
+          ...getServerMessagePreviewPayload(message),
+        },
+        updatedAt: admin.firestore.FieldValue.serverTimestamp(),
+      },
+      { merge: true }
+    );
+  });
+};
 
 app.post('/sendPromotionNotification', verifyToken, async (req: AuthenticatedRequest, res: express.Response) => {
   if (!isPrivilegedUser(req)) {
@@ -2886,6 +3358,8 @@ export const onConversationMessageCreated = onDocumentCreated(
       return;
     }
 
+    await updateConversationForCreatedMessage(conversationId, data);
+
     await notifyUserIfEnabled(
       sentToUid,
       createNotificationPayload(
@@ -2904,6 +3378,46 @@ export const onConversationMessageCreated = onDocumentCreated(
         actorUid: senderUid,
         conversationId,
       }
+    );
+  }
+);
+
+export const onConversationMessageUpdated = onDocumentUpdated(
+  'conversations/{conversationId}/messages/{messageId}',
+  async (event) => {
+    const beforeData = event.data?.before.data() as Record<string, unknown> | undefined;
+    const afterData = event.data?.after.data() as Record<string, unknown> | undefined;
+
+    if (!beforeData || !afterData) {
+      return;
+    }
+
+    const previewRelevantBefore = JSON.stringify({
+      senderUid: beforeData.senderUid ?? '',
+      sentToUid: beforeData.sentToUid ?? '',
+      text: beforeData.text ?? beforeData.message ?? '',
+      type: beforeData.type ?? '',
+      gif: beforeData.gif ?? null,
+      number: beforeData.number ?? 0,
+      isDeleted: beforeData.isDeleted === true,
+    });
+    const previewRelevantAfter = JSON.stringify({
+      senderUid: afterData.senderUid ?? '',
+      sentToUid: afterData.sentToUid ?? '',
+      text: afterData.text ?? afterData.message ?? '',
+      type: afterData.type ?? '',
+      gif: afterData.gif ?? null,
+      number: afterData.number ?? 0,
+      isDeleted: afterData.isDeleted === true,
+    });
+
+    if (previewRelevantBefore === previewRelevantAfter) {
+      return;
+    }
+
+    await updateConversationForChangedMessage(
+      event.params.conversationId,
+      afterData
     );
   }
 );

@@ -12,6 +12,7 @@ import { FormsModule } from '@angular/forms';
 import {
   IonButton,
   IonButtons,
+  IonCheckbox,
   IonContent,
   IonDatetime,
   IonIcon,
@@ -48,6 +49,7 @@ type ProfileOnboardingStep = 'basic' | 'lifestyle';
     TranslocoDirective,
     IonButton,
     IonButtons,
+    IonCheckbox,
     IonContent,
     IonDatetime,
     IonIcon,
@@ -99,6 +101,8 @@ export class IonModalPage implements OnInit, AfterViewInit {
   email?: string;
   password?: string;
   passwordConfirm?: string;
+  ageGateConfirmed = false;
+  legalConsentConfirmed = false;
   regFirstPhase?: boolean;
   regSecondPhase?: boolean;
   labels?: any = {};
@@ -209,7 +213,10 @@ export class IonModalPage implements OnInit, AfterViewInit {
   }
 
   canSubmitAccount(accountFormInvalid: boolean | null) {
-    return !accountFormInvalid && this.accountPasswordsMatch();
+    return !accountFormInvalid
+      && this.accountPasswordsMatch()
+      && this.ageGateConfirmed
+      && this.legalConsentConfirmed;
   }
 
   profileFieldsForActiveStep() {
@@ -275,11 +282,15 @@ export class IonModalPage implements OnInit, AfterViewInit {
   confirm() {
     let data: any = {};
     if (this.email) {
-      if (!this.accountPasswordsMatch()) {
+      if (!this.accountPasswordsMatch() || !this.ageGateConfirmed || !this.legalConsentConfirmed) {
         return;
       }
 
-      data = { email: this.email, password: this.password };
+      data = {
+        email: this.email,
+        password: this.password,
+        requiredLegalConsentAccepted: this.legalConsentConfirmed,
+      };
       this.email = '';
       this.password = '';
       this.passwordConfirm = '';
